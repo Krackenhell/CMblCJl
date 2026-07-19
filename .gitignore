@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+.env
+.streamlit/secrets.toml
+artifacts/*.joblib
+*.db
+.DS_Store
+.playwright-cli/
+streamlit.stdout.log
+streamlit.stderr.log

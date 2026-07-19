@@ -1,0 +1,22 @@
+{
+  "dataset": {
+    "type": "synthetic proof-of-pipeline",
+    "samples": 800,
+    "seed": 42,
+    "positive_share": 0.4113,
+    "assumption": "28% submissions receive an external polish boost that improves the artifact score without changing latent mastery.",
+    "limitation": "Not evidence of learning impact; requires a real student pilot."
+  },
+  "models": {
+    "assignment_only": {
+      "balanced_accuracy": 0.7512,
+      "f1": 0.7047,
+      "roc_auc": 0.8536
+    },
+    "assignment_plus_viva": {
+      "balanced_accuracy": 0.906,
+      "f1": 0.8912,
+      "roc_auc": 0.9638
+    }
+  }
+}

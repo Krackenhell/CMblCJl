@@ -1,0 +1,45 @@
+{
+  "course_id": "intro-ml",
+  "course_name": "Введение в машинное обучение",
+  "topic_id": "model-validation",
+  "topic_name": "Валидация модели и утечки данных",
+  "learning_goal": "Студент проектирует воспроизводимую схему оценки модели без утечки данных и выбирает метрики под задачу.",
+  "skills": [
+    {
+      "id": "validation_split",
+      "name": "Train / validation / test",
+      "description": "Разделяет роли обучающей, валидационной и тестовой выборок.",
+      "prerequisites": [],
+      "target_mastery": 0.80
+    },
+    {
+      "id": "data_leakage",
+      "name": "Data leakage",
+      "description": "Распознаёт передачу информации из test set в обучение.",
+      "prerequisites": ["validation_split"],
+      "target_mastery": 0.82
+    },
+    {
+      "id": "metrics",
+      "name": "Выбор метрик",
+      "description": "Связывает метрики с дисбалансом классов и ценой ошибок.",
+      "prerequisites": ["validation_split"],
+      "target_mastery": 0.78
+    },
+    {
+      "id": "cross_validation",
+      "name": "Cross-validation",
+      "description": "Понимает назначение и ограничения перекрёстной проверки.",
+      "prerequisites": ["validation_split"],
+      "target_mastery": 0.75
+    },
+    {
+      "id": "reproducibility",
+      "name": "Воспроизводимость",
+      "description": "Контролирует случайность и фиксирует условия эксперимента.",
+      "prerequisites": [],
+      "target_mastery": 0.75
+    }
+  ]
+}
+

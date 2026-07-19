@@ -1,0 +1,77 @@
+[
+  {
+    "student_id": "s01",
+    "name": "Анна Морозова",
+    "mastery": {"validation_split": 0.73, "data_leakage": 0.31, "metrics": 0.46, "cross_validation": 0.59, "reproducibility": 0.38},
+    "evidence": [
+      {"skill_id": "data_leakage", "score": 0.22, "confidence": 0.84, "quote": "Масштабирование до разделения не влияет на обучение.", "rationale": "Test statistics were not recognized.", "misconception": "scaling_is_always_safe", "source": "viva"},
+      {"skill_id": "metrics", "score": 0.35, "confidence": 0.77, "quote": "Accuracy подходит для любой классификации.", "rationale": "Class imbalance was ignored.", "misconception": "accuracy_is_universal", "source": "viva"}
+    ]
+  },
+  {
+    "student_id": "s02",
+    "name": "Максим Волков",
+    "mastery": {"validation_split": 0.84, "data_leakage": 0.78, "metrics": 0.82, "cross_validation": 0.71, "reproducibility": 0.76},
+    "evidence": []
+  },
+  {
+    "student_id": "s03",
+    "name": "Дарья Соколова",
+    "mastery": {"validation_split": 0.52, "data_leakage": 0.36, "metrics": 0.41, "cross_validation": 0.32, "reproducibility": 0.47},
+    "evidence": [{"skill_id": "validation_split", "score": 0.31, "confidence": 0.79, "quote": "Test нужен, чтобы выбрать лучшую модель.", "rationale": "Test and validation roles were mixed.", "misconception": "test_is_validation", "source": "viva"}]
+  },
+  {
+    "student_id": "s04",
+    "name": "Илья Попов",
+    "mastery": {"validation_split": 0.88, "data_leakage": 0.91, "metrics": 0.74, "cross_validation": 0.83, "reproducibility": 0.81},
+    "evidence": []
+  },
+  {
+    "student_id": "s05",
+    "name": "Софья Кузнецова",
+    "mastery": {"validation_split": 0.66, "data_leakage": 0.39, "metrics": 0.57, "cross_validation": 0.61, "reproducibility": 0.44},
+    "evidence": [{"skill_id": "data_leakage", "score": 0.28, "confidence": 0.82, "quote": "Лучше обучить scaler на всех данных — статистика будет точнее.", "rationale": "Preprocessing was trained on the test set.", "misconception": "test_can_train_preprocessing", "source": "viva"}]
+  },
+  {
+    "student_id": "s06",
+    "name": "Артём Лебедев",
+    "mastery": {"validation_split": 0.79, "data_leakage": 0.68, "metrics": 0.87, "cross_validation": 0.69, "reproducibility": 0.72},
+    "evidence": []
+  },
+  {
+    "student_id": "s07",
+    "name": "Елена Новикова",
+    "mastery": {"validation_split": 0.43, "data_leakage": 0.29, "metrics": 0.35, "cross_validation": 0.37, "reproducibility": 0.33},
+    "evidence": [{"skill_id": "metrics", "score": 0.25, "confidence": 0.80, "quote": "Если accuracy высокая, другие метрики не нужны.", "rationale": "Accuracy was treated as universal.", "misconception": "accuracy_is_universal", "source": "viva"}]
+  },
+  {
+    "student_id": "s08",
+    "name": "Никита Павлов",
+    "mastery": {"validation_split": 0.92, "data_leakage": 0.86, "metrics": 0.89, "cross_validation": 0.88, "reproducibility": 0.84},
+    "evidence": []
+  },
+  {
+    "student_id": "s09",
+    "name": "Мария Орлова",
+    "mastery": {"validation_split": 0.61, "data_leakage": 0.42, "metrics": 0.79, "cross_validation": 0.55, "reproducibility": 0.51},
+    "evidence": [{"skill_id": "data_leakage", "score": 0.32, "confidence": 0.74, "quote": "Не вижу разницы, когда обучать scaler.", "rationale": "The leakage mechanism was not explained.", "misconception": "scaling_is_always_safe", "source": "viva"}]
+  },
+  {
+    "student_id": "s10",
+    "name": "Роман Фёдоров",
+    "mastery": {"validation_split": 0.81, "data_leakage": 0.73, "metrics": 0.64, "cross_validation": 0.77, "reproducibility": 0.58},
+    "evidence": []
+  },
+  {
+    "student_id": "s11",
+    "name": "Полина Алексеева",
+    "mastery": {"validation_split": 0.57, "data_leakage": 0.34, "metrics": 0.44, "cross_validation": 0.46, "reproducibility": 0.39},
+    "evidence": [{"skill_id": "reproducibility", "score": 0.29, "confidence": 0.75, "quote": "Повторный запуск даст тот же результат автоматически.", "rationale": "Randomness was not considered.", "misconception": "deterministic_by_default", "source": "viva"}]
+  },
+  {
+    "student_id": "s12",
+    "name": "Кирилл Виноградов",
+    "mastery": {"validation_split": 0.76, "data_leakage": 0.63, "metrics": 0.71, "cross_validation": 0.66, "reproducibility": 0.69},
+    "evidence": []
+  }
+]
