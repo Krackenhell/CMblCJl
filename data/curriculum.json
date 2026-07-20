@@ -7,14 +7,14 @@
   "skills": [
     {
       "id": "validation_split",
-      "name": "Train / validation / test",
+      "name": "Разделение выборок",
       "description": "Разделяет роли обучающей, валидационной и тестовой выборок.",
       "prerequisites": [],
       "target_mastery": 0.80
     },
     {
       "id": "data_leakage",
-      "name": "Data leakage",
+      "name": "Утечка данных",
       "description": "Распознаёт передачу информации из test set в обучение.",
       "prerequisites": ["validation_split"],
       "target_mastery": 0.82
@@ -28,7 +28,7 @@
     },
     {
       "id": "cross_validation",
-      "name": "Cross-validation",
+      "name": "Перекрёстная проверка",
       "description": "Понимает назначение и ограничения перекрёстной проверки.",
       "prerequisites": ["validation_split"],
       "target_mastery": 0.75
@@ -42,4 +42,3 @@
     }
   ]
 }
-

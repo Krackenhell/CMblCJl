@@ -7,4 +7,9 @@ services:
       LLM_API_KEY: ${LLM_API_KEY:-}
       LLM_BASE_URL: ${LLM_BASE_URL:-https://api.openai.com/v1}
       LLM_MODEL: ${LLM_MODEL:-gpt-4.1-mini}
+      VIVATRACE_DB_PATH: /data/vivatrace.db
+    volumes:
+      - vivatrace_data:/data
 
+volumes:
+  vivatrace_data:

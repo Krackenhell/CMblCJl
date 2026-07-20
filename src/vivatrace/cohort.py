@@ -61,7 +61,7 @@ def intervention_for_gap(gap_share: float, skill_name: str) -> dict[str, str]:
         return {
             "level": "Вся группа",
             "decision": f"Начать следующую пару с 15-минутного разбора «{skill_name}».",
-            "format": "Контрпример → парное обсуждение → один exit-ticket.",
+            "format": "Контрпример → парное обсуждение → короткая проверка на выходе.",
         }
     if gap_share >= 0.10:
         return {
@@ -71,7 +71,6 @@ def intervention_for_gap(gap_share: float, skill_name: str) -> dict[str, str]:
         }
     return {
         "level": "Индивидуально",
-        "decision": f"Сохранить общий темп и выдать персональный repair по «{skill_name}».",
+        "decision": f"Сохранить общий темп и выдать персональное задание по «{skill_name}».",
         "format": "Микрообъяснение → повторный viva-вопрос.",
     }
-
