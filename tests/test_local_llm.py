@@ -109,23 +109,23 @@ def test_objective_article_check_overrides_false_positive_from_llm(monkeypatch):
                 },
                 trace,
             )
-        if stage == "формирование вопроса 1":
+        if stage == "формирование двух вопросов":
             return (
                 {
-                    "skill_id": "eng_articles",
-                    "text": "Какой артикль нужен перед повторным train?",
-                    "expected_answer": "Нужен the, потому что поезд уже упомянут.",
+                    "first_question": {
+                        "skill_id": "eng_articles",
+                        "text": "Почему перед повторно упомянутым train нужен артикль the?",
+                        "expected_answer": "Нужен the, потому что поезд уже упомянут.",
+                    },
+                    "transfer_question": {
+                        "skill_id": "eng_articles",
+                        "rule_focus": "the указывает на повторно упомянутый предмет",
+                        "expected_answer": "I saw a film. The film was excellent.",
+                    },
                 },
                 trace,
             )
-        return (
-            {
-                "skill_id": "eng_articles",
-                "rule_focus": "the указывает на повторно упомянутый предмет",
-                "expected_answer": "I saw a film. The film was excellent.",
-            },
-            trace,
-        )
+        raise AssertionError(stage)
 
     monkeypatch.setattr(llm, "_call_json", fake_call)
     answer = (
@@ -224,23 +224,23 @@ def test_structured_modal_score_bypasses_llm_grade(monkeypatch):
 
     def fake_call(stage, *args, **kwargs):
         stages.append(stage)
-        if stage == "формирование вопроса 1":
+        if stage == "формирование двух вопросов":
             return (
                 {
-                    "skill_id": "eng_modals_deduction",
-                    "text": "Почему в четвёртом пункте нужна форма must have?",
-                    "expected_answer": "Она выражает сильный вывод о прошлом.",
+                    "first_question": {
+                        "skill_id": "eng_modals_deduction",
+                        "text": "Почему в четвёртом пункте нужна форма must have?",
+                        "expected_answer": "Она выражает сильный вывод о прошлом.",
+                    },
+                    "transfer_question": {
+                        "skill_id": "eng_modals_deduction",
+                        "rule_focus": "для вывода о прошлом используется modal plus have plus V3",
+                        "expected_answer": "She must have left early — это сильный вывод о прошлом.",
+                    },
                 },
                 trace,
             )
-        return (
-            {
-                "skill_id": "eng_modals_deduction",
-                "rule_focus": "для вывода о прошлом используется modal plus have plus V3",
-                "expected_answer": "She must have left early — это сильный вывод о прошлом.",
-            },
-            trace,
-        )
+        raise AssertionError(stage)
 
     monkeypatch.setattr(llm, "_call_json", fake_call)
 
@@ -258,7 +258,7 @@ def test_structured_modal_score_bypasses_llm_grade(monkeypatch):
         "correct",
         "incorrect",
     ]
-    assert stages == ["формирование вопроса 1", "формирование вопроса 2"]
+    assert stages == ["формирование двух вопросов"]
 
 
 def test_broken_or_off_topic_generated_questions_are_rejected():
@@ -283,6 +283,14 @@ def test_broken_or_off_topic_generated_questions_are_rejected():
             "expected_answer": "Must have + V3 выражает сильный вывод о прошлом.",
         },
         "must have",
+    )
+    assert not generated_question_is_valid(
+        {
+            "text": "Почему после remember нужна форма to buy?",
+            "expected_answer": "Форма to buy используется после remember.",
+        },
+        "to buy",
+        source_prompt="He stopped ___ (buy) some water.",
     )
 
 

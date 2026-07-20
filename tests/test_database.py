@@ -21,10 +21,11 @@ def test_database_starts_with_three_students_and_no_attempts(tmp_path, monkeypat
 
     assert [student["id"] for student in list_students()] == ["s01", "s02", "s03"]
     assignments = list_assignments()
-    assert len(assignments) == 31
+    assert len(assignments) == 91
     english = [item for item in assignments if item["subject"] == "Английский язык · B2"]
-    assert len(english) == 30
+    assert len(english) == 90
     assert {item["difficulty"] for item in english} == {1, 2, 3}
+    assert all(len([row for row in english if row["topic_key"] == topic]) == 9 for topic in {row["topic_key"] for row in english})
     assignment = assignments[0]
     assert latest_attempts(assignment["id"]) == []
 

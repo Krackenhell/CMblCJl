@@ -12,7 +12,7 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from vivatrace.bkt import BKTModel, BKTParameters
+from vivatrace.bkt import combine_mastery_evidence
 from vivatrace.cohort import mastery_frame
 from vivatrace.curriculum import load_curriculum
 from vivatrace.database import (
@@ -30,7 +30,7 @@ from vivatrace.database import (
     update_assignment,
 )
 from vivatrace.demo import DATA_DIR
-from vivatrace.grading import grade_structured_answer
+from vivatrace.grading import grade_structured_answer, parse_numbered_items
 from vivatrace.local_llm import LLMTrace, LocalLLM, LocalLLMError
 from vivatrace.models import ArtifactFinding, Curriculum, Evidence, StudentState
 from vivatrace.rulebook import load_rulebook
@@ -39,7 +39,7 @@ from vivatrace.rulebook import load_rulebook
 ROOT = Path(__file__).resolve().parent
 CURRICULUM = load_curriculum(DATA_DIR / "curriculum.json")
 LLM = LocalLLM()
-ASSESSMENT_VERSION = 4
+ASSESSMENT_VERSION = 5
 RULEBOOK = load_rulebook()
 DIFFICULTY_LABELS = {1: "Базовый", 2: "Средний", 3: "Продвинутый"}
 COLORS = {
@@ -149,12 +149,16 @@ def difficulty_label(assignment: dict) -> str:
 
 
 def regrade_legacy_attempt(attempt: dict, assignment: dict) -> dict:
-    stored_check = (attempt.get("assessment") or {}).get("objective_check") or {}
-    if stored_check.get("source") == "deterministic_answer_key":
-        return attempt
+    stored_assessment = attempt.get("assessment") or {}
+    stored_check = stored_assessment.get("objective_check") or {}
+    if (
+        stored_check.get("source") == "deterministic_answer_key"
+        and int(stored_assessment.get("grader_version") or 0) >= 2
+    ):
+        return upgrade_mastery_model(attempt, assignment)
     check = grade_structured_answer(assignment, str(attempt.get("artifact") or ""))
     if not check:
-        return attempt
+        return upgrade_mastery_model(attempt, assignment)
     result = dict(attempt)
     wrong_positions = [
         str(slot["position"]) for slot in check["slots"] if not slot["correct"]
@@ -189,6 +193,38 @@ def regrade_legacy_attempt(attempt: dict, assignment: dict) -> dict:
     result["next_activity"] = {}
     result["teacher_recommendation"] = {}
     result["regraded_legacy"] = True
+    return upgrade_mastery_model(result, assignment)
+
+
+def upgrade_mastery_model(attempt: dict, assignment: dict) -> dict:
+    assessment = dict(attempt.get("assessment") or {})
+    if int(assessment.get("mastery_model_version") or 0) >= 2:
+        return attempt
+    result = dict(attempt)
+    submission_score = float(
+        assessment.get("submission_score", attempt.get("submission_score") or 0)
+    )
+    skill_scores = {
+        str(item.get("skill_id")): float(item.get("score", submission_score))
+        for item in assessment.get("skill_results") or []
+    }
+    previous_mastery = attempt.get("mastery") or {}
+    combined = {}
+    for skill_id in assignment["skill_ids"]:
+        viva_scores = [
+            float(item.get("score", 0))
+            for item in result.get("evidence") or []
+            if item.get("skill_id") == skill_id
+        ]
+        combined[skill_id] = combine_mastery_evidence(
+            0.35,
+            skill_scores.get(skill_id, submission_score),
+            viva_scores,
+        )
+    result["mastery"] = {**previous_mastery, **combined}
+    assessment["mastery_model_version"] = 2
+    result["assessment"] = assessment
+    result["mastery_recalculated"] = True
     return result
 
 
@@ -277,6 +313,8 @@ def render_sidebar() -> tuple[str, dict | None]:
 def start_assessment(student: dict, assignment: dict, artifact: str) -> None:
     skill_names = {skill_id: CURRICULUM.skill_by_id[skill_id].name for skill_id in assignment["skill_ids"]}
     assessment, traces = LLM.assess_submission(assignment, artifact, skill_names)
+    assessment["grader_version"] = 2
+    assessment["mastery_model_version"] = 2
     findings = [
         ArtifactFinding(
             skill_id=item["skill_id"],
@@ -288,6 +326,15 @@ def start_assessment(student: dict, assignment: dict, artifact: str) -> None:
         for item in assessment["skill_results"]
         if item["score"] < 0.75
     ]
+    mastery_before = get_mastery(student["id"], assignment["skill_ids"])
+    mastery_after_task = dict(mastery_before)
+    for item in assessment["skill_results"]:
+        skill_id = item["skill_id"]
+        mastery_after_task[skill_id] = combine_mastery_evidence(
+            mastery_before.get(skill_id, 0.35),
+            float(item["score"]),
+            [],
+        )
     st.session_state.learning_flow = {
         "assessment_version": ASSESSMENT_VERSION,
         "student_id": student["id"],
@@ -298,10 +345,39 @@ def start_assessment(student: dict, assignment: dict, artifact: str) -> None:
         "questions": assessment["questions"],
         "current": 0,
         "evidence": [],
-        "mastery": get_mastery(student["id"], assignment["skill_ids"]),
+        "mastery_before": mastery_before,
+        "mastery_after_task": dict(mastery_after_task),
+        "mastery": mastery_after_task,
         "completed": False,
         "traces": [asdict(trace) for trace in traces],
     }
+
+
+def render_assignment_answer(student: dict, assignment: dict) -> str:
+    """Render one compact field per deterministic numbered item."""
+    reference_items = parse_numbered_items(
+        str((assignment.get("rubric") or {}).get("reference_answer") or "")
+    )
+    instruction_items = parse_numbered_items(str(assignment.get("instructions") or ""))
+    nonce = st.session_state.get("attempt_nonce", 0)
+    if len(reference_items) >= 2 and len(instruction_items) == len(reference_items):
+        st.caption("Введите ответ отдельно для каждого пункта. Номера и служебные подсказки добавятся автоматически.")
+        answers = []
+        for index, prompt in enumerate(instruction_items, start=1):
+            answers.append(
+                st.text_input(
+                    f"{index}. {prompt}",
+                    key=f'artifact-item-{student["id"]}-{assignment["id"]}-{nonce}-{index}',
+                    placeholder="Ваш ответ",
+                ).strip()
+            )
+        return "\n".join(f"{index}) {answer}" for index, answer in enumerate(answers, start=1))
+    return st.text_area(
+        "Ваш ответ",
+        value=assignment["starter_code"],
+        height=330,
+        key=f'artifact-{student["id"]}-{assignment["id"]}-{nonce}',
+    )
 
 
 def verified_error_facts(assessment: dict, evidence_items: list) -> list[dict]:
@@ -595,16 +671,12 @@ def render_student(student: dict) -> None:
         st.session_state.learning_flow = flow
     if flow is None:
         st.subheader("1. Выполните задание")
-        artifact = st.text_area(
-            "Ваш ответ",
-            value=assignment["starter_code"],
-            height=330,
-            key=f'artifact-{student["id"]}-{assignment["id"]}-{st.session_state.get("attempt_nonce", 0)}',
-        )
+        artifact = render_assignment_answer(student, assignment)
         if not LLM.identity()["ready"]:
             st.error(r"Сервис проверки сейчас недоступен. Запустите scripts\setup_local_llm.ps1 один раз.")
         if st.button("Отправить на проверку", width="stretch", disabled=not LLM.identity()["ready"]):
-            if len(artifact.strip()) < 2:
+            numbered_answers = parse_numbered_items(artifact)
+            if not artifact.strip() or (numbered_answers and not any(numbered_answers)):
                 st.warning("Введите ответ перед проверкой.")
             else:
                 try:
@@ -666,10 +738,23 @@ def render_student(student: dict) -> None:
                     try:
                         with st.spinner("Проверяем ответ…"):
                             evidence, trace = LLM.evaluate_answer(assignment, question, answer)
-                            model = BKTModel(BKTParameters())
-                            flow["mastery"][question.skill_id] = model.update(
-                                flow["mastery"].get(question.skill_id, model.params.prior),
-                                evidence.score,
+                            skill_submission = next(
+                                (
+                                    float(item["score"])
+                                    for item in assessment["skill_results"]
+                                    if item["skill_id"] == question.skill_id
+                                ),
+                                float(assessment["submission_score"]),
+                            )
+                            skill_viva_scores = [
+                                item.score
+                                for item in [*flow["evidence"], evidence]
+                                if item.skill_id == question.skill_id
+                            ]
+                            flow["mastery"][question.skill_id] = combine_mastery_evidence(
+                                flow.get("mastery_before", {}).get(question.skill_id, 0.35),
+                                skill_submission,
+                                skill_viva_scores,
                             )
                             flow["evidence"].append(evidence)
                             flow["traces"].append(asdict(trace))
@@ -690,7 +775,20 @@ def render_student(student: dict) -> None:
         )
     else:
         st.success("Результат сохранён и уже доступен преподавателю.")
-    st.markdown(f'**Оценка исходного задания: {assessment["submission_score"]:.0%}**')
+    viva_average = (
+        sum(item.score for item in flow["evidence"]) / len(flow["evidence"])
+        if flow["evidence"]
+        else None
+    )
+    result_columns = st.columns(3)
+    with result_columns[0]:
+        st.metric("Исходное задание", f'{assessment["submission_score"]:.0%}')
+    with result_columns[1]:
+        st.metric("Проверка понимания", f"{viva_average:.0%}" if viva_average is not None else "—")
+    with result_columns[2]:
+        combined_mastery = sum(flow["mastery"].values()) / max(len(flow["mastery"]), 1)
+        st.metric("Освоение после всего цикла", f"{combined_mastery:.0%}")
+    st.caption("Освоение пересчитывается последовательно: прошлые попытки → исходное задание → оба ответа Viva.")
     render_criterion_results(assessment)
     for evidence in flow["evidence"]:
         skill = CURRICULUM.skill_by_id[evidence.skill_id]

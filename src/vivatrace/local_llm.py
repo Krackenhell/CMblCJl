@@ -65,20 +65,46 @@ def sanitize_mixed_modal_negation(value: str) -> str:
 
 
 def select_relevant_principle(rule: dict[str, Any], focus: str) -> str:
-    principles = [str(item) for item in rule.get("principles") or []]
+    summary_parts = [
+        item.strip()
+        for item in re.split(r"[.;]", str(rule.get("summary") or ""))
+        if item.strip()
+    ]
+    principles = summary_parts + [str(item) for item in rule.get("principles") or []]
     if not principles:
         return str(rule.get("summary") or "проверяемое правило")
-    focus_tokens = set(re.findall(r"[a-z]+(?:'[a-z]+)?", focus.lower()))
+    focus_tokens = english_stems(focus)
 
     def overlap(principle: str) -> int:
-        tokens = set(re.findall(r"[a-z]+(?:'[a-z]+)?", principle.lower()))
+        tokens = english_stems(principle)
         return len(focus_tokens & tokens)
 
     return max(principles, key=overlap)
 
 
+def english_stems(value: str) -> set[str]:
+    stems: set[str] = set()
+    for token in re.findall(r"[a-z]+(?:'[a-z]+)?", value.lower()):
+        if token in {"the", "a", "an", "i", "he", "she", "it", "we", "they", "some"}:
+            continue
+        if token.endswith("pped") and len(token) > 5:
+            token = token[:-3]
+        elif token.endswith("ing") and len(token) > 5:
+            token = token[:-3]
+            if len(token) > 2 and token[-1] == token[-2]:
+                token = token[:-1]
+        elif token.endswith("ed") and len(token) > 4:
+            token = token[:-2]
+        stems.add(token)
+    return stems
+
+
 def generated_question_is_valid(
-    item: dict[str, Any], required_form: str = "", *, transfer: bool = False
+    item: dict[str, Any],
+    required_form: str = "",
+    *,
+    transfer: bool = False,
+    source_prompt: str = "",
 ) -> bool:
     text_key = "rule_focus" if transfer else "text"
     text = str(item.get(text_key) or "").strip()
@@ -98,7 +124,44 @@ def generated_question_is_valid(
         )
         if not required_tokens.issubset(generated_tokens):
             return False
+    context_terms = english_stems(source_prompt) - english_stems(required_form)
+    if context_terms:
+        generated_context = english_stems(text + " " + expected)
+        if not (context_terms & generated_context):
+            return False
     return True
+
+
+def grounded_transfer_example(
+    source_prompt: str,
+    required_form: str,
+    principle: str,
+    examples: list[str],
+) -> str:
+    stems = english_stems(source_prompt)
+    normalized_form = required_form.lower().strip()
+    if "stop" in stems and normalized_form.startswith("to "):
+        return (
+            "The driver stopped to buy some water. Здесь stop + to-infinitive означает, "
+            "что человек прервал другое действие ради покупки воды."
+        )
+    if "stop" in stems and normalized_form.endswith("ing"):
+        return (
+            "She stopped smoking last year. Здесь stop + -ing означает полностью "
+            "прекратить действие."
+        )
+    if "remember" in stems and normalized_form.startswith("to "):
+        return (
+            "Remember to send the message. Здесь remember + to-infinitive означает "
+            "не забыть выполнить действие."
+        )
+    if "remember" in stems and normalized_form.endswith("ing"):
+        return (
+            "I remember meeting her at university. Здесь remember + -ing относится к "
+            "воспоминанию о прошлом действии."
+        )
+    example = examples[0] if examples else required_form
+    return f"{example} Это новый пример правила: {principle}"
 
 
 def check_article_cloze(assignment: dict[str, Any], answer: str) -> dict[str, Any] | None:
@@ -458,165 +521,124 @@ class LocalLLM:
         question_schema = {
             "type": "object",
             "additionalProperties": False,
-            "required": ["skill_id", "text", "expected_answer"],
+            "required": ["first_question", "transfer_question"],
             "properties": {
-                "skill_id": {"type": "string", "enum": assignment["skill_ids"]},
-                "text": {"type": "string", "maxLength": 220},
-                "expected_answer": {"type": "string", "maxLength": 180},
-            },
-        }
-        transfer_schema = {
-            "type": "object",
-            "additionalProperties": False,
-            "required": ["skill_id", "rule_focus", "expected_answer"],
-            "properties": {
-                "skill_id": {"type": "string", "enum": assignment["skill_ids"]},
-                "rule_focus": {"type": "string", "maxLength": 120},
-                "expected_answer": {"type": "string", "maxLength": 260},
+                "first_question": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["skill_id", "text", "expected_answer"],
+                    "properties": {
+                        "skill_id": {"type": "string", "enum": assignment["skill_ids"]},
+                        "text": {"type": "string", "maxLength": 260},
+                        "expected_answer": {"type": "string", "maxLength": 260},
+                    },
+                },
+                "transfer_question": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["skill_id", "rule_focus", "expected_answer"],
+                    "properties": {
+                        "skill_id": {"type": "string", "enum": assignment["skill_ids"]},
+                        "rule_focus": {"type": "string", "maxLength": 180},
+                        "expected_answer": {"type": "string", "maxLength": 300},
+                    },
+                },
             },
         }
         common_question_system = (
-            "Создай ОДИН короткий самодостаточный устный вопрос по-русски и один ожидаемый ответ. "
-            "Поля text и expected_answer обязательно пиши по-русски; английским может быть только "
-            "цитируемый пример. Нельзя создавать предложение с пропусками или повторно просить заполнить "
-            "задание. Не придумывай ограничение "
-            "темы примера, которого нет в вопросе. Вопрос должен оканчиваться знаком вопроса. Верни JSON. "
+            "Создай сразу ДВА коротких самодостаточных Viva-вопроса по одному указанному правилу. "
+            "Первый вопрос проверяет понимание конкретного source_prompt, второй — перенос того же правила "
+            "в новый контекст. Не смешивай слова или ситуации из разных пунктов задания. Не утверждай, что "
+            "to-infinitive ставится после смыслового глагола из скобок: управляющая конструкция дана в "
+            "source_prompt. Поля пиши по-русски, английским оставляй только примеры и формы. Первый text "
+            "должен оканчиваться знаком вопроса. В rule_focus сформулируй понятное условие применения, а не "
+            "обрывок правила. В каждом expected_answer дай прямой содержательный ответ, не повтор вопроса. "
+            "Верни только JSON указанной схемы."
         )
-        if result["mode"] == "viva":
-            first_instruction = (
-                "Выбери одну конкретную правильную форму из student_answer и спроси, почему она "
-                "соответствует правилу из grounded_rules. Не придумывай ошибку в форме, которую ключ уже "
-                "признал правильной. expected_answer обязан кратко объяснять правило, а не повторять вопрос."
-            )
-            second_instruction = (
-                "Выбери одно конкретное правило для переноса. В rule_focus запиши по-русски только условие "
-                "его применения. В expected_answer дай одно "
-                "НОВОЕ английское предложение и коротко объясни его по-русски. expected_answer не должен "
-                "содержать вопрос или несколько разных примеров."
-            )
-        else:
-            first_instruction = (
-                "Процитируй одну конкретную ошибочную форму из criterion_results и спроси, какое "
-                "правило нарушено и как исправить именно этот фрагмент."
-            )
-            second_instruction = (
-                "Выбери правило из выявленного пробела. В rule_focus запиши по-русски только условие "
-                "правила. В expected_answer дай одно НОВОЕ правильное английское предложение и объяснение."
-            )
         wrong_slots = [
             slot
             for slot in (objective_check or {}).get("slots", [])
             if not slot.get("correct")
         ]
-        required_form = (
-            str(wrong_slots[0].get("expected_phrase") or "") if wrong_slots else ""
+        all_slots = (objective_check or {}).get("slots", [])
+        focused_slot = wrong_slots[0] if wrong_slots else (all_slots[0] if all_slots else {})
+        required_form = str(focused_slot.get("expected_phrase") or "")
+        source_prompt = str(focused_slot.get("prompt") or assignment["instructions"])
+        grounded_focus = required_form
+        rule = self.rulebook.get(assignment["skill_ids"][0], {})
+        principle = select_relevant_principle(
+            rule, f"{source_prompt} {grounded_focus}"
         )
-        first_question_payload = {
+        question_payload = {
             "topic": assignment["topic"],
             "student_answer": answer,
             "mode": result["mode"],
             "criterion_results": result["criterion_results"],
             "grounded_rules": grounded_rules,
+            "source_prompt": source_prompt,
             "required_form": required_form,
-        }
-        second_question_payload = {
-            "topic": assignment["topic"],
-            "mode": result["mode"],
-            "grounded_rules": grounded_rules,
-            "required_form": required_form,
-        }
-        first_item, first_trace = self._call_json(
-            "формирование вопроса 1",
-            common_question_system + first_instruction,
-            first_question_payload,
-            question_schema,
-            200,
-            fast=True,
-        )
-        question_traces = [first_trace]
-        first_item_trace = first_trace
-        if not generated_question_is_valid(first_item, required_form):
-            first_item, first_item_trace = self._call_json(
-                "исправление вопроса 1",
-                common_question_system
-                + first_instruction
-                + " Предыдущий вопрос был оборван или ушёл от required_form. Создай законченный "
-                "вопрос со знаком вопроса и объяснение по-русски; required_form обязательно процитируй без изменения.",
-                {**first_question_payload, "invalid_output": first_item},
-                question_schema,
-                300,
-                fast=True,
-            )
-            question_traces.append(first_item_trace)
-        second_item, second_trace = self._call_json(
-            "формирование вопроса 2",
-            common_question_system + second_instruction,
-            second_question_payload,
-            transfer_schema,
-            260,
-            fast=True,
-        )
-        question_traces.append(second_trace)
-        second_item_trace = second_trace
-        if not generated_question_is_valid(second_item, required_form, transfer=True):
-            second_item, second_item_trace = self._call_json(
-                "исправление вопроса 2",
-                common_question_system
-                + second_instruction
-                + " Предыдущий перенос ушёл от required_form. rule_focus и новый пример обязаны "
-                "проверять именно required_form; добавь короткое объяснение по-русски.",
-                {**second_question_payload, "invalid_output": second_item},
-                transfer_schema,
-                320,
-                fast=True,
-            )
-            question_traces.append(second_item_trace)
-        grounded_focus = required_form or str(
-            ((objective_check or {}).get("slots") or [{}])[0].get("expected_phrase") or ""
-        )
-        rule = self.rulebook.get(assignment["skill_ids"][0], {})
-        principle = select_relevant_principle(rule, grounded_focus)
-        examples = [str(item) for item in rule.get("examples") or []]
-        example = next(
-            (
-                item
-                for item in examples
-                if set(re.findall(r"[a-z]+", grounded_focus.lower()))
-                <= set(re.findall(r"[a-z]+", item.lower()))
+            "grounded_rule_focus": principle,
+            "instructions": (
+                "Если mode=diagnostic, первый вопрос просит объяснить исправление именно source_prompt. "
+                "Если mode=viva, он просит объяснить уже правильную форму. Второй вопрос просит придумать "
+                "новое полное английское предложение и объяснить смысл формы."
             ),
-            examples[0] if examples else grounded_focus,
+        }
+        question_pair, question_trace = self._call_json(
+            "формирование двух вопросов",
+            common_question_system,
+            question_payload,
+            question_schema,
+            520,
+            fast=True,
         )
-        if not generated_question_is_valid(first_item, required_form):
+        question_traces = [question_trace]
+        first_item = dict(question_pair.get("first_question") or {})
+        second_item = dict(question_pair.get("transfer_question") or {})
+        examples = [str(item) for item in rule.get("examples") or []]
+        if not generated_question_is_valid(
+            first_item, required_form, source_prompt=source_prompt
+        ):
             if wrong_slots:
                 position = wrong_slots[0].get("position")
                 question_text = (
-                    f"Почему в пункте {position} нужна форма «{grounded_focus}» и какое правило она выражает?"
+                    f"В пункте {position} дано «{source_prompt}». Почему здесь нужна форма "
+                    f"«{grounded_focus}» и какой смысл она выражает?"
                 )
             else:
                 question_text = (
-                    f"Какое правило подтверждает форма «{grounded_focus}» в выполненном задании?"
+                    f"В пункте дано «{source_prompt}». Почему форма «{grounded_focus}» "
+                    "соответствует смыслу предложения?"
                 )
             first_item = {
                 "skill_id": assignment["skill_ids"][0],
                 "text": question_text,
                 "expected_answer": f"{grounded_focus}: {principle}",
             }
-        if not generated_question_is_valid(second_item, required_form, transfer=True):
+        if not generated_question_is_valid(
+            second_item,
+            required_form,
+            transfer=True,
+            source_prompt=source_prompt,
+        ):
             second_item = {
                 "skill_id": assignment["skill_ids"][0],
                 "rule_focus": principle,
-                "expected_answer": f"{example} Это новый пример правила: {principle}",
+                "expected_answer": grounded_transfer_example(
+                    source_prompt, grounded_focus, principle, examples
+                ),
             }
         rule_focus = second_item.pop("rule_focus").rstrip(".?")
         second_item["text"] = (
-            f"Приведите новое английское предложение по правилу: «{rule_focus}»?"
+            f"Составьте одно новое английское предложение, где действует правило «{rule_focus}», "
+            "и кратко объясните выбор формы?"
         )
         for item in (first_item, second_item):
             for key, value in item.items():
                 if isinstance(value, str):
                     item[key] = sanitize_mixed_modal_negation(value)
         question_items = [first_item, second_item]
-        question_item_traces = [first_item_trace, second_item_trace]
+        question_item_traces = [question_trace, question_trace]
         result["questions"] = [
             ProbeQuestion(
                 id=f"local-{trace.trace_id}-{index}",

@@ -86,6 +86,19 @@ def test_numbered_parser_does_not_split_years_or_explanations():
     assert items[0].endswith("2020")
 
 
+def test_legacy_starter_suffix_does_not_corrupt_last_answer():
+    assignment = get_assignment(8)
+
+    result = grade_structured_answer(
+        assignment,
+        "1) meeting\n2) to send\n3) smoking\n4) to buy Meaning difference:",
+    )
+
+    assert result is not None
+    assert result["score"] == 1
+    assert result["slots"][3]["prompt"] == "He stopped ___ (buy) some water"
+
+
 def test_reference_slashes_expand_to_real_answers():
     assert accepted_variants("might/could have") == ["might have", "could have"]
     assert set(accepted_variants("She asked whether/if I knew.")) >= {
@@ -139,3 +152,18 @@ def test_adversarial_benchmark_has_no_false_scores():
         ), case["name"]
 
     assert len(cases) >= 24
+
+
+def test_assignment_bank_has_90_unique_titles_and_nine_variants_per_topic():
+    path = Path(__file__).parents[1] / "data" / "english_b2_assignments.json"
+    assignments = json.loads(path.read_text(encoding="utf-8"))
+
+    assert len(assignments) == 90
+    assert len({item["title"] for item in assignments}) == 90
+    topics = {item["topic_key"] for item in assignments}
+    assert len(topics) == 10
+    for topic in topics:
+        variants = sorted(
+            item["variant"] for item in assignments if item["topic_key"] == topic
+        )
+        assert variants == list(range(1, 10))

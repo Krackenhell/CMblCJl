@@ -71,6 +71,11 @@ def accepted_variants(reference: str) -> list[str]:
 
 
 def answer_matches(actual: str, expected_variants: list[str]) -> bool:
+    zero_markers = {"—", "–", "-", "zero", "zero article", "no article"}
+    if actual.strip().lower() in zero_markers and any(
+        expected.strip().lower() in zero_markers for expected in expected_variants
+    ):
+        return True
     normalized_actual = normalize_answer(actual)
     if not normalized_actual:
         return False
@@ -78,15 +83,16 @@ def answer_matches(actual: str, expected_variants: list[str]) -> bool:
         normalized_expected = normalize_answer(expected)
         if normalized_actual == normalized_expected:
             return True
-        trailing_sections = (
-            " because ",
-            " explanation ",
-            " explanations ",
-            " meaning difference ",
-            " which clause ",
-        )
+        trailing_sections = {
+            "because",
+            "explanation",
+            "explanations",
+            "meaning difference",
+            "which clause",
+        }
+        remainder = normalized_actual[len(normalized_expected) :].strip()
         if any(
-            normalized_actual.startswith(normalized_expected + marker)
+            remainder == marker or remainder.startswith(marker + " ")
             for marker in trailing_sections
         ):
             return True
@@ -99,6 +105,7 @@ def grade_numbered_answer(assignment: dict[str, Any], answer: str) -> dict[str, 
     if len(reference_items) < 2:
         return None
     answer_items = parse_numbered_items(answer)
+    instruction_items = parse_numbered_items(str(assignment.get("instructions") or ""))
     slots = []
     for index, expected in enumerate(reference_items, start=1):
         actual = answer_items[index - 1] if index <= len(answer_items) else ""
@@ -107,6 +114,7 @@ def grade_numbered_answer(assignment: dict[str, Any], answer: str) -> dict[str, 
         slots.append(
             {
                 "position": index,
+                "prompt": instruction_items[index - 1] if index <= len(instruction_items) else "",
                 "expected": expected,
                 "actual": actual,
                 "correct": correct,

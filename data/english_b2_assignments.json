@@ -8,11 +8,20 @@
     "topic": "Времена и связь с настоящим",
     "instructions": "Complete the sentences: 1) I ___ (lose) my keys, so I can't open the door. 2) We ___ (visit) Prague in 2023. 3) ___ you ever ___ (try) scuba diving? 4) She ___ (not finish) the report yet.",
     "starter_code": "1) ...\n2) ...\n3) ...\n4) ...\nExplanation: ...",
-    "skill_ids": ["eng_present_perfect"],
+    "skill_ids": [
+      "eng_present_perfect"
+    ],
     "rubric": {
       "reference_answer": "1) have lost; 2) visited; 3) Have, tried; 4) hasn't finished.",
-      "criteria": ["Present Perfect for a present result, life experience and yet", "Past Simple for a finished time in 2023", "correct auxiliary and past participle"],
-      "common_errors": ["using Past Simple with yet", "using Present Perfect with a finished date"]
+      "criteria": [
+        "Present Perfect for a present result, life experience and yet",
+        "Past Simple for a finished time in 2023",
+        "correct auxiliary and past participle"
+      ],
+      "common_errors": [
+        "using Past Simple with yet",
+        "using Present Perfect with a finished date"
+      ]
     }
   },
   {
@@ -24,11 +33,20 @@
     "topic": "Реальные и гипотетические условия",
     "instructions": "Complete and classify the conditionals: 1) If the weather ___ (improve), we ___ (go) hiking tomorrow. 2) If I ___ (be) the team leader, I ___ (change) the schedule. 3) What would you do if you ___ (miss) an important deadline?",
     "starter_code": "1) ... — type ...\n2) ... — type ...\n3) ...",
-    "skill_ids": ["eng_conditionals"],
+    "skill_ids": [
+      "eng_conditionals"
+    ],
     "rubric": {
       "reference_answer": "1) improves, will go — First Conditional; 2) were, would change — Second Conditional; 3) missed.",
-      "criteria": ["present form after if in First Conditional", "past form and would in Second Conditional", "distinguishes realistic future from hypothetical present/future"],
-      "common_errors": ["will after if", "would in both clauses"]
+      "criteria": [
+        "present form after if in First Conditional",
+        "past form and would in Second Conditional",
+        "distinguishes realistic future from hypothetical present/future"
+      ],
+      "common_errors": [
+        "will after if",
+        "would in both clauses"
+      ]
     }
   },
   {
@@ -40,11 +58,20 @@
     "topic": "Страдательный залог",
     "instructions": "Rewrite in the passive without changing the tense: 1) Researchers developed the vaccine in 2020. 2) The company is testing a new payment system. 3) Someone has stolen my bicycle. 4) They will announce the results tomorrow.",
     "starter_code": "1) ...\n2) ...\n3) ...\n4) ...",
-    "skill_ids": ["eng_passive"],
+    "skill_ids": [
+      "eng_passive"
+    ],
     "rubric": {
       "reference_answer": "1) The vaccine was developed in 2020. 2) A new payment system is being tested. 3) My bicycle has been stolen. 4) The results will be announced tomorrow.",
-      "criteria": ["correct form of be", "past participle", "original tense preserved"],
-      "common_errors": ["missing be", "using past simple in every sentence"]
+      "criteria": [
+        "correct form of be",
+        "past participle",
+        "original tense preserved"
+      ],
+      "common_errors": [
+        "missing be",
+        "using past simple in every sentence"
+      ]
     }
   },
   {
@@ -56,11 +83,21 @@
     "topic": "Косвенная речь",
     "instructions": "Report the statements as if you were speaking the next day: 1) Maya said, ‘I am working from home today.’ 2) Leo said, ‘I finished the task yesterday.’ 3) Nina asked, ‘Have you seen this document?’",
     "starter_code": "1) Maya said that ...\n2) Leo said that ...\n3) Nina asked ...",
-    "skill_ids": ["eng_reported_speech"],
+    "skill_ids": [
+      "eng_reported_speech"
+    ],
     "rubric": {
       "reference_answer": "1) Maya said that she was working from home that day. 2) Leo said that he had finished the task the day before. 3) Nina asked whether/if I had seen that document.",
-      "criteria": ["backshift after a past reporting verb", "pronoun changes", "today/yesterday/this changed appropriately", "reported yes/no question uses if or whether and statement order"],
-      "common_errors": ["keeping question word order", "not changing time expressions"]
+      "criteria": [
+        "backshift after a past reporting verb",
+        "pronoun changes",
+        "today/yesterday/this changed appropriately",
+        "reported yes/no question uses if or whether and statement order"
+      ],
+      "common_errors": [
+        "keeping question word order",
+        "not changing time expressions"
+      ]
     }
   },
   {
@@ -72,11 +109,21 @@
     "topic": "Модальные глаголы предположения",
     "instructions": "Choose must, might/could or can't: 1) The lights are off and nobody answers; they ___ be at home. 2) Her car is outside; she ___ be in the office. 3) I am not sure, but the email ___ be in the spam folder. 4) He knew the confidential details; someone ___ have told him.",
     "starter_code": "1) ... because ...\n2) ... because ...\n3) ... because ...\n4) ... because ...",
-    "skill_ids": ["eng_modals_deduction"],
+    "skill_ids": [
+      "eng_modals_deduction"
+    ],
     "rubric": {
       "reference_answer": "1) can't; 2) must; 3) might/could; 4) must have.",
-      "criteria": ["can't for strong negative deduction", "must for strong positive deduction", "might/could for possibility", "modal + have + past participle for past deduction"],
-      "common_errors": ["mustn't for negative deduction", "must told instead of must have told"]
+      "criteria": [
+        "can't for strong negative deduction",
+        "must for strong positive deduction",
+        "might/could for possibility",
+        "modal + have + past participle for past deduction"
+      ],
+      "common_errors": [
+        "mustn't for negative deduction",
+        "must told instead of must have told"
+      ]
     }
   },
   {
@@ -88,11 +135,21 @@
     "topic": "Defining и non-defining clauses",
     "instructions": "Combine the sentences with a relative clause and add commas where needed: 1) The woman designed the app. She won an award. 2) My laptop is five years old. It still works perfectly. 3) The café serves vegan food. We met there.",
     "starter_code": "1) ...\n2) ...\n3) ...\nWhich clause is non-defining? ...",
-    "skill_ids": ["eng_relative_clauses"],
+    "skill_ids": [
+      "eng_relative_clauses"
+    ],
     "rubric": {
       "reference_answer": "1) The woman who designed the app won an award. 2) My laptop, which is five years old, still works perfectly. 3) The café where we met serves vegan food.",
-      "criteria": ["who for people", "which for things", "where for places", "commas around non-defining information"],
-      "common_errors": ["that in a non-defining clause", "missing commas"]
+      "criteria": [
+        "who for people",
+        "which for things",
+        "where for places",
+        "commas around non-defining information"
+      ],
+      "common_errors": [
+        "that in a non-defining clause",
+        "missing commas"
+      ]
     }
   },
   {
@@ -104,11 +161,20 @@
     "topic": "Формы после глаголов",
     "instructions": "Complete the sentences: 1) I remember ___ (meet) her before. 2) Remember ___ (send) the invoice. 3) He stopped ___ (smoke) last year. 4) He stopped ___ (buy) some water.",
     "starter_code": "1) ...\n2) ...\n3) ...\n4) ...\nMeaning difference: ...",
-    "skill_ids": ["eng_gerund_infinitive"],
+    "skill_ids": [
+      "eng_gerund_infinitive"
+    ],
     "rubric": {
       "reference_answer": "1) meeting; 2) to send; 3) smoking; 4) to buy.",
-      "criteria": ["remember doing refers to a memory", "remember to do refers to a future duty", "stop doing means quit", "stop to do means pause another action for a purpose"],
-      "common_errors": ["treating gerund and infinitive as interchangeable"]
+      "criteria": [
+        "remember doing refers to a memory",
+        "remember to do refers to a future duty",
+        "stop doing means quit",
+        "stop to do means pause another action for a purpose"
+      ],
+      "common_errors": [
+        "treating gerund and infinitive as interchangeable"
+      ]
     }
   },
   {
@@ -120,11 +186,21 @@
     "topic": "A/an, the и нулевой артикль",
     "instructions": "Insert a/an, the or —: ‘Last summer I took ___ train to ___ Netherlands. ___ journey took six hours. I spent most of my time looking at ___ beautiful countryside. ___ travel can teach us a lot about other cultures.’",
     "starter_code": "Last summer ...\nExplanations: 1) ... 2) ...",
-    "skill_ids": ["eng_articles"],
+    "skill_ids": [
+      "eng_articles"
+    ],
     "rubric": {
       "reference_answer": "a train; the Netherlands; The journey; the beautiful countryside; — travel.",
-      "criteria": ["a for first mention of a singular countable noun", "the with the Netherlands", "the for a specific previously established journey/countryside", "zero article for travel in general"],
-      "common_errors": ["a Netherlands", "the travel for a general concept"]
+      "criteria": [
+        "a for first mention of a singular countable noun",
+        "the with the Netherlands",
+        "the for a specific previously established journey/countryside",
+        "zero article for travel in general"
+      ],
+      "common_errors": [
+        "a Netherlands",
+        "the travel for a general concept"
+      ]
     }
   },
   {
@@ -136,11 +212,21 @@
     "topic": "Linking words",
     "instructions": "Write 90–120 words: ‘Should university attendance be optional?’ Use at least four different linking devices for contrast, reason, result and conclusion. Underline or list the linkers after the paragraph.",
     "starter_code": "Paragraph:\n\nLinkers used: ...",
-    "skill_ids": ["eng_linking"],
+    "skill_ids": [
+      "eng_linking"
+    ],
     "rubric": {
       "reference_answer": "Any coherent 90–120 word argument that uses accurate B2 linkers such as however/although, because/since, therefore/as a result, and in conclusion/overall.",
-      "criteria": ["clear position", "logical paragraph progression", "at least four accurate linkers with different functions", "90–120 words"],
-      "common_errors": ["using however as a conjunction", "listing linkers without logical relations"]
+      "criteria": [
+        "clear position",
+        "logical paragraph progression",
+        "at least four accurate linkers with different functions",
+        "90–120 words"
+      ],
+      "common_errors": [
+        "using however as a conjunction",
+        "listing linkers without logical relations"
+      ]
     }
   },
   {
@@ -152,11 +238,23 @@
     "topic": "Формальное письмо",
     "instructions": "Write a 120–150 word email to a course coordinator. You missed a presentation because of illness. Explain the situation, ask for an alternative date and offer evidence. Use an appropriate subject line, greeting and closing.",
     "starter_code": "Subject: ...\nDear ...\n\n...\n\nKind regards,\n...",
-    "skill_ids": ["eng_formal_writing", "eng_linking"],
+    "skill_ids": [
+      "eng_formal_writing",
+      "eng_linking"
+    ],
     "rubric": {
       "reference_answer": "A polite formal email with a clear subject, reason for absence, specific request for another date, offer of a medical certificate, and an appropriate closing.",
-      "criteria": ["all three content points covered", "formal polite register", "clear structure and cohesion", "120–150 words"],
-      "common_errors": ["informal slang", "no concrete request", "missing greeting or closing"]
+      "criteria": [
+        "all three content points covered",
+        "formal polite register",
+        "clear structure and cohesion",
+        "120–150 words"
+      ],
+      "common_errors": [
+        "informal slang",
+        "no concrete request",
+        "missing greeting or closing"
+      ]
     }
   },
   {
@@ -168,11 +266,20 @@
     "topic": "Времена и связь с настоящим",
     "instructions": "Choose Present Perfect or Past Simple: 1) I ___ (not see) Alex since Monday. 2) She ___ (call) me two hours ago. 3) We ___ already ___ (send) the documents. 4) They ___ (move) here in 2021.",
     "starter_code": "1) ...\n2) ...\n3) ...\n4) ...",
-    "skill_ids": ["eng_present_perfect"],
+    "skill_ids": [
+      "eng_present_perfect"
+    ],
     "rubric": {
       "reference_answer": "1) haven't seen; 2) called; 3) have already sent; 4) moved.",
-      "criteria": ["Present Perfect with since and already", "Past Simple with ago and in 2021", "correct auxiliary and participle"],
-      "common_errors": ["Present Perfect with ago", "Past Simple with since for an unfinished period"]
+      "criteria": [
+        "Present Perfect with since and already",
+        "Past Simple with ago and in 2021",
+        "correct auxiliary and participle"
+      ],
+      "common_errors": [
+        "Present Perfect with ago",
+        "Past Simple with since for an unfinished period"
+      ]
     }
   },
   {
@@ -184,11 +291,20 @@
     "topic": "Времена и связь с настоящим",
     "instructions": "Complete the dialogue: A: ___ you ___ (finish) the report yet? B: Yes, I ___ (send) it at 9 a.m. A: Great. I ___ never ___ (write) one so quickly. B: I ___ (learn) the format during last month's workshop.",
     "starter_code": "A: ...\nB: ...\nA: ...\nB: ...",
-    "skill_ids": ["eng_present_perfect"],
+    "skill_ids": [
+      "eng_present_perfect"
+    ],
     "rubric": {
       "reference_answer": "Have you finished; sent; have never written; learned/learnt.",
-      "criteria": ["Present Perfect with yet and never", "Past Simple with a precise time and finished workshop", "forms fit the dialogue"],
-      "common_errors": ["did you finished", "have sent at 9 a.m."]
+      "criteria": [
+        "Present Perfect with yet and never",
+        "Past Simple with a precise time and finished workshop",
+        "forms fit the dialogue"
+      ],
+      "common_errors": [
+        "did you finished",
+        "have sent at 9 a.m."
+      ]
     }
   },
   {
@@ -200,11 +316,20 @@
     "topic": "Реальные и гипотетические условия",
     "instructions": "Complete: 1) If the client ___ (approve) the draft, we ___ (publish) it tomorrow. 2) If I ___ (have) more experience, I ___ (apply) for the role. 3) What ___ you ___ (do) if the server failed?",
     "starter_code": "1) ...\n2) ...\n3) ...",
-    "skill_ids": ["eng_conditionals"],
+    "skill_ids": [
+      "eng_conditionals"
+    ],
     "rubric": {
       "reference_answer": "1) approves, will publish; 2) had, would apply; 3) would, do.",
-      "criteria": ["First Conditional for a realistic plan", "Second Conditional for hypothetical situations", "no will/would in the if-clause"],
-      "common_errors": ["if the client will approve", "if I would have"]
+      "criteria": [
+        "First Conditional for a realistic plan",
+        "Second Conditional for hypothetical situations",
+        "no will/would in the if-clause"
+      ],
+      "common_errors": [
+        "if the client will approve",
+        "if I would have"
+      ]
     }
   },
   {
@@ -216,11 +341,20 @@
     "topic": "Реальные и гипотетические условия",
     "instructions": "Correct the sentences: 1) If it will rain, we will cancel the event. 2) If I would know the answer, I would tell you. 3) If she were more organised, she will meet every deadline.",
     "starter_code": "1) ...\n2) ...\n3) ...",
-    "skill_ids": ["eng_conditionals"],
+    "skill_ids": [
+      "eng_conditionals"
+    ],
     "rubric": {
       "reference_answer": "1) If it rains, we will cancel the event. 2) If I knew the answer, I would tell you. 3) If she were more organised, she would meet every deadline.",
-      "criteria": ["Present Simple after if in First Conditional", "Past Simple after if in Second Conditional", "would in the main clause"],
-      "common_errors": ["will after if", "would in both clauses"]
+      "criteria": [
+        "Present Simple after if in First Conditional",
+        "Past Simple after if in Second Conditional",
+        "would in the main clause"
+      ],
+      "common_errors": [
+        "will after if",
+        "would in both clauses"
+      ]
     }
   },
   {
@@ -232,11 +366,20 @@
     "topic": "Страдательный залог",
     "instructions": "Rewrite in the passive: 1) The team reviews every application. 2) Engineers are repairing the bridge. 3) The editor had checked the article before publication. 4) They may postpone the launch.",
     "starter_code": "1) ...\n2) ...\n3) ...\n4) ...",
-    "skill_ids": ["eng_passive"],
+    "skill_ids": [
+      "eng_passive"
+    ],
     "rubric": {
       "reference_answer": "1) Every application is reviewed. 2) The bridge is being repaired. 3) The article had been checked before publication. 4) The launch may be postponed.",
-      "criteria": ["correct passive auxiliary", "past participle", "original tense or modal preserved"],
-      "common_errors": ["missing been in perfect tenses", "changing the tense"]
+      "criteria": [
+        "correct passive auxiliary",
+        "past participle",
+        "original tense or modal preserved"
+      ],
+      "common_errors": [
+        "missing been in perfect tenses",
+        "changing the tense"
+      ]
     }
   },
   {
@@ -248,11 +391,20 @@
     "topic": "Страдательный залог",
     "instructions": "Complete with the correct passive form: 1) The package ___ just ___ (deliver). 2) The road ___ (close) when we arrived. 3) New rules ___ (introduce) next month. 4) The issue must ___ (solve) today.",
     "starter_code": "1) ...\n2) ...\n3) ...\n4) ...",
-    "skill_ids": ["eng_passive"],
+    "skill_ids": [
+      "eng_passive"
+    ],
     "rubric": {
       "reference_answer": "1) has just been delivered; 2) was closed; 3) will be introduced; 4) be solved.",
-      "criteria": ["Present Perfect Passive", "Past Simple Passive", "Future and modal passive"],
-      "common_errors": ["has just delivered", "must been solved"]
+      "criteria": [
+        "Present Perfect Passive",
+        "Past Simple Passive",
+        "Future and modal passive"
+      ],
+      "common_errors": [
+        "has just delivered",
+        "must been solved"
+      ]
     }
   },
   {
@@ -264,11 +416,20 @@
     "topic": "Косвенная речь",
     "instructions": "Report the sentences: 1) 'Please send me the file,' Ada said to Ben. 2) 'Where did you put the keys?' Tom asked me. 3) 'I will call you tomorrow,' Mia said.",
     "starter_code": "1) ...\n2) ...\n3) ...",
-    "skill_ids": ["eng_reported_speech"],
+    "skill_ids": [
+      "eng_reported_speech"
+    ],
     "rubric": {
       "reference_answer": "1) Ada asked Ben to send her the file. 2) Tom asked me where I had put the keys. 3) Mia said that she would call me the next day.",
-      "criteria": ["ask + object + to-infinitive for requests", "statement order in reported questions", "backshift and time-word changes"],
-      "common_errors": ["asked where did I put", "will and tomorrow left unchanged"]
+      "criteria": [
+        "ask + object + to-infinitive for requests",
+        "statement order in reported questions",
+        "backshift and time-word changes"
+      ],
+      "common_errors": [
+        "asked where did I put",
+        "will and tomorrow left unchanged"
+      ]
     }
   },
   {
@@ -280,11 +441,20 @@
     "topic": "Косвенная речь",
     "instructions": "Rewrite as reported speech one day later: 1) 'We have completed this stage,' the manager said. 2) 'Can you join the meeting today?' she asked me. 3) 'Do not share these figures,' he told us.",
     "starter_code": "1) ...\n2) ...\n3) ...",
-    "skill_ids": ["eng_reported_speech"],
+    "skill_ids": [
+      "eng_reported_speech"
+    ],
     "rubric": {
       "reference_answer": "1) The manager said that they had completed that stage. 2) She asked me if/whether I could join the meeting that day. 3) He told us not to share those figures.",
-      "criteria": ["present perfect backshift", "reported yes/no question", "negative reporting command"],
-      "common_errors": ["asked could I", "told us do not share"]
+      "criteria": [
+        "present perfect backshift",
+        "reported yes/no question",
+        "negative reporting command"
+      ],
+      "common_errors": [
+        "asked could I",
+        "told us do not share"
+      ]
     }
   },
   {
@@ -296,11 +466,20 @@
     "topic": "Модальные глаголы предположения",
     "instructions": "Choose must have, might have or can't have: 1) The ground is wet; it ___ rained. 2) She was abroad, so she ___ attended the meeting. 3) I am unsure; they ___ taken an earlier train.",
     "starter_code": "1) ...\n2) ...\n3) ...",
-    "skill_ids": ["eng_modals_deduction"],
+    "skill_ids": [
+      "eng_modals_deduction"
+    ],
     "rubric": {
       "reference_answer": "1) must have; 2) can't have; 3) might/could have.",
-      "criteria": ["strength of deduction matches evidence", "modal + have + past participle", "can't have for impossible past"],
-      "common_errors": ["mustn't have for impossibility", "must had rained"]
+      "criteria": [
+        "strength of deduction matches evidence",
+        "modal + have + past participle",
+        "can't have for impossible past"
+      ],
+      "common_errors": [
+        "mustn't have for impossibility",
+        "must had rained"
+      ]
     }
   },
   {
@@ -312,11 +491,20 @@
     "topic": "Модальные глаголы предположения",
     "instructions": "Complete: 1) The door was locked from inside, so the visitor ___ have entered through it. 2) There are fresh footprints; someone ___ be nearby. 3) The note is unclear; it ___ refer to another address.",
     "starter_code": "1) ...\n2) ...\n3) ...",
-    "skill_ids": ["eng_modals_deduction"],
+    "skill_ids": [
+      "eng_modals_deduction"
+    ],
     "rubric": {
       "reference_answer": "1) can't; 2) must; 3) might/could.",
-      "criteria": ["negative deduction from contradictory evidence", "strong positive deduction", "uncertain possibility"],
-      "common_errors": ["mustn't have entered", "must for uncertain evidence"]
+      "criteria": [
+        "negative deduction from contradictory evidence",
+        "strong positive deduction",
+        "uncertain possibility"
+      ],
+      "common_errors": [
+        "mustn't have entered",
+        "must for uncertain evidence"
+      ]
     }
   },
   {
@@ -328,11 +516,21 @@
     "topic": "Defining и non-defining clauses",
     "instructions": "Combine: 1) I spoke to a designer. She created the logo. 2) Kyoto attracts many visitors. I studied there. 3) Our guide was excellent. His name was Omar.",
     "starter_code": "1) ...\n2) ...\n3) ...",
-    "skill_ids": ["eng_relative_clauses"],
+    "skill_ids": [
+      "eng_relative_clauses"
+    ],
     "rubric": {
       "reference_answer": "1) I spoke to the designer who created the logo. 2) Kyoto, where I studied, attracts many visitors. 3) Our guide, whose name was Omar, was excellent.",
-      "criteria": ["who for a person", "where for a place", "whose for possession", "commas for extra information"],
-      "common_errors": ["which for a person", "missing commas in non-defining clauses"]
+      "criteria": [
+        "who for a person",
+        "where for a place",
+        "whose for possession",
+        "commas for extra information"
+      ],
+      "common_errors": [
+        "which for a person",
+        "missing commas in non-defining clauses"
+      ]
     }
   },
   {
@@ -344,11 +542,20 @@
     "topic": "Defining и non-defining clauses",
     "instructions": "Add a relative word and commas where necessary: 1) Employees ___ work remotely need secure access. 2) My manager ___ lives in Leeds visits monthly. 3) The room ___ we hold interviews has been renovated.",
     "starter_code": "1) ...\n2) ...\n3) ...",
-    "skill_ids": ["eng_relative_clauses"],
+    "skill_ids": [
+      "eng_relative_clauses"
+    ],
     "rubric": {
       "reference_answer": "1) Employees who work remotely need secure access. 2) My manager, who lives in Leeds, visits monthly. 3) The room where/in which we hold interviews has been renovated.",
-      "criteria": ["defining information without commas", "non-defining information with commas", "valid relative expression for place"],
-      "common_errors": ["that between commas", "commas around essential information"]
+      "criteria": [
+        "defining information without commas",
+        "non-defining information with commas",
+        "valid relative expression for place"
+      ],
+      "common_errors": [
+        "that between commas",
+        "commas around essential information"
+      ]
     }
   },
   {
@@ -360,11 +567,21 @@
     "topic": "Формы после глаголов",
     "instructions": "Complete: 1) She avoided ___ (answer) the question. 2) We agreed ___ (meet) on Friday. 3) I regret ___ (tell) you that the event is cancelled. 4) I regret ___ (say) those words yesterday.",
     "starter_code": "1) ...\n2) ...\n3) ...\n4) ...",
-    "skill_ids": ["eng_gerund_infinitive"],
+    "skill_ids": [
+      "eng_gerund_infinitive"
+    ],
     "rubric": {
       "reference_answer": "1) answering; 2) to meet; 3) to tell; 4) saying.",
-      "criteria": ["avoid + gerund", "agree + infinitive", "regret to do for current bad news", "regret doing for a past action"],
-      "common_errors": ["avoid to answer", "regret forms treated as identical"]
+      "criteria": [
+        "avoid + gerund",
+        "agree + infinitive",
+        "regret to do for current bad news",
+        "regret doing for a past action"
+      ],
+      "common_errors": [
+        "avoid to answer",
+        "regret forms treated as identical"
+      ]
     }
   },
   {
@@ -376,11 +593,19 @@
     "topic": "Формы после глаголов",
     "instructions": "Choose the form that fits the stated meaning: 1) Please stop ___ (talk) — end the activity. 2) We stopped ___ (check) the map — paused another activity for this purpose. 3) Try ___ (restart) the router — experiment with a possible solution. 4) Try ___ (arrive) earlier — make an effort.",
     "starter_code": "1) ...\n2) ...\n3) ...\n4) ...",
-    "skill_ids": ["eng_gerund_infinitive"],
+    "skill_ids": [
+      "eng_gerund_infinitive"
+    ],
     "rubric": {
       "reference_answer": "1) talking; 2) to check; 3) restarting; 4) to arrive.",
-      "criteria": ["stop doing versus stop to do", "try doing as an experiment", "try to do as an effort"],
-      "common_errors": ["choosing by form without considering meaning"]
+      "criteria": [
+        "stop doing versus stop to do",
+        "try doing as an experiment",
+        "try to do as an effort"
+      ],
+      "common_errors": [
+        "choosing by form without considering meaning"
+      ]
     }
   },
   {
@@ -392,11 +617,20 @@
     "topic": "A/an, the и нулевой артикль",
     "instructions": "Insert a/an, the or —: ‘Yesterday I took ___ train to Brighton. ___ train was crowded. We had lunch near ___ sea. ___ food was excellent. ___ travel often changes how people see the world.’",
     "starter_code": "Yesterday I took ...",
-    "skill_ids": ["eng_articles"],
+    "skill_ids": [
+      "eng_articles"
+    ],
     "rubric": {
       "reference_answer": "a train; The train; the sea; The food; — travel.",
-      "criteria": ["a for first mention", "the for repeated or situationally specific nouns", "zero article for travel as a general concept"],
-      "common_errors": ["the train on first mention", "the travel for a general idea"]
+      "criteria": [
+        "a for first mention",
+        "the for repeated or situationally specific nouns",
+        "zero article for travel as a general concept"
+      ],
+      "common_errors": [
+        "the train on first mention",
+        "the travel for a general idea"
+      ]
     }
   },
   {
@@ -408,11 +642,22 @@
     "topic": "A/an, the и нулевой артикль",
     "instructions": "Insert a/an, the or —: ‘___ Japan and ___ United States have different school systems. ___ education shapes society. I read ___ report about the topic, and ___ report compared three countries.’",
     "starter_code": "... Japan and ... United States ...",
-    "skill_ids": ["eng_articles"],
+    "skill_ids": [
+      "eng_articles"
+    ],
     "rubric": {
       "reference_answer": "— Japan; the United States; — education; a report; the report.",
-      "criteria": ["zero article with most countries", "the with the United States", "zero article for education in general", "a then the for first and repeated mention"],
-      "common_errors": ["the Japan", "a United States", "the education as a general concept"]
+      "criteria": [
+        "zero article with most countries",
+        "the with the United States",
+        "zero article for education in general",
+        "a then the for first and repeated mention"
+      ],
+      "common_errors": [
+        "the Japan",
+        "a United States",
+        "the education as a general concept"
+      ]
     }
   },
   {
@@ -424,11 +669,21 @@
     "topic": "Linking words",
     "instructions": "Write 80–100 words: ‘Should recorded lectures replace some live lectures?’ Use one linker for contrast, one for reason, one for result and one for conclusion.",
     "starter_code": "Paragraph:\n\nLinkers: ...",
-    "skill_ids": ["eng_linking"],
+    "skill_ids": [
+      "eng_linking"
+    ],
     "rubric": {
       "reference_answer": "A coherent 80–100 word argument with accurate contrast, reason, result and conclusion linkers.",
-      "criteria": ["clear position", "four functions of linking devices", "logical progression", "80–100 words"],
-      "common_errors": ["however used as although", "linkers listed but not used"]
+      "criteria": [
+        "clear position",
+        "four functions of linking devices",
+        "logical progression",
+        "80–100 words"
+      ],
+      "common_errors": [
+        "however used as although",
+        "linkers listed but not used"
+      ]
     }
   },
   {
@@ -440,11 +695,21 @@
     "topic": "Linking words",
     "instructions": "Rewrite as a coherent paragraph using however, because, as a result and overall: ‘Group work can be useful. Some students do all the work. Roles are often unclear. Teachers should define responsibilities. Group work can develop communication skills.’",
     "starter_code": "...",
-    "skill_ids": ["eng_linking"],
+    "skill_ids": [
+      "eng_linking"
+    ],
     "rubric": {
       "reference_answer": "Any coherent rewrite that uses all four linkers with correct punctuation and logical relations.",
-      "criteria": ["however marks contrast", "because gives a reason", "as a result gives a consequence", "overall concludes"],
-      "common_errors": ["however between two clauses without punctuation", "because and as a result expressing the same direction incorrectly"]
+      "criteria": [
+        "however marks contrast",
+        "because gives a reason",
+        "as a result gives a consequence",
+        "overall concludes"
+      ],
+      "common_errors": [
+        "however between two clauses without punctuation",
+        "because and as a result expressing the same direction incorrectly"
+      ]
     }
   },
   {
@@ -456,11 +721,23 @@
     "topic": "Формальное письмо",
     "instructions": "Write a 100–130 word formal email to reschedule a university interview. Give a reason, propose two alternative times and apologise for the inconvenience.",
     "starter_code": "Subject: ...\nDear ...\n\n...\n\nKind regards,\n...",
-    "skill_ids": ["eng_formal_writing", "eng_linking"],
+    "skill_ids": [
+      "eng_formal_writing",
+      "eng_linking"
+    ],
     "rubric": {
       "reference_answer": "A polite email containing the reason, two concrete alternatives, an apology, a subject line, greeting and closing.",
-      "criteria": ["all content points", "formal register", "clear request and alternatives", "100–130 words"],
-      "common_errors": ["no alternative times", "informal greeting", "unclear request"]
+      "criteria": [
+        "all content points",
+        "formal register",
+        "clear request and alternatives",
+        "100–130 words"
+      ],
+      "common_errors": [
+        "no alternative times",
+        "informal greeting",
+        "unclear request"
+      ]
     }
   },
   {
@@ -472,11 +749,1559 @@
     "topic": "Формальное письмо",
     "instructions": "Write a 130–160 word formal email about repeated technical problems in an online course. Describe two problems, explain their impact and request a specific solution.",
     "starter_code": "Subject: ...\nDear Support Team,\n\n...\n\nYours faithfully,\n...",
-    "skill_ids": ["eng_formal_writing", "eng_linking"],
+    "skill_ids": [
+      "eng_formal_writing",
+      "eng_linking"
+    ],
     "rubric": {
       "reference_answer": "A structured formal complaint with two concrete problems, their impact, a specific remedy, appropriate subject, greeting and closing.",
-      "criteria": ["two problems and impact described", "specific requested solution", "professional register", "130–160 words"],
-      "common_errors": ["aggressive or informal tone", "no requested action", "missing structure"]
+      "criteria": [
+        "two problems and impact described",
+        "specific requested solution",
+        "professional register",
+        "130–160 words"
+      ],
+      "common_errors": [
+        "aggressive or informal tone",
+        "no requested action",
+        "missing structure"
+      ]
+    }
+  },
+  {
+    "title": "Present Perfect и Past Simple: поездка",
+    "topic_key": "eng_present_perfect",
+    "difficulty": 1,
+    "variant": 4,
+    "subject": "Английский язык · B2",
+    "topic": "Времена и связь с настоящим",
+    "instructions": "Complete: 1) I ___ already ___ (book) the tickets. 2) We ___ (meet) the guide yesterday. 3) She ___ (live) in Rome since 2021. 4) ___ you ___ (see) him last night?",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_present_perfect"
+    ],
+    "rubric": {
+      "reference_answer": "1) have already booked; 2) met; 3) has lived; 4) Did, see.",
+      "criteria": [
+        "Present Perfect связан с настоящим или незавершённым периодом",
+        "Past Simple относится к завершённому времени",
+        "верная форма причастия"
+      ],
+      "common_errors": [
+        "Present Perfect с законченным временем",
+        "Past Simple с yet или since"
+      ]
+    }
+  },
+  {
+    "title": "Present Perfect и Past Simple: рабочая переписка",
+    "topic_key": "eng_present_perfect",
+    "difficulty": 2,
+    "variant": 5,
+    "subject": "Английский язык · B2",
+    "topic": "Времена и связь с настоящим",
+    "instructions": "Complete: 1) He ___ (not reply) yet. 2) I ___ (send) the file on Monday. 3) We ___ (know) each other for ten years. 4) The printer ___ (break) last week.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_present_perfect"
+    ],
+    "rubric": {
+      "reference_answer": "1) hasn't replied; 2) sent; 3) have known; 4) broke.",
+      "criteria": [
+        "Present Perfect связан с настоящим или незавершённым периодом",
+        "Past Simple относится к завершённому времени",
+        "верная форма причастия"
+      ],
+      "common_errors": [
+        "Present Perfect с законченным временем",
+        "Past Simple с yet или since"
+      ]
+    }
+  },
+  {
+    "title": "Present Perfect и Past Simple: карьера",
+    "topic_key": "eng_present_perfect",
+    "difficulty": 3,
+    "variant": 6,
+    "subject": "Английский язык · B2",
+    "topic": "Времена и связь с настоящим",
+    "instructions": "Complete: 1) She ___ just ___ (complete) the course. 2) They ___ (launch) the product in 2024. 3) I ___ never ___ (work) abroad. 4) Ben ___ (join) the team two months ago.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_present_perfect"
+    ],
+    "rubric": {
+      "reference_answer": "1) has just completed; 2) launched; 3) have never worked; 4) joined.",
+      "criteria": [
+        "Present Perfect связан с настоящим или незавершённым периодом",
+        "Past Simple относится к завершённому времени",
+        "верная форма причастия"
+      ],
+      "common_errors": [
+        "Present Perfect с законченным временем",
+        "Past Simple с yet или since"
+      ]
+    }
+  },
+  {
+    "title": "Present Perfect и Past Simple: опыт",
+    "topic_key": "eng_present_perfect",
+    "difficulty": 1,
+    "variant": 7,
+    "subject": "Английский язык · B2",
+    "topic": "Времена и связь с настоящим",
+    "instructions": "Complete: 1) Mia ___ (go) out, so she is unavailable now. 2) She ___ (return) an hour ago. 3) ___ you ever ___ (take) a night train? 4) I ___ (not enjoy) my first flight when I was sixteen.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_present_perfect"
+    ],
+    "rubric": {
+      "reference_answer": "1) has gone; 2) returned; 3) Have, taken; 4) didn't enjoy.",
+      "criteria": [
+        "Present Perfect связан с настоящим или незавершённым периодом",
+        "Past Simple относится к завершённому времени",
+        "верная форма причастия"
+      ],
+      "common_errors": [
+        "Present Perfect с законченным временем",
+        "Past Simple с yet или since"
+      ]
+    }
+  },
+  {
+    "title": "Present Perfect и Past Simple: результаты",
+    "topic_key": "eng_present_perfect",
+    "difficulty": 2,
+    "variant": 8,
+    "subject": "Английский язык · B2",
+    "topic": "Времена и связь с настоящим",
+    "instructions": "Complete: 1) We ___ (write) three reports so far. 2) I ___ (write) the summary last month. 3) The parcel ___ (not arrive) yet. 4) The workshop ___ (start) on Tuesday.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_present_perfect"
+    ],
+    "rubric": {
+      "reference_answer": "1) have written; 2) wrote; 3) hasn't arrived; 4) started.",
+      "criteria": [
+        "Present Perfect связан с настоящим или незавершённым периодом",
+        "Past Simple относится к завершённому времени",
+        "верная форма причастия"
+      ],
+      "common_errors": [
+        "Present Perfect с законченным временем",
+        "Past Simple с yet или since"
+      ]
+    }
+  },
+  {
+    "title": "Present Perfect и Past Simple: изменения",
+    "topic_key": "eng_present_perfect",
+    "difficulty": 3,
+    "variant": 9,
+    "subject": "Английский язык · B2",
+    "topic": "Времена и связь с настоящим",
+    "instructions": "Complete: 1) I ___ (work) here since May. 2) The company ___ (change) its policy in 2022. 3) Our results ___ recently ___ (improve). 4) Lara ___ (not attend) yesterday's meeting.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_present_perfect"
+    ],
+    "rubric": {
+      "reference_answer": "1) have worked; 2) changed; 3) have recently improved; 4) didn't attend.",
+      "criteria": [
+        "Present Perfect связан с настоящим или незавершённым периодом",
+        "Past Simple относится к завершённому времени",
+        "верная форма причастия"
+      ],
+      "common_errors": [
+        "Present Perfect с законченным временем",
+        "Past Simple с yet или since"
+      ]
+    }
+  },
+  {
+    "title": "Условные предложения: планы",
+    "topic_key": "eng_conditionals",
+    "difficulty": 1,
+    "variant": 4,
+    "subject": "Английский язык · B2",
+    "topic": "Реальные и гипотетические условия",
+    "instructions": "Complete: 1) If it ___ (rain), we ___ (stay) home. 2) If I ___ (have) more time, I ___ (learn) Italian. 3) If you heat ice, it ___ (melt). 4) If she ___ (call), tell me.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_conditionals"
+    ],
+    "rubric": {
+      "reference_answer": "1) rains, will stay; 2) had, would learn; 3) melts; 4) calls.",
+      "criteria": [
+        "верная форма в if-clause",
+        "верная форма главной части",
+        "смысл типа условного предложения"
+      ],
+      "common_errors": [
+        "will после if",
+        "would в обеих частях"
+      ]
+    }
+  },
+  {
+    "title": "Условные предложения: работа",
+    "topic_key": "eng_conditionals",
+    "difficulty": 2,
+    "variant": 5,
+    "subject": "Английский язык · B2",
+    "topic": "Реальные и гипотетические условия",
+    "instructions": "Complete: 1) If we ___ (finish) early, we ___ (send) the draft today. 2) If I ___ (be) you, I ___ (ask) for feedback. 3) Unless he ___ (hurry), he ___ (miss) the train. 4) Water boils if it ___ (reach) 100°C.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_conditionals"
+    ],
+    "rubric": {
+      "reference_answer": "1) finish, will send; 2) were, would ask; 3) hurries, will miss; 4) reaches.",
+      "criteria": [
+        "верная форма в if-clause",
+        "верная форма главной части",
+        "смысл типа условного предложения"
+      ],
+      "common_errors": [
+        "will после if",
+        "would в обеих частях"
+      ]
+    }
+  },
+  {
+    "title": "Условные предложения: учёба",
+    "topic_key": "eng_conditionals",
+    "difficulty": 3,
+    "variant": 6,
+    "subject": "Английский язык · B2",
+    "topic": "Реальные и гипотетические условия",
+    "instructions": "Complete: 1) If Nina ___ (revise), she ___ (pass) the exam. 2) If classes ___ (be) smaller, students ___ (get) more feedback. 3) If you mix blue and yellow, you ___ (get) green. 4) What ___ you ___ (do) if you lost your notes?",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_conditionals"
+    ],
+    "rubric": {
+      "reference_answer": "1) revises, will pass; 2) were, would get; 3) get; 4) would, do.",
+      "criteria": [
+        "верная форма в if-clause",
+        "верная форма главной части",
+        "смысл типа условного предложения"
+      ],
+      "common_errors": [
+        "will после if",
+        "would в обеих частях"
+      ]
+    }
+  },
+  {
+    "title": "Условные предложения: путешествие",
+    "topic_key": "eng_conditionals",
+    "difficulty": 1,
+    "variant": 7,
+    "subject": "Английский язык · B2",
+    "topic": "Реальные и гипотетические условия",
+    "instructions": "Complete: 1) If the flight ___ (be) delayed, we ___ (take) the train. 2) If I ___ (speak) Japanese, I ___ (travel) alone. 3) If you ___ (not book) now, prices will rise. 4) Plants die if they ___ (not get) water.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_conditionals"
+    ],
+    "rubric": {
+      "reference_answer": "1) is, will take; 2) spoke, would travel; 3) don't book; 4) don't get.",
+      "criteria": [
+        "верная форма в if-clause",
+        "верная форма главной части",
+        "смысл типа условного предложения"
+      ],
+      "common_errors": [
+        "will после if",
+        "would в обеих частях"
+      ]
+    }
+  },
+  {
+    "title": "Условные предложения: продукт",
+    "topic_key": "eng_conditionals",
+    "difficulty": 2,
+    "variant": 8,
+    "subject": "Английский язык · B2",
+    "topic": "Реальные и гипотетические условия",
+    "instructions": "Complete: 1) If users ___ (like) the demo, we ___ (build) the feature. 2) If the budget ___ (be) larger, we ___ (hire) a designer. 3) If you press this button, the app ___ (restart). 4) I would test again if the error ___ (appear).",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_conditionals"
+    ],
+    "rubric": {
+      "reference_answer": "1) like, will build; 2) were, would hire; 3) restarts; 4) appeared.",
+      "criteria": [
+        "верная форма в if-clause",
+        "верная форма главной части",
+        "смысл типа условного предложения"
+      ],
+      "common_errors": [
+        "will после if",
+        "would в обеих частях"
+      ]
+    }
+  },
+  {
+    "title": "Условные предложения: экология",
+    "topic_key": "eng_conditionals",
+    "difficulty": 3,
+    "variant": 9,
+    "subject": "Английский язык · B2",
+    "topic": "Реальные и гипотетические условия",
+    "instructions": "Complete: 1) If cities ___ (improve) transport, pollution ___ (fall). 2) If I ___ (own) a car, I still ___ (cycle) to work. 3) Ice melts if the temperature ___ (rise). 4) Unless we ___ (act), the problem ___ (grow).",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_conditionals"
+    ],
+    "rubric": {
+      "reference_answer": "1) improve, will fall; 2) owned, would cycle; 3) rises; 4) act, will grow.",
+      "criteria": [
+        "верная форма в if-clause",
+        "верная форма главной части",
+        "смысл типа условного предложения"
+      ],
+      "common_errors": [
+        "will после if",
+        "would в обеих частях"
+      ]
+    }
+  },
+  {
+    "title": "Passive Voice: музей",
+    "topic_key": "eng_passive",
+    "difficulty": 1,
+    "variant": 4,
+    "subject": "Английский язык · B2",
+    "topic": "Страдательный залог",
+    "instructions": "Rewrite in the passive: 1) They built the museum in 1998. 2) Experts are restoring the main hall. 3) Someone has damaged the door. 4) They will reopen it in June.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_passive"
+    ],
+    "rubric": {
+      "reference_answer": "1) The museum was built in 1998. 2) The main hall is being restored. 3) The door has been damaged. 4) It will be reopened in June.",
+      "criteria": [
+        "форма be сохраняет исходное время",
+        "использовано past participle",
+        "объект стал подлежащим"
+      ],
+      "common_errors": [
+        "пропущен be",
+        "изменено исходное время"
+      ]
+    }
+  },
+  {
+    "title": "Passive Voice: сервис",
+    "topic_key": "eng_passive",
+    "difficulty": 2,
+    "variant": 5,
+    "subject": "Английский язык · B2",
+    "topic": "Страдательный залог",
+    "instructions": "Rewrite in the passive: 1) The team updates the database daily. 2) Engineers are fixing the server. 3) They sent the warning yesterday. 4) Someone had deleted the backup.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_passive"
+    ],
+    "rubric": {
+      "reference_answer": "1) The database is updated daily. 2) The server is being fixed. 3) The warning was sent yesterday. 4) The backup had been deleted.",
+      "criteria": [
+        "форма be сохраняет исходное время",
+        "использовано past participle",
+        "объект стал подлежащим"
+      ],
+      "common_errors": [
+        "пропущен be",
+        "изменено исходное время"
+      ]
+    }
+  },
+  {
+    "title": "Passive Voice: исследование",
+    "topic_key": "eng_passive",
+    "difficulty": 3,
+    "variant": 6,
+    "subject": "Английский язык · B2",
+    "topic": "Страдательный залог",
+    "instructions": "Rewrite in the passive: 1) Scientists collected the samples. 2) They have published the results. 3) The lab will repeat the experiment. 4) Reviewers are checking the paper.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_passive"
+    ],
+    "rubric": {
+      "reference_answer": "1) The samples were collected. 2) The results have been published. 3) The experiment will be repeated. 4) The paper is being checked.",
+      "criteria": [
+        "форма be сохраняет исходное время",
+        "использовано past participle",
+        "объект стал подлежащим"
+      ],
+      "common_errors": [
+        "пропущен be",
+        "изменено исходное время"
+      ]
+    }
+  },
+  {
+    "title": "Passive Voice: мероприятие",
+    "topic_key": "eng_passive",
+    "difficulty": 1,
+    "variant": 7,
+    "subject": "Английский язык · B2",
+    "topic": "Страдательный залог",
+    "instructions": "Rewrite in the passive: 1) Volunteers organise the festival. 2) They cancelled two concerts. 3) The organisers have added a workshop. 4) They will stream the final online.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_passive"
+    ],
+    "rubric": {
+      "reference_answer": "1) The festival is organised by volunteers. 2) Two concerts were cancelled. 3) A workshop has been added. 4) The final will be streamed online.",
+      "criteria": [
+        "форма be сохраняет исходное время",
+        "использовано past participle",
+        "объект стал подлежащим"
+      ],
+      "common_errors": [
+        "пропущен be",
+        "изменено исходное время"
+      ]
+    }
+  },
+  {
+    "title": "Passive Voice: доставка",
+    "topic_key": "eng_passive",
+    "difficulty": 2,
+    "variant": 8,
+    "subject": "Английский язык · B2",
+    "topic": "Страдательный залог",
+    "instructions": "Rewrite in the passive: 1) The courier delivered the parcel. 2) Staff are packing the orders. 3) They have changed the address. 4) The company will refund the fee.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_passive"
+    ],
+    "rubric": {
+      "reference_answer": "1) The parcel was delivered by the courier. 2) The orders are being packed. 3) The address has been changed. 4) The fee will be refunded by the company.",
+      "criteria": [
+        "форма be сохраняет исходное время",
+        "использовано past participle",
+        "объект стал подлежащим"
+      ],
+      "common_errors": [
+        "пропущен be",
+        "изменено исходное время"
+      ]
+    }
+  },
+  {
+    "title": "Passive Voice: образование",
+    "topic_key": "eng_passive",
+    "difficulty": 3,
+    "variant": 9,
+    "subject": "Английский язык · B2",
+    "topic": "Страдательный залог",
+    "instructions": "Rewrite in the passive: 1) Tutors assess every project. 2) They recorded the lecture yesterday. 3) The school has introduced a new course. 4) Teachers are preparing the materials.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_passive"
+    ],
+    "rubric": {
+      "reference_answer": "1) Every project is assessed by tutors. 2) The lecture was recorded yesterday. 3) A new course has been introduced. 4) The materials are being prepared.",
+      "criteria": [
+        "форма be сохраняет исходное время",
+        "использовано past participle",
+        "объект стал подлежащим"
+      ],
+      "common_errors": [
+        "пропущен be",
+        "изменено исходное время"
+      ]
+    }
+  },
+  {
+    "title": "Reported Speech: проект",
+    "topic_key": "eng_reported_speech",
+    "difficulty": 1,
+    "variant": 4,
+    "subject": "Английский язык · B2",
+    "topic": "Косвенная речь",
+    "instructions": "Report the statements: 1) Ava said, ‘I am testing the app.’ 2) Max said, ‘I finished it yesterday.’ 3) Eva asked, ‘Do you need help?’ 4) Tom said, ‘I will call tomorrow.’",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_reported_speech"
+    ],
+    "rubric": {
+      "reference_answer": "1) Ava said that she was testing the app. 2) Max said that he had finished it the day before. 3) Eva asked if/whether I needed help. 4) Tom said that he would call the next day.",
+      "criteria": [
+        "корректный backshift",
+        "изменены местоимения и указатели времени",
+        "порядок слов утвердительного предложения"
+      ],
+      "common_errors": [
+        "сохранён вопросительный порядок",
+        "не изменены указатели времени"
+      ]
+    }
+  },
+  {
+    "title": "Reported Speech: поездка",
+    "topic_key": "eng_reported_speech",
+    "difficulty": 2,
+    "variant": 5,
+    "subject": "Английский язык · B2",
+    "topic": "Косвенная речь",
+    "instructions": "Report the statements: 1) Leo said, ‘I have lost my ticket.’ 2) Mia said, ‘We are leaving today.’ 3) Sam asked, ‘Where is the platform?’ 4) Nina said, ‘I can meet you here.’",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_reported_speech"
+    ],
+    "rubric": {
+      "reference_answer": "1) Leo said that he had lost his ticket. 2) Mia said that they were leaving that day. 3) Sam asked where the platform was. 4) Nina said that she could meet me there.",
+      "criteria": [
+        "корректный backshift",
+        "изменены местоимения и указатели времени",
+        "порядок слов утвердительного предложения"
+      ],
+      "common_errors": [
+        "сохранён вопросительный порядок",
+        "не изменены указатели времени"
+      ]
+    }
+  },
+  {
+    "title": "Reported Speech: курс",
+    "topic_key": "eng_reported_speech",
+    "difficulty": 3,
+    "variant": 6,
+    "subject": "Английский язык · B2",
+    "topic": "Косвенная речь",
+    "instructions": "Report the statements: 1) Kim said, ‘I don't understand this task.’ 2) Dan said, ‘I watched the lecture last night.’ 3) Amy asked, ‘Have you submitted the essay?’ 4) Rob said, ‘I may join later.’",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_reported_speech"
+    ],
+    "rubric": {
+      "reference_answer": "1) Kim said that she didn't understand that task. 2) Dan said that he had watched the lecture the previous night. 3) Amy asked if/whether I had submitted the essay. 4) Rob said that he might join later.",
+      "criteria": [
+        "корректный backshift",
+        "изменены местоимения и указатели времени",
+        "порядок слов утвердительного предложения"
+      ],
+      "common_errors": [
+        "сохранён вопросительный порядок",
+        "не изменены указатели времени"
+      ]
+    }
+  },
+  {
+    "title": "Reported Speech: офис",
+    "topic_key": "eng_reported_speech",
+    "difficulty": 1,
+    "variant": 7,
+    "subject": "Английский язык · B2",
+    "topic": "Косвенная речь",
+    "instructions": "Report the statements: 1) Ann said, ‘I am working here now.’ 2) Joe said, ‘We bought this printer yesterday.’ 3) Ben asked, ‘When will the meeting start?’ 4) Liz said, ‘I must finish today.’",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_reported_speech"
+    ],
+    "rubric": {
+      "reference_answer": "1) Ann said that she was working there then. 2) Joe said that they had bought that printer the day before. 3) Ben asked when the meeting would start. 4) Liz said that she had to finish that day.",
+      "criteria": [
+        "корректный backshift",
+        "изменены местоимения и указатели времени",
+        "порядок слов утвердительного предложения"
+      ],
+      "common_errors": [
+        "сохранён вопросительный порядок",
+        "не изменены указатели времени"
+      ]
+    }
+  },
+  {
+    "title": "Reported Speech: интервью",
+    "topic_key": "eng_reported_speech",
+    "difficulty": 2,
+    "variant": 8,
+    "subject": "Английский язык · B2",
+    "topic": "Косвенная речь",
+    "instructions": "Report the statements: 1) Sara said, ‘I have worked abroad.’ 2) Mark said, ‘I left my job last month.’ 3) The manager asked, ‘Can you start tomorrow?’ 4) Sara said, ‘I will think about it.’",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_reported_speech"
+    ],
+    "rubric": {
+      "reference_answer": "1) Sara said that she had worked abroad. 2) Mark said that he had left his job the previous month. 3) The manager asked if/whether I could start the next day. 4) Sara said that she would think about it.",
+      "criteria": [
+        "корректный backshift",
+        "изменены местоимения и указатели времени",
+        "порядок слов утвердительного предложения"
+      ],
+      "common_errors": [
+        "сохранён вопросительный порядок",
+        "не изменены указатели времени"
+      ]
+    }
+  },
+  {
+    "title": "Reported Speech: новости",
+    "topic_key": "eng_reported_speech",
+    "difficulty": 3,
+    "variant": 9,
+    "subject": "Английский язык · B2",
+    "topic": "Косвенная речь",
+    "instructions": "Report the statements: 1) Ian said, ‘The storm is getting worse.’ 2) Fay said, ‘They closed the road this morning.’ 3) Lee asked, ‘Is the airport open?’ 4) Ian said, ‘We might stay here tonight.’",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_reported_speech"
+    ],
+    "rubric": {
+      "reference_answer": "1) Ian said that the storm was getting worse. 2) Fay said that they had closed the road that morning. 3) Lee asked if/whether the airport was open. 4) Ian said that they might stay there that night.",
+      "criteria": [
+        "корректный backshift",
+        "изменены местоимения и указатели времени",
+        "порядок слов утвердительного предложения"
+      ],
+      "common_errors": [
+        "сохранён вопросительный порядок",
+        "не изменены указатели времени"
+      ]
+    }
+  },
+  {
+    "title": "Модальные глаголы предположения: офис",
+    "topic_key": "eng_modals_deduction",
+    "difficulty": 1,
+    "variant": 4,
+    "subject": "Английский язык · B2",
+    "topic": "Модальные глаголы предположения",
+    "instructions": "Choose must, might/could, can't or a past form: 1) Her laptop is here; she ___ be nearby. 2) The office is locked; they ___ be inside. 3) I am unsure; he ___ know the answer. 4) The file appeared overnight; Maya ___ have uploaded it.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_modals_deduction"
+    ],
+    "rubric": {
+      "reference_answer": "1) must; 2) can't; 3) might/could; 4) must have.",
+      "criteria": [
+        "must для сильного положительного вывода",
+        "can't для сильного отрицательного вывода",
+        "might/could для возможности",
+        "modal + have + V3 для прошлого"
+      ],
+      "common_errors": [
+        "mustn't вместо can't",
+        "пропущено have в выводе о прошлом"
+      ]
+    }
+  },
+  {
+    "title": "Модальные глаголы предположения: дорога",
+    "topic_key": "eng_modals_deduction",
+    "difficulty": 2,
+    "variant": 5,
+    "subject": "Английский язык · B2",
+    "topic": "Модальные глаголы предположения",
+    "instructions": "Choose must, might/could, can't or a past form: 1) The road is wet; it ___ have rained. 2) His car is gone; he ___ be at home. 3) This route ___ be faster, but I am unsure. 4) She arrived in ten minutes; she ___ have walked.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_modals_deduction"
+    ],
+    "rubric": {
+      "reference_answer": "1) must have; 2) can't; 3) might/could; 4) can't have.",
+      "criteria": [
+        "must для сильного положительного вывода",
+        "can't для сильного отрицательного вывода",
+        "might/could для возможности",
+        "modal + have + V3 для прошлого"
+      ],
+      "common_errors": [
+        "mustn't вместо can't",
+        "пропущено have в выводе о прошлом"
+      ]
+    }
+  },
+  {
+    "title": "Модальные глаголы предположения: доставка",
+    "topic_key": "eng_modals_deduction",
+    "difficulty": 3,
+    "variant": 6,
+    "subject": "Английский язык · B2",
+    "topic": "Модальные глаголы предположения",
+    "instructions": "Choose must, might/could, can't or a past form: 1) The parcel is marked delivered; it ___ be downstairs. 2) The address is wrong; this ___ be my order. 3) The courier ___ have called, but I am not certain. 4) The box is empty; someone ___ have opened it.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_modals_deduction"
+    ],
+    "rubric": {
+      "reference_answer": "1) must; 2) can't; 3) might/could have; 4) must have.",
+      "criteria": [
+        "must для сильного положительного вывода",
+        "can't для сильного отрицательного вывода",
+        "might/could для возможности",
+        "modal + have + V3 для прошлого"
+      ],
+      "common_errors": [
+        "mustn't вместо can't",
+        "пропущено have в выводе о прошлом"
+      ]
+    }
+  },
+  {
+    "title": "Модальные глаголы предположения: экзамен",
+    "topic_key": "eng_modals_deduction",
+    "difficulty": 1,
+    "variant": 7,
+    "subject": "Английский язык · B2",
+    "topic": "Модальные глаголы предположения",
+    "instructions": "Choose must, might/could, can't or a past form: 1) She got every answer right; she ___ know the topic well. 2) He was abroad; he ___ have attended in person. 3) I am unsure; the result ___ change. 4) Their names are absent; they ___ have registered.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_modals_deduction"
+    ],
+    "rubric": {
+      "reference_answer": "1) must; 2) can't have; 3) might/could; 4) can't have.",
+      "criteria": [
+        "must для сильного положительного вывода",
+        "can't для сильного отрицательного вывода",
+        "might/could для возможности",
+        "modal + have + V3 для прошлого"
+      ],
+      "common_errors": [
+        "mustn't вместо can't",
+        "пропущено have в выводе о прошлом"
+      ]
+    }
+  },
+  {
+    "title": "Модальные глаголы предположения: дом",
+    "topic_key": "eng_modals_deduction",
+    "difficulty": 2,
+    "variant": 8,
+    "subject": "Английский язык · B2",
+    "topic": "Модальные глаголы предположения",
+    "instructions": "Choose must, might/could, can't or a past form: 1) Music is playing; someone ___ be home. 2) The keys are on the table; they ___ be lost. 3) The noise ___ be the washing machine. 4) The window is broken; a bird ___ have hit it.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_modals_deduction"
+    ],
+    "rubric": {
+      "reference_answer": "1) must; 2) can't; 3) might/could; 4) might/could have.",
+      "criteria": [
+        "must для сильного положительного вывода",
+        "can't для сильного отрицательного вывода",
+        "might/could для возможности",
+        "modal + have + V3 для прошлого"
+      ],
+      "common_errors": [
+        "mustn't вместо can't",
+        "пропущено have в выводе о прошлом"
+      ]
+    }
+  },
+  {
+    "title": "Модальные глаголы предположения: встреча",
+    "topic_key": "eng_modals_deduction",
+    "difficulty": 3,
+    "variant": 9,
+    "subject": "Английский язык · B2",
+    "topic": "Модальные глаголы предположения",
+    "instructions": "Choose must, might/could, can't or a past form: 1) Everyone is seated; the talk ___ be starting. 2) The room is empty; this ___ be the right venue. 3) Alex ___ arrive later; he has not confirmed. 4) The slides are ready; Priya ___ have finished them.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_modals_deduction"
+    ],
+    "rubric": {
+      "reference_answer": "1) must; 2) can't; 3) might/could; 4) must have.",
+      "criteria": [
+        "must для сильного положительного вывода",
+        "can't для сильного отрицательного вывода",
+        "might/could для возможности",
+        "modal + have + V3 для прошлого"
+      ],
+      "common_errors": [
+        "mustn't вместо can't",
+        "пропущено have в выводе о прошлом"
+      ]
+    }
+  },
+  {
+    "title": "Relative Clauses: профессии и техника",
+    "topic_key": "eng_relative_clauses",
+    "difficulty": 1,
+    "variant": 4,
+    "subject": "Английский язык · B2",
+    "topic": "Определительные придаточные",
+    "instructions": "Combine: 1) The engineer designed the bridge. She won an award. 2) My phone is waterproof. It cost £300. 3) This is the studio. We recorded the podcast there. 4) Leo lives in York. He is my cousin.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_relative_clauses"
+    ],
+    "rubric": {
+      "reference_answer": "1) The engineer who designed the bridge won an award. 2) My phone, which cost £300, is waterproof. 3) This is the studio where/in which we recorded the podcast. 4) Leo, who lives in York, is my cousin.",
+      "criteria": [
+        "who для людей",
+        "which для предметов",
+        "where для мест",
+        "запятые в non-defining clause"
+      ],
+      "common_errors": [
+        "that между запятыми",
+        "пропущены запятые вокруг дополнительной информации"
+      ]
+    }
+  },
+  {
+    "title": "Relative Clauses: работа",
+    "topic_key": "eng_relative_clauses",
+    "difficulty": 2,
+    "variant": 5,
+    "subject": "Английский язык · B2",
+    "topic": "Определительные придаточные",
+    "instructions": "Combine: 1) Employees work remotely. They need secure access. 2) Our director speaks Japanese. She joined in May. 3) The office has closed. We met there. 4) The tool saves time. It was released yesterday.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_relative_clauses"
+    ],
+    "rubric": {
+      "reference_answer": "1) Employees who work remotely need secure access. 2) Our director, who joined in May, speaks Japanese. 3) The office where/in which we met has closed. 4) The tool, which was released yesterday, saves time.",
+      "criteria": [
+        "who для людей",
+        "which для предметов",
+        "where для мест",
+        "запятые в non-defining clause"
+      ],
+      "common_errors": [
+        "that между запятыми",
+        "пропущены запятые вокруг дополнительной информации"
+      ]
+    }
+  },
+  {
+    "title": "Relative Clauses: путешествие",
+    "topic_key": "eng_relative_clauses",
+    "difficulty": 3,
+    "variant": 6,
+    "subject": "Английский язык · B2",
+    "topic": "Определительные придаточные",
+    "instructions": "Combine: 1) The guide helped us. He grew up locally. 2) Kyoto has many temples. It was once Japan's capital. 3) That is the hotel. We stayed there. 4) Travellers book early. They get lower prices.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_relative_clauses"
+    ],
+    "rubric": {
+      "reference_answer": "1) The guide who grew up locally helped us. 2) Kyoto, which was once Japan's capital, has many temples. 3) That is the hotel where/in which we stayed. 4) Travellers who book early get lower prices.",
+      "criteria": [
+        "who для людей",
+        "which для предметов",
+        "where для мест",
+        "запятые в non-defining clause"
+      ],
+      "common_errors": [
+        "that между запятыми",
+        "пропущены запятые вокруг дополнительной информации"
+      ]
+    }
+  },
+  {
+    "title": "Relative Clauses: образование",
+    "topic_key": "eng_relative_clauses",
+    "difficulty": 1,
+    "variant": 7,
+    "subject": "Английский язык · B2",
+    "topic": "Определительные придаточные",
+    "instructions": "Combine: 1) The tutor teaches grammar. She wrote this book. 2) The course is free. It lasts six weeks. 3) The library is being renovated. We usually study there. 4) Students ask questions. They learn faster.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_relative_clauses"
+    ],
+    "rubric": {
+      "reference_answer": "1) The tutor who wrote this book teaches grammar. 2) The course, which lasts six weeks, is free. 3) The library where/in which we usually study is being renovated. 4) Students who ask questions learn faster.",
+      "criteria": [
+        "who для людей",
+        "which для предметов",
+        "where для мест",
+        "запятые в non-defining clause"
+      ],
+      "common_errors": [
+        "that между запятыми",
+        "пропущены запятые вокруг дополнительной информации"
+      ]
+    }
+  },
+  {
+    "title": "Relative Clauses: технологии",
+    "topic_key": "eng_relative_clauses",
+    "difficulty": 2,
+    "variant": 8,
+    "subject": "Английский язык · B2",
+    "topic": "Определительные придаточные",
+    "instructions": "Combine: 1) The developer fixed the bug. He joined yesterday. 2) My tablet has stopped working. It is only a year old. 3) This is the page. Users reset passwords there. 4) Apps collect less data. They earn more trust.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_relative_clauses"
+    ],
+    "rubric": {
+      "reference_answer": "1) The developer who joined yesterday fixed the bug. 2) My tablet, which is only a year old, has stopped working. 3) This is the page where/in which users reset passwords. 4) Apps which collect less data earn more trust.",
+      "criteria": [
+        "who для людей",
+        "which для предметов",
+        "where для мест",
+        "запятые в non-defining clause"
+      ],
+      "common_errors": [
+        "that между запятыми",
+        "пропущены запятые вокруг дополнительной информации"
+      ]
+    }
+  },
+  {
+    "title": "Relative Clauses: культура",
+    "topic_key": "eng_relative_clauses",
+    "difficulty": 3,
+    "variant": 9,
+    "subject": "Английский язык · B2",
+    "topic": "Определительные придаточные",
+    "instructions": "Combine: 1) The actor played Hamlet. He visited our school. 2) The film won three awards. It was shot locally. 3) The theatre has reopened. We saw the play there. 4) Artists challenge conventions. They often face criticism.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_relative_clauses"
+    ],
+    "rubric": {
+      "reference_answer": "1) The actor who played Hamlet visited our school. 2) The film, which was shot locally, won three awards. 3) The theatre where/in which we saw the play has reopened. 4) Artists who challenge conventions often face criticism.",
+      "criteria": [
+        "who для людей",
+        "which для предметов",
+        "where для мест",
+        "запятые в non-defining clause"
+      ],
+      "common_errors": [
+        "that между запятыми",
+        "пропущены запятые вокруг дополнительной информации"
+      ]
+    }
+  },
+  {
+    "title": "Gerund и Infinitive: намерения",
+    "topic_key": "eng_gerund_infinitive",
+    "difficulty": 1,
+    "variant": 4,
+    "subject": "Английский язык · B2",
+    "topic": "Формы после глаголов",
+    "instructions": "Complete: 1) I decided ___ (apply) today. 2) She avoids ___ (drive) at night. 3) Remember ___ (lock) the door. 4) I remember ___ (visit) this place as a child.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_gerund_infinitive"
+    ],
+    "rubric": {
+      "reference_answer": "1) to apply; 2) driving; 3) to lock; 4) visiting.",
+      "criteria": [
+        "форма выбрана по управляющему глаголу",
+        "учтено изменение смысла",
+        "использована полная форма"
+      ],
+      "common_errors": [
+        "формы считаются взаимозаменяемыми",
+        "выбор сделан только по глаголу в скобках"
+      ]
+    }
+  },
+  {
+    "title": "Gerund и Infinitive: перерыв",
+    "topic_key": "eng_gerund_infinitive",
+    "difficulty": 2,
+    "variant": 5,
+    "subject": "Английский язык · B2",
+    "topic": "Формы после глаголов",
+    "instructions": "Complete: 1) Please stop ___ (make) that noise. 2) We stopped ___ (take) a photograph. 3) He promised ___ (help). 4) They suggested ___ (leave) early.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_gerund_infinitive"
+    ],
+    "rubric": {
+      "reference_answer": "1) making; 2) to take; 3) to help; 4) leaving.",
+      "criteria": [
+        "форма выбрана по управляющему глаголу",
+        "учтено изменение смысла",
+        "использована полная форма"
+      ],
+      "common_errors": [
+        "формы считаются взаимозаменяемыми",
+        "выбор сделан только по глаголу в скобках"
+      ]
+    }
+  },
+  {
+    "title": "Gerund и Infinitive: эксперимент",
+    "topic_key": "eng_gerund_infinitive",
+    "difficulty": 3,
+    "variant": 6,
+    "subject": "Английский язык · B2",
+    "topic": "Формы после глаголов",
+    "instructions": "Complete: 1) Try ___ (restart) the device as an experiment. 2) Try ___ (finish) before noon. 3) I regret ___ (say) those words. 4) We regret ___ (inform) you that the flight is cancelled.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_gerund_infinitive"
+    ],
+    "rubric": {
+      "reference_answer": "1) restarting; 2) to finish; 3) saying; 4) to inform.",
+      "criteria": [
+        "форма выбрана по управляющему глаголу",
+        "учтено изменение смысла",
+        "использована полная форма"
+      ],
+      "common_errors": [
+        "формы считаются взаимозаменяемыми",
+        "выбор сделан только по глаголу в скобках"
+      ]
+    }
+  },
+  {
+    "title": "Gerund и Infinitive: привычки",
+    "topic_key": "eng_gerund_infinitive",
+    "difficulty": 1,
+    "variant": 7,
+    "subject": "Английский язык · B2",
+    "topic": "Формы после глаголов",
+    "instructions": "Complete: 1) She enjoys ___ (cook). 2) We hope ___ (travel) soon. 3) He admitted ___ (break) the vase. 4) I managed ___ (solve) the problem.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_gerund_infinitive"
+    ],
+    "rubric": {
+      "reference_answer": "1) cooking; 2) to travel; 3) breaking; 4) to solve.",
+      "criteria": [
+        "форма выбрана по управляющему глаголу",
+        "учтено изменение смысла",
+        "использована полная форма"
+      ],
+      "common_errors": [
+        "формы считаются взаимозаменяемыми",
+        "выбор сделан только по глаголу в скобках"
+      ]
+    }
+  },
+  {
+    "title": "Gerund и Infinitive: общение",
+    "topic_key": "eng_gerund_infinitive",
+    "difficulty": 2,
+    "variant": 8,
+    "subject": "Английский язык · B2",
+    "topic": "Формы после глаголов",
+    "instructions": "Complete: 1) Would you mind ___ (wait)? 2) They agreed ___ (meet) online. 3) I miss ___ (talk) to my old colleagues. 4) She refused ___ (answer).",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_gerund_infinitive"
+    ],
+    "rubric": {
+      "reference_answer": "1) waiting; 2) to meet; 3) talking; 4) to answer.",
+      "criteria": [
+        "форма выбрана по управляющему глаголу",
+        "учтено изменение смысла",
+        "использована полная форма"
+      ],
+      "common_errors": [
+        "формы считаются взаимозаменяемыми",
+        "выбор сделан только по глаголу в скобках"
+      ]
+    }
+  },
+  {
+    "title": "Gerund и Infinitive: обучение",
+    "topic_key": "eng_gerund_infinitive",
+    "difficulty": 3,
+    "variant": 9,
+    "subject": "Английский язык · B2",
+    "topic": "Формы после глаголов",
+    "instructions": "Complete: 1) The teacher recommended ___ (read) this article. 2) I learned ___ (use) the tool. 3) Keep ___ (practise) every day. 4) We arranged ___ (have) a tutorial.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_gerund_infinitive"
+    ],
+    "rubric": {
+      "reference_answer": "1) reading; 2) to use; 3) practising; 4) to have.",
+      "criteria": [
+        "форма выбрана по управляющему глаголу",
+        "учтено изменение смысла",
+        "использована полная форма"
+      ],
+      "common_errors": [
+        "формы считаются взаимозаменяемыми",
+        "выбор сделан только по глаголу в скобках"
+      ]
+    }
+  },
+  {
+    "title": "Артикли в контексте: город",
+    "topic_key": "eng_articles",
+    "difficulty": 1,
+    "variant": 4,
+    "subject": "Английский язык · B2",
+    "topic": "A/an, the и нулевой артикль",
+    "instructions": "Choose a/an, the or —: 1) We booked ___ apartment near the centre. 2) ___ apartment had a balcony. 3) We walked along ___ River Thames. 4) ___ public transport is convenient there.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_articles"
+    ],
+    "rubric": {
+      "reference_answer": "1) an; 2) the; 3) the; 4) —.",
+      "criteria": [
+        "a/an для первого неспецифичного упоминания",
+        "the для определённого или повторного объекта",
+        "нулевой артикль для общего понятия"
+      ],
+      "common_errors": [
+        "the при первом неспецифичном упоминании",
+        "a/an с общим неисчисляемым понятием"
+      ]
+    }
+  },
+  {
+    "title": "Артикли в контексте: работа",
+    "topic_key": "eng_articles",
+    "difficulty": 2,
+    "variant": 5,
+    "subject": "Английский язык · B2",
+    "topic": "A/an, the и нулевой артикль",
+    "instructions": "Choose a/an, the or —: 1) She applied for ___ job yesterday. 2) ___ job requires experience. 3) He gave me ___ useful advice. 4) We had lunch in ___ office kitchen.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_articles"
+    ],
+    "rubric": {
+      "reference_answer": "1) a; 2) the; 3) —; 4) the.",
+      "criteria": [
+        "a/an для первого неспецифичного упоминания",
+        "the для определённого или повторного объекта",
+        "нулевой артикль для общего понятия"
+      ],
+      "common_errors": [
+        "the при первом неспецифичном упоминании",
+        "a/an с общим неисчисляемым понятием"
+      ]
+    }
+  },
+  {
+    "title": "Артикли в контексте: природа",
+    "topic_key": "eng_articles",
+    "difficulty": 3,
+    "variant": 6,
+    "subject": "Английский язык · B2",
+    "topic": "A/an, the и нулевой артикль",
+    "instructions": "Choose a/an, the or —: 1) We saw ___ eagle above us. 2) ___ eagle landed nearby. 3) ___ Mount Everest is in Asia. 4) ___ air pollution harms health.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_articles"
+    ],
+    "rubric": {
+      "reference_answer": "1) an; 2) the; 3) —; 4) —.",
+      "criteria": [
+        "a/an для первого неспецифичного упоминания",
+        "the для определённого или повторного объекта",
+        "нулевой артикль для общего понятия"
+      ],
+      "common_errors": [
+        "the при первом неспецифичном упоминании",
+        "a/an с общим неисчисляемым понятием"
+      ]
+    }
+  },
+  {
+    "title": "Артикли в контексте: учёба",
+    "topic_key": "eng_articles",
+    "difficulty": 1,
+    "variant": 7,
+    "subject": "Английский язык · B2",
+    "topic": "A/an, the и нулевой артикль",
+    "instructions": "Choose a/an, the or —: 1) I borrowed ___ dictionary. 2) ___ dictionary was very old. 3) She studies ___ economics. 4) We met in ___ university library.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_articles"
+    ],
+    "rubric": {
+      "reference_answer": "1) a; 2) the; 3) —; 4) the.",
+      "criteria": [
+        "a/an для первого неспецифичного упоминания",
+        "the для определённого или повторного объекта",
+        "нулевой артикль для общего понятия"
+      ],
+      "common_errors": [
+        "the при первом неспецифичном упоминании",
+        "a/an с общим неисчисляемым понятием"
+      ]
+    }
+  },
+  {
+    "title": "Артикли в контексте: новости",
+    "topic_key": "eng_articles",
+    "difficulty": 2,
+    "variant": 8,
+    "subject": "Английский язык · B2",
+    "topic": "A/an, the и нулевой артикль",
+    "instructions": "Choose a/an, the or —: 1) I read ___ interesting article. 2) ___ article was about climate. 3) ___ information was surprising. 4) It mentioned ___ United States.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_articles"
+    ],
+    "rubric": {
+      "reference_answer": "1) an; 2) the; 3) —; 4) the.",
+      "criteria": [
+        "a/an для первого неспецифичного упоминания",
+        "the для определённого или повторного объекта",
+        "нулевой артикль для общего понятия"
+      ],
+      "common_errors": [
+        "the при первом неспецифичном упоминании",
+        "a/an с общим неисчисляемым понятием"
+      ]
+    }
+  },
+  {
+    "title": "Артикли в контексте: еда",
+    "topic_key": "eng_articles",
+    "difficulty": 3,
+    "variant": 9,
+    "subject": "Английский язык · B2",
+    "topic": "A/an, the и нулевой артикль",
+    "instructions": "Choose a/an, the or —: 1) We tried ___ local dish. 2) ___ dish contained rice. 3) ___ rice is common in the region. 4) The chef added ___ unusual spice.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_articles"
+    ],
+    "rubric": {
+      "reference_answer": "1) a; 2) the; 3) —; 4) an.",
+      "criteria": [
+        "a/an для первого неспецифичного упоминания",
+        "the для определённого или повторного объекта",
+        "нулевой артикль для общего понятия"
+      ],
+      "common_errors": [
+        "the при первом неспецифичном упоминании",
+        "a/an с общим неисчисляемым понятием"
+      ]
+    }
+  },
+  {
+    "title": "Связность текста: удалённая работа",
+    "topic_key": "eng_linking",
+    "difficulty": 1,
+    "variant": 4,
+    "subject": "Английский язык · B2",
+    "topic": "Связность текста и linking words",
+    "instructions": "Write 100–130 words comparing office and remote work. Use although, however, because and therefore accurately.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_linking"
+    ],
+    "rubric": {
+      "reference_answer": "A complete B2-level response that fulfils every instruction in the prompt.",
+      "criteria": [
+        "выполнены все пункты задания",
+        "логичная структура и точные связки",
+        "лексика и грамматика уровня B2",
+        "подходящий регистр"
+      ],
+      "common_errors": [
+        "пропущен обязательный пункт",
+        "связки перечислены без логической функции",
+        "неподходящий регистр"
+      ]
+    }
+  },
+  {
+    "title": "Связность текста: городской транспорт",
+    "topic_key": "eng_linking",
+    "difficulty": 2,
+    "variant": 5,
+    "subject": "Английский язык · B2",
+    "topic": "Связность текста и linking words",
+    "instructions": "Write 100–130 words arguing for better public transport. Use moreover, while, as a result and in conclusion.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_linking"
+    ],
+    "rubric": {
+      "reference_answer": "A complete B2-level response that fulfils every instruction in the prompt.",
+      "criteria": [
+        "выполнены все пункты задания",
+        "логичная структура и точные связки",
+        "лексика и грамматика уровня B2",
+        "подходящий регистр"
+      ],
+      "common_errors": [
+        "пропущен обязательный пункт",
+        "связки перечислены без логической функции",
+        "неподходящий регистр"
+      ]
+    }
+  },
+  {
+    "title": "Связность текста: онлайн-обучение",
+    "topic_key": "eng_linking",
+    "difficulty": 3,
+    "variant": 6,
+    "subject": "Английский язык · B2",
+    "topic": "Связность текста и linking words",
+    "instructions": "Write 100–130 words about strengths and limits of online learning. Use on the one hand, on the other hand, because and therefore.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_linking"
+    ],
+    "rubric": {
+      "reference_answer": "A complete B2-level response that fulfils every instruction in the prompt.",
+      "criteria": [
+        "выполнены все пункты задания",
+        "логичная структура и точные связки",
+        "лексика и грамматика уровня B2",
+        "подходящий регистр"
+      ],
+      "common_errors": [
+        "пропущен обязательный пункт",
+        "связки перечислены без логической функции",
+        "неподходящий регистр"
+      ]
+    }
+  },
+  {
+    "title": "Связность текста: социальные сети",
+    "topic_key": "eng_linking",
+    "difficulty": 1,
+    "variant": 7,
+    "subject": "Английский язык · B2",
+    "topic": "Связность текста и linking words",
+    "instructions": "Write 100–130 words about social media and attention. Use although, nevertheless, since and as a result.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_linking"
+    ],
+    "rubric": {
+      "reference_answer": "A complete B2-level response that fulfils every instruction in the prompt.",
+      "criteria": [
+        "выполнены все пункты задания",
+        "логичная структура и точные связки",
+        "лексика и грамматика уровня B2",
+        "подходящий регистр"
+      ],
+      "common_errors": [
+        "пропущен обязательный пункт",
+        "связки перечислены без логической функции",
+        "неподходящий регистр"
+      ]
+    }
+  },
+  {
+    "title": "Связность текста: здоровые привычки",
+    "topic_key": "eng_linking",
+    "difficulty": 2,
+    "variant": 8,
+    "subject": "Английский язык · B2",
+    "topic": "Связность текста и linking words",
+    "instructions": "Write 100–130 words explaining one realistic healthy habit. Use first of all, however, because and consequently.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_linking"
+    ],
+    "rubric": {
+      "reference_answer": "A complete B2-level response that fulfils every instruction in the prompt.",
+      "criteria": [
+        "выполнены все пункты задания",
+        "логичная структура и точные связки",
+        "лексика и грамматика уровня B2",
+        "подходящий регистр"
+      ],
+      "common_errors": [
+        "пропущен обязательный пункт",
+        "связки перечислены без логической функции",
+        "неподходящий регистр"
+      ]
+    }
+  },
+  {
+    "title": "Связность текста: экологичный кампус",
+    "topic_key": "eng_linking",
+    "difficulty": 3,
+    "variant": 9,
+    "subject": "Английский язык · B2",
+    "topic": "Связность текста и linking words",
+    "instructions": "Write 100–130 words proposing a greener university campus. Use in addition, whereas, therefore and to sum up.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_linking"
+    ],
+    "rubric": {
+      "reference_answer": "A complete B2-level response that fulfils every instruction in the prompt.",
+      "criteria": [
+        "выполнены все пункты задания",
+        "логичная структура и точные связки",
+        "лексика и грамматика уровня B2",
+        "подходящий регистр"
+      ],
+      "common_errors": [
+        "пропущен обязательный пункт",
+        "связки перечислены без логической функции",
+        "неподходящий регистр"
+      ]
+    }
+  },
+  {
+    "title": "Деловое письмо: перенос интервью",
+    "topic_key": "eng_formal_writing",
+    "difficulty": 1,
+    "variant": 4,
+    "subject": "Английский язык · B2",
+    "topic": "Формальная письменная коммуникация",
+    "instructions": "Write a 100–130 word formal email asking to reschedule a job interview. Explain the reason, offer two times and request confirmation.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_formal_writing"
+    ],
+    "rubric": {
+      "reference_answer": "A complete B2-level response that fulfils every instruction in the prompt.",
+      "criteria": [
+        "выполнены все пункты задания",
+        "логичная структура и точные связки",
+        "лексика и грамматика уровня B2",
+        "подходящий регистр"
+      ],
+      "common_errors": [
+        "пропущен обязательный пункт",
+        "связки перечислены без логической функции",
+        "неподходящий регистр"
+      ]
+    }
+  },
+  {
+    "title": "Деловое письмо: ошибка в счёте",
+    "topic_key": "eng_formal_writing",
+    "difficulty": 2,
+    "variant": 5,
+    "subject": "Английский язык · B2",
+    "topic": "Формальная письменная коммуникация",
+    "instructions": "Write a 100–130 word formal email reporting an incorrect invoice. Identify the charge, attach evidence and request a corrected invoice.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_formal_writing"
+    ],
+    "rubric": {
+      "reference_answer": "A complete B2-level response that fulfils every instruction in the prompt.",
+      "criteria": [
+        "выполнены все пункты задания",
+        "логичная структура и точные связки",
+        "лексика и грамматика уровня B2",
+        "подходящий регистр"
+      ],
+      "common_errors": [
+        "пропущен обязательный пункт",
+        "связки перечислены без логической функции",
+        "неподходящий регистр"
+      ]
+    }
+  },
+  {
+    "title": "Деловое письмо: запрос преподавателю",
+    "topic_key": "eng_formal_writing",
+    "difficulty": 3,
+    "variant": 6,
+    "subject": "Английский язык · B2",
+    "topic": "Формальная письменная коммуникация",
+    "instructions": "Write a 100–130 word formal email asking a lecturer for clarification about an assignment. State the exact ambiguity and your deadline.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_formal_writing"
+    ],
+    "rubric": {
+      "reference_answer": "A complete B2-level response that fulfils every instruction in the prompt.",
+      "criteria": [
+        "выполнены все пункты задания",
+        "логичная структура и точные связки",
+        "лексика и грамматика уровня B2",
+        "подходящий регистр"
+      ],
+      "common_errors": [
+        "пропущен обязательный пункт",
+        "связки перечислены без логической функции",
+        "неподходящий регистр"
+      ]
+    }
+  },
+  {
+    "title": "Деловое письмо: возврат товара",
+    "topic_key": "eng_formal_writing",
+    "difficulty": 1,
+    "variant": 7,
+    "subject": "Английский язык · B2",
+    "topic": "Формальная письменная коммуникация",
+    "instructions": "Write a 100–130 word formal email requesting a refund for a faulty product. Include the order date, fault and preferred resolution.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_formal_writing"
+    ],
+    "rubric": {
+      "reference_answer": "A complete B2-level response that fulfils every instruction in the prompt.",
+      "criteria": [
+        "выполнены все пункты задания",
+        "логичная структура и точные связки",
+        "лексика и грамматика уровня B2",
+        "подходящий регистр"
+      ],
+      "common_errors": [
+        "пропущен обязательный пункт",
+        "связки перечислены без логической функции",
+        "неподходящий регистр"
+      ]
+    }
+  },
+  {
+    "title": "Деловое письмо: партнёрство",
+    "topic_key": "eng_formal_writing",
+    "difficulty": 2,
+    "variant": 8,
+    "subject": "Английский язык · B2",
+    "topic": "Формальная письменная коммуникация",
+    "instructions": "Write a 100–130 word formal email proposing a student-club partnership. Explain the shared benefit and suggest a short meeting.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_formal_writing"
+    ],
+    "rubric": {
+      "reference_answer": "A complete B2-level response that fulfils every instruction in the prompt.",
+      "criteria": [
+        "выполнены все пункты задания",
+        "логичная структура и точные связки",
+        "лексика и грамматика уровня B2",
+        "подходящий регистр"
+      ],
+      "common_errors": [
+        "пропущен обязательный пункт",
+        "связки перечислены без логической функции",
+        "неподходящий регистр"
+      ]
+    }
+  },
+  {
+    "title": "Деловое письмо: пропущенный дедлайн",
+    "topic_key": "eng_formal_writing",
+    "difficulty": 3,
+    "variant": 9,
+    "subject": "Английский язык · B2",
+    "topic": "Формальная письменная коммуникация",
+    "instructions": "Write a 100–130 word formal email about a missed deadline. Take responsibility, give a concise reason and propose a new submission time.",
+    "starter_code": "",
+    "skill_ids": [
+      "eng_formal_writing"
+    ],
+    "rubric": {
+      "reference_answer": "A complete B2-level response that fulfils every instruction in the prompt.",
+      "criteria": [
+        "выполнены все пункты задания",
+        "логичная структура и точные связки",
+        "лексика и грамматика уровня B2",
+        "подходящий регистр"
+      ],
+      "common_errors": [
+        "пропущен обязательный пункт",
+        "связки перечислены без логической функции",
+        "неподходящий регистр"
+      ]
     }
   }
 ]
