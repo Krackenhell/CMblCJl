@@ -63,6 +63,7 @@ def check_article_cloze(assignment: dict[str, Any], answer: str) -> dict[str, An
 
     answer_tokens = re.findall(r"[A-Za-z]+(?:'[A-Za-z]+)?", answer)
     lowered_answer = [token.lower() for token in answer_tokens]
+    instruction_sections = instructions.split("___")
     articles = {"a", "an", "the"}
     cursor = 0
     slots: list[dict[str, Any]] = []
@@ -83,10 +84,31 @@ def check_article_cloze(assignment: dict[str, Any], answer: str) -> dict[str, An
             ),
             None,
         )
+        left_context = re.findall(
+            r"[A-Za-z]+(?:'[A-Za-z]+)?", instruction_sections[index - 1]
+        )[-3:]
+        left_context_lower = [token.lower() for token in left_context]
+        left_match = None
+        if match_index is not None and left_context_lower:
+            left_match = next(
+                (
+                    position
+                    for position in range(match_index - len(left_context_lower), -1, -1)
+                    if lowered_answer[position : position + len(left_context_lower)]
+                    == left_context_lower
+                ),
+                None,
+            )
         if match_index is None:
             actual = "не найдено"
             evidence = "Фрагмент отсутствует в ответе"
             cursor = len(lowered_answer)
+        elif left_match is not None:
+            gap_start = left_match + len(left_context_lower)
+            inserted_tokens = answer_tokens[gap_start:match_index]
+            actual = " ".join(token.lower() for token in inserted_tokens) if inserted_tokens else "—"
+            evidence = " ".join(inserted_tokens + answer_tokens[match_index : match_index + len(anchor)])
+            cursor = match_index + len(anchor)
         else:
             previous = lowered_answer[match_index - 1] if match_index > 0 else ""
             actual = previous if previous in articles else "—"

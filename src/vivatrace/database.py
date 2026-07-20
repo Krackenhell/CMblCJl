@@ -155,6 +155,7 @@ def _migrate_schema(connection: sqlite3.Connection) -> None:
         "next_activity_json": "TEXT NOT NULL DEFAULT '{}'",
         "teacher_recommendation_json": "TEXT NOT NULL DEFAULT '{}'",
         "traces_json": "TEXT NOT NULL DEFAULT '[]'",
+        "assessment_json": "TEXT NOT NULL DEFAULT '{}'",
     }
     for column, definition in assignment_additions.items():
         if column not in assignment_columns:
@@ -339,6 +340,7 @@ def save_attempt(
     next_activity: dict[str, Any] | None = None,
     teacher_recommendation: dict[str, Any] | None = None,
     traces: list[dict[str, Any]] | None = None,
+    assessment: dict[str, Any] | None = None,
 ) -> int:
     now = datetime.now(UTC).isoformat()
     overall_score = sum(item.score for item in evidence) / max(len(evidence), 1)
@@ -349,8 +351,8 @@ def save_attempt(
                 student_id, assignment_id, artifact, findings_json, evidence_json,
                 mastery_json, overall_score, completed_at, submission_score,
                 submission_correct, assessment_mode, next_activity_json,
-                teacher_recommendation_json, traces_json
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                teacher_recommendation_json, traces_json, assessment_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 student_id,
@@ -367,6 +369,7 @@ def save_attempt(
                 json.dumps(next_activity or {}, ensure_ascii=False),
                 json.dumps(teacher_recommendation or {}, ensure_ascii=False),
                 json.dumps(traces or [], ensure_ascii=False),
+                json.dumps(assessment or {}, ensure_ascii=False),
             ),
         )
         connection.executemany(
@@ -432,6 +435,21 @@ def student_progress(student_id: str) -> dict[int, dict[str, Any]]:
     return {int(row["assignment_id"]): dict(row) for row in rows}
 
 
+def student_history(student_id: str) -> list[dict[str, Any]]:
+    with connect() as connection:
+        rows = connection.execute(
+            """
+            SELECT a.*, x.title AS assignment_title, x.subject, x.topic
+            FROM attempts a
+            JOIN assignments x ON x.id = a.assignment_id
+            WHERE a.student_id = ?
+            ORDER BY a.id DESC
+            """,
+            (student_id,),
+        ).fetchall()
+    return [_attempt_from_row(row) for row in rows]
+
+
 def latest_topic_attempts(topic_key: str) -> list[dict[str, Any]]:
     with connect() as connection:
         rows = connection.execute(
@@ -464,6 +482,7 @@ def _attempt_from_row(row: sqlite3.Row) -> dict[str, Any]:
         item.pop("teacher_recommendation_json", "{}") or "{}"
     )
     item["traces"] = json.loads(item.pop("traces_json", "[]") or "[]")
+    item["assessment"] = json.loads(item.pop("assessment_json", "{}") or "{}")
     if item.get("submission_correct") is not None:
         item["submission_correct"] = bool(item["submission_correct"])
     return item

@@ -49,6 +49,24 @@ def test_article_cloze_finds_exact_wrong_position():
     assert wrong[0]["expected_phrase"] == "the train"
 
 
+def test_zero_article_rejects_extra_pronoun_inserted_into_blank():
+    answer = (
+        "Yesterday I took a train to Brighton. The train was crowded. "
+        "We had lunch near the sea. The food was excellent. "
+        "I travel often changes how people see the world."
+    )
+
+    result = check_article_cloze(ARTICLE_ASSIGNMENT, answer)
+
+    assert result is not None
+    wrong = [slot for slot in result["slots"] if not slot["correct"]]
+    assert len(wrong) == 1
+    assert wrong[0]["position"] == 5
+    assert wrong[0]["actual"] == "i"
+    assert wrong[0]["student_evidence"] == "I travel"
+    assert wrong[0]["expected_phrase"] == "travel"
+
+
 def test_objective_article_check_overrides_false_positive_from_llm(monkeypatch):
     llm = LocalLLM()
     trace = LLMTrace(

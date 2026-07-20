@@ -9,6 +9,7 @@ from vivatrace.database import (
     reset_learning_data,
     save_attempt,
     student_attempts,
+    student_history,
 )
 from vivatrace.models import ArtifactFinding, Evidence
 
@@ -49,13 +50,24 @@ def test_attempt_updates_mastery_and_teacher_gets_latest_per_student(tmp_path, m
     )
 
     save_attempt("s01", assignment["id"], "first", [finding], [evidence], {"data_leakage": 0.7})
-    save_attempt("s01", assignment["id"], "second", [], [evidence], {"data_leakage": 0.82})
+    save_attempt(
+        "s01",
+        assignment["id"],
+        "second",
+        [],
+        [evidence],
+        {"data_leakage": 0.82},
+        assessment={"submission_score": 0.8, "criterion_results": []},
+    )
     save_attempt("s02", assignment["id"], "third", [finding], [evidence], {"data_leakage": 0.61})
 
     teacher_rows = latest_attempts(assignment["id"])
     assert len(teacher_rows) == 2
     assert {row["artifact"] for row in teacher_rows} == {"second", "third"}
     assert len(student_attempts("s01", assignment["id"])) == 2
+    history = student_history("s01")
+    assert history[0]["assignment_title"] == assignment["title"]
+    assert history[0]["assessment"]["submission_score"] == 0.8
     assert get_mastery("s01", ["data_leakage"])["data_leakage"] == 0.82
 
     reset_learning_data()

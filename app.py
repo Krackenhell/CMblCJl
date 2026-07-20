@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import json
 import hashlib
+import json
+from collections import Counter
 from dataclasses import asdict, replace
 from html import escape
 from pathlib import Path
@@ -23,6 +24,7 @@ from vivatrace.database import (
     reset_learning_data,
     save_attempt,
     student_attempts,
+    student_history,
     student_progress,
     update_assignment,
 )
@@ -35,7 +37,7 @@ from vivatrace.rulebook import load_rulebook
 ROOT = Path(__file__).resolve().parent
 CURRICULUM = load_curriculum(DATA_DIR / "curriculum.json")
 LLM = LocalLLM()
-ASSESSMENT_VERSION = 2
+ASSESSMENT_VERSION = 3
 RULEBOOK = load_rulebook()
 DIFFICULTY_LABELS = {1: "Базовый", 2: "Средний", 3: "Продвинутый"}
 COLORS = {
@@ -256,6 +258,38 @@ def start_assessment(student: dict, assignment: dict, artifact: str) -> None:
     }
 
 
+def verified_error_facts(assessment: dict, evidence_items: list) -> list[dict]:
+    facts = []
+    objective = (assessment or {}).get("objective_check") or {}
+    for slot in objective.get("slots", []):
+        if not slot.get("correct"):
+            facts.append(
+                {
+                    "source": "rubric_check",
+                    "position": slot.get("position"),
+                    "student_form": slot.get("student_evidence"),
+                    "expected_form": slot.get("expected_phrase"),
+                }
+            )
+    for item in evidence_items:
+        score = item.score if isinstance(item, Evidence) else float(item.get("score", 0))
+        if score >= 0.75:
+            continue
+        rule_id = (
+            item.rule_id or item.skill_id
+            if isinstance(item, Evidence)
+            else item.get("rule_id") or item.get("skill_id")
+        )
+        facts.append(
+            {
+                "source": "viva_score",
+                "rule_id": rule_id,
+                "score": score,
+            }
+        )
+    return facts
+
+
 def cohort_context_for_llm(assignment: dict, current_student: dict, flow: dict) -> list[dict]:
     rows = [
         {
@@ -263,15 +297,7 @@ def cohort_context_for_llm(assignment: dict, current_student: dict, flow: dict) 
             "assignment_title": row.get("assignment_title"),
             "submission_score": row.get("submission_score"),
             "viva_score": row["overall_score"],
-            "errors": [
-                {
-                    "rule_id": item.get("rule_id"),
-                    "gap": item.get("what_needs_improvement") or item.get("misconception"),
-                    "correct_answer": item.get("correct_answer"),
-                }
-                for item in row["evidence"]
-                if item.get("score", 0) < 0.75
-            ],
+            "errors": verified_error_facts(row.get("assessment") or {}, row["evidence"]),
         }
         for row in latest_topic_attempts(assignment_topic_key(assignment))
         if row["student_id"] != current_student["id"]
@@ -282,15 +308,7 @@ def cohort_context_for_llm(assignment: dict, current_student: dict, flow: dict) 
             "assignment_title": assignment["title"],
             "submission_score": flow["assessment"]["submission_score"],
             "viva_score": sum(item.score for item in flow["evidence"]) / max(len(flow["evidence"]), 1),
-            "errors": [
-                {
-                    "rule_id": item.rule_id,
-                    "gap": item.what_needs_improvement or item.misconception,
-                    "correct_answer": item.correct_answer,
-                }
-                for item in flow["evidence"]
-                if item.score < 0.75
-            ],
+            "errors": verified_error_facts(flow["assessment"], flow["evidence"]),
         }
     )
     return rows
@@ -320,39 +338,170 @@ def complete_attempt(student: dict, assignment: dict, flow: dict) -> None:
         next_activity=flow["next_activity"],
         teacher_recommendation=flow["teacher_recommendation"],
         traces=flow["traces"],
+        assessment={
+            key: value
+            for key, value in flow["assessment"].items()
+            if key != "questions"
+        },
     )
     flow["completed"] = True
 
 
+def completed_flow_from_attempt(student: dict, assignment: dict, attempt: dict) -> dict:
+    assessment = attempt.get("assessment") or {
+        "submission_score": float(attempt.get("submission_score") or 0),
+        "is_correct": bool(attempt.get("submission_correct")),
+        "mode": str(attempt.get("assessment_mode") or "diagnostic"),
+        "feedback": "Сохранённый результат предыдущей попытки.",
+        "criterion_results": [],
+    }
+    next_activity = attempt.get("next_activity") or {
+        "title": "Результат сохранённой попытки",
+        "instructions": "Для этой ранней попытки персональный следующий шаг ещё не сохранялся.",
+        "why": "Можно изучить разбор ответов выше или перезапустить задание.",
+        "explanation": "",
+        "worked_example": "",
+        "practice_task": "",
+        "success_criteria": "Новая попытка завершена с подтверждением понимания.",
+    }
+    return {
+        "assessment_version": ASSESSMENT_VERSION,
+        "student_id": student["id"],
+        "assignment_id": assignment["id"],
+        "artifact": attempt["artifact"],
+        "assessment": assessment,
+        "findings": [],
+        "questions": [],
+        "current": 0,
+        "evidence": [Evidence(**item) for item in attempt["evidence"]],
+        "mastery": attempt["mastery"],
+        "completed": True,
+        "traces": attempt.get("traces") or [],
+        "next_activity": next_activity,
+        "branch": (
+            "transfer"
+            if attempt.get("submission_correct") and attempt.get("overall_score", 0) >= 0.75
+            else "remediation"
+        ),
+        "teacher_recommendation": attempt.get("teacher_recommendation") or {},
+    }
+
+
+def restart_marker_key(student_id: str, assignment_id: int) -> str:
+    return f"restart-after-{student_id}-{assignment_id}"
+
+
+def begin_new_attempt(student: dict, assignment: dict, history: list[dict]) -> None:
+    if history:
+        st.session_state[restart_marker_key(student["id"], assignment["id"])] = history[0]["id"]
+    reset_flow()
+
+
+def render_student_dashboard(student: dict, assignments: list[dict]) -> None:
+    history = student_history(student["id"])
+    latest_by_assignment = {}
+    for attempt in history:
+        latest_by_assignment.setdefault(attempt["assignment_id"], attempt)
+    completed_count = len(latest_by_assignment)
+    mean_submission = (
+        sum(float(item.get("submission_score") or 0) for item in latest_by_assignment.values())
+        / completed_count
+        if completed_count
+        else 0
+    )
+    error_counts: Counter[str] = Counter()
+    for attempt in history:
+        assessment = attempt.get("assessment") or {}
+        objective = assessment.get("objective_check") or {}
+        if objective:
+            wrong_slots = sum(not bool(slot.get("correct")) for slot in objective.get("slots", []))
+            if wrong_slots:
+                rule_id = next(
+                    (
+                        skill_id
+                        for skill_id in (attempt.get("mastery") or {})
+                        if skill_id in RULEBOOK
+                    ),
+                    "eng_articles",
+                )
+                error_counts[rule_id] += wrong_slots
+        for evidence in attempt["evidence"]:
+            if float(evidence.get("score", 0)) < 0.75:
+                error_counts[str(evidence.get("rule_id") or evidence.get("skill_id"))] += 1
+
+    with st.expander("Мой учебный кабинет", expanded=True):
+        columns = st.columns(3)
+        with columns[0]:
+            metric_card("Выполнено заданий", f"{completed_count} из {len(assignments)}", "уникальные задания")
+        with columns[1]:
+            metric_card("Проверок знаний", str(len(history)), "завершённые циклы")
+        with columns[2]:
+            metric_card("Средний результат", f"{mean_submission:.0%}", "по последним попыткам")
+        st.markdown("#### Что повторить")
+        if not error_counts:
+            st.success("Пока устойчивых пробелов не зафиксировано.")
+        else:
+            for rule_id, count in error_counts.most_common(3):
+                rule = RULEBOOK.get(rule_id, {})
+                skill = CURRICULUM.skill_by_id.get(rule_id)
+                title = rule.get("title") or (skill.name if skill else rule_id)
+                st.markdown(f"- **{title}** · ошибок или слабых ответов: {count}")
+        if latest_by_assignment:
+            with st.expander("Выполненные задания"):
+                rows = [
+                    {
+                        "Задание": item.get("assignment_title", "—"),
+                        "Тема": item.get("topic", "—"),
+                        "Задание, %": round(float(item.get("submission_score") or 0) * 100),
+                        "Viva, %": round(float(item.get("overall_score") or 0) * 100),
+                    }
+                    for item in latest_by_assignment.values()
+                ]
+                st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch")
+
+
 def render_student(student: dict) -> None:
     assignments = list_assignments(active_only=True)
+    render_student_dashboard(student, assignments)
     progress = student_progress(student["id"])
     topics: dict[str, list[dict]] = {}
     for item in assignments:
         topics.setdefault(assignment_topic_key(item), []).append(item)
-    topic_labels = {
-        f'{items[0]["subject"]} · {items[0]["topic"]} · {sum(i["id"] in progress for i in items)}/{len(items)}': key
-        for key, items in topics.items()
-    }
-    selected_topic_label = st.selectbox("Тема", list(topic_labels))
-    topic_key = topic_labels[selected_topic_label]
+    def topic_label(key: str) -> str:
+        items = topics[key]
+        completed = sum(item["id"] in progress for item in items)
+        return f'{items[0]["subject"]} · {items[0]["topic"]} · {completed}/{len(items)}'
+
+    topic_key = st.selectbox(
+        "Тема",
+        list(topics),
+        format_func=topic_label,
+        key=f'student-topic-{student["id"]}',
+    )
     topic_assignments = sorted(
         topics[topic_key], key=lambda item: (int(item.get("variant") or 1), item["id"])
     )
     offset = (int(student["id"][-2:]) - 1) % len(topic_assignments)
     personal_order = topic_assignments[offset:] + topic_assignments[:offset]
-    task_labels = {}
-    for item in personal_order:
+    assignments_by_id = {item["id"]: item for item in personal_order}
+
+    def task_label(assignment_id: int) -> str:
+        item = assignments_by_id[assignment_id]
         completed = item["id"] in progress
         mark = "🟢 Выполнено" if completed else "○ Следующее"
-        task_labels[
-            f'{mark} · {difficulty_label(item)} · вариант {item.get("variant", 1)} · {item["title"]}'
-        ] = item
+        return f'{mark} · {difficulty_label(item)} · вариант {item.get("variant", 1)} · {item["title"]}'
+
     first_unfinished = next(
         (index for index, item in enumerate(personal_order) if item["id"] not in progress), 0
     )
-    selected = st.selectbox("Вариант задания", list(task_labels), index=first_unfinished)
-    assignment = task_labels[selected]
+    assignment_id = st.selectbox(
+        "Вариант задания",
+        list(assignments_by_id),
+        index=first_unfinished,
+        format_func=task_label,
+        key=f'student-assignment-{student["id"]}-{topic_key}',
+    )
+    assignment = assignments_by_id[assignment_id]
     context = (student["id"], assignment["id"])
     if st.session_state.get("learning_context") != context:
         st.session_state.learning_context = context
@@ -378,6 +527,13 @@ def render_student(student: dict) -> None:
     if flow is not None and flow.get("assessment_version") != ASSESSMENT_VERSION:
         reset_flow()
         st.rerun()
+    latest_attempt_id = history[0]["id"] if history else None
+    restart_marker = st.session_state.get(
+        restart_marker_key(student["id"], assignment["id"])
+    )
+    if flow is None and history and restart_marker != latest_attempt_id:
+        flow = completed_flow_from_attempt(student, assignment, history[0])
+        st.session_state.learning_flow = flow
     if flow is None:
         st.subheader("1. Выполните задание")
         artifact = st.text_area(
@@ -437,7 +593,7 @@ def render_student(student: dict) -> None:
         left, right = st.columns([1, 3])
         with left:
             if st.button("Изменить решение"):
-                reset_flow()
+                begin_new_attempt(student, assignment, history)
                 st.rerun()
         with right:
             if st.button("Ответить и продолжить", width="stretch"):
@@ -531,8 +687,8 @@ def render_student(student: dict) -> None:
     with st.expander("Технический журнал проверки"):
         for trace in flow["traces"]:
             trace_card(trace)
-    if st.button("Начать новую попытку"):
-        reset_flow()
+    if st.button("Перезапустить это задание"):
+        begin_new_attempt(student, assignment, history)
         st.rerun()
 
 
@@ -546,6 +702,100 @@ def attempts_to_states(attempts: list[dict]) -> list[StudentState]:
         )
         for item in attempts
     ]
+
+
+def grounded_group_gaps(attempts: list[dict]) -> dict[str, dict]:
+    gaps: dict[str, dict] = {}
+    for attempt in attempts:
+        assessment = attempt.get("assessment") or {}
+        objective = assessment.get("objective_check") or {}
+        objective_rule_id = next(
+            (
+                str(item.get("rule_id") or item.get("skill_id"))
+                for item in attempt.get("evidence", [])
+                if item.get("rule_id") or item.get("skill_id")
+            ),
+            "eng_articles" if objective else "",
+        )
+        for slot in objective.get("slots", []):
+            if slot.get("correct") or not objective_rule_id:
+                continue
+            gap = gaps.setdefault(
+                objective_rule_id,
+                {
+                    "students": set(),
+                    "observations": [],
+                    "viva_failures": 0,
+                    "rule": RULEBOOK.get(objective_rule_id, {}),
+                },
+            )
+            gap["students"].add(attempt["student_name"])
+            observation = (
+                f'позиция {slot.get("position")}: «{slot.get("student_evidence") or "пропуск"}» '
+                f'→ «{slot.get("expected_phrase") or "эталон"}»'
+            )
+            if observation not in gap["observations"]:
+                gap["observations"].append(observation)
+        for entry in attempt.get("evidence", []):
+            if float(entry.get("score", 0)) >= 0.75:
+                continue
+            rule_id = str(entry.get("rule_id") or entry.get("skill_id") or "")
+            if not rule_id:
+                continue
+            gap = gaps.setdefault(
+                rule_id,
+                {
+                    "students": set(),
+                    "observations": [],
+                    "viva_failures": 0,
+                    "rule": RULEBOOK.get(rule_id, {}),
+                },
+            )
+            gap["students"].add(attempt["student_name"])
+            gap["viva_failures"] += 1
+    return gaps
+
+
+def grounded_teacher_summary(attempts: list[dict]) -> dict[str, str] | None:
+    gaps = grounded_group_gaps(attempts)
+    if not gaps:
+        return None
+    _, gap = max(
+        gaps.items(),
+        key=lambda item: (len(item[1]["students"]), item[1]["viva_failures"]),
+    )
+    rule = gap["rule"]
+    title = str(rule.get("title") or "Проверяемый навык")
+    facts = "; ".join(gap["observations"][:2])
+    if facts:
+        reason = f'{len(gap["students"])} студ. допустили проверяемые ошибки: {facts}.'
+    else:
+        reason = (
+            f'У {len(gap["students"])} студентов — {gap["viva_failures"]} ответов Viva ниже 75%. '
+            f'Навык: «{title}».'
+        )
+    newest = max(attempts, key=lambda item: item["completed_at"])
+    candidate = str(
+        (newest.get("teacher_recommendation") or {}).get("lesson_plan") or ""
+    ).strip()
+    unsafe_fragments = ("[{", "}]", "```", "null", "undefined")
+    llm_plan_is_valid = (
+        45 <= len(candidate) <= 320
+        and not any(fragment in candidate.lower() for fragment in unsafe_fragments)
+        and not candidate.endswith((":", "[", "{"))
+    )
+    principles = list(rule.get("principles") or [])
+    focus = principles[0] if principles else str(rule.get("summary") or title)
+    fallback_plan = (
+        f"1) Сопоставьте ошибочные и правильные формы по правилу: {focus} "
+        "2) Дайте два новых контрастных примера. 3) Завершите коротким exit-ticket."
+    )
+    return {
+        "focus_topic": title,
+        "reason": reason,
+        "lesson_plan": candidate if llm_plan_is_valid else fallback_plan,
+        "source": "llm_grounded" if llm_plan_is_valid else "grounded_fallback",
+    }
 
 
 def topic_key_for_new_topic(topic: str, skill_id: str) -> str:
@@ -782,23 +1032,20 @@ def render_teacher() -> None:
     with right:
         st.subheader("Тема следующего занятия")
         newest = max(attempts, key=lambda item: item["completed_at"])
-        newest_is_current = any(
-            entry.get("question_text")
-            and entry.get("what_needs_improvement")
-            and entry.get("correct_answer")
-            for entry in newest["evidence"]
-        )
-        recommendation = (
-            newest.get("teacher_recommendation") or {} if newest_is_current else {}
-        )
+        recommendation = grounded_teacher_summary(attempts) or {}
         if recommendation:
+            source_label = (
+                "План локальной LLM, факты проверены по данным группы"
+                if recommendation["source"] == "llm_grounded"
+                else "Безопасный план по проверенным данным группы"
+            )
             st.markdown(
-                f'<div class="decision"><strong>Сформировано локальной LLM по группе</strong>'
+                f'<div class="decision"><strong>{source_label}</strong>'
                 f'<h3>{recommendation["focus_topic"]}</h3><p>{recommendation["reason"]}</p>'
                 f'<p><b>План:</b> {recommendation["lesson_plan"]}</p></div>',
                 unsafe_allow_html=True,
             )
-            if newest.get("traces"):
+            if recommendation["source"] == "llm_grounded" and newest.get("traces"):
                 trace_card(newest["traces"][-1], "план следующей пары")
         else:
             st.warning(
@@ -809,38 +1056,7 @@ def render_teacher() -> None:
     detail_left, detail_right = st.columns([1, 1.2], gap="large")
     with detail_left:
         st.subheader("Выявленные пробелы")
-        gaps: dict[str, dict] = {}
-        legacy_attempts = 0
-        for attempt in attempts:
-            has_structured_evidence = any(
-                entry.get("question_text")
-                and entry.get("what_needs_improvement")
-                and entry.get("correct_answer")
-                for entry in attempt["evidence"]
-            )
-            if not has_structured_evidence:
-                legacy_attempts += 1
-                continue
-            for entry in attempt["evidence"]:
-                if float(entry.get("score", 0)) >= 0.75:
-                    continue
-                key = str(entry.get("rule_id") or entry.get("skill_id"))
-                gap = gaps.setdefault(
-                    key,
-                    {
-                        "students": set(),
-                        "observations": [],
-                        "correct_answers": [],
-                        "rule": RULEBOOK.get(key, {}),
-                    },
-                )
-                gap["students"].add(attempt["student_name"])
-                observation = entry.get("what_needs_improvement") or entry.get("misconception")
-                if observation and observation not in gap["observations"]:
-                    gap["observations"].append(observation)
-                correction = entry.get("correct_answer")
-                if correction and correction not in gap["correct_answers"]:
-                    gap["correct_answers"].append(correction)
+        gaps = grounded_group_gaps(attempts)
         if not gaps:
             st.info("В новых попытках явные повторяющиеся заблуждения не зафиксированы.")
         else:
@@ -848,8 +1064,14 @@ def render_teacher() -> None:
                 rule = gap["rule"]
                 title = rule.get("title", "Проверяемый навык")
                 students_text = ", ".join(sorted(gap["students"]))
-                observations = " · ".join(gap["observations"][:2]) or "Нужен дополнительный разбор."
-                corrections = " · ".join(gap["correct_answers"][:2]) or "См. карточку правила."
+                observations = " · ".join(gap["observations"][:3])
+                if gap["viva_failures"]:
+                    viva_fact = f'ответов Viva ниже 75%: {gap["viva_failures"]}'
+                    observations = f"{observations} · {viva_fact}" if observations else viva_fact
+                principles = list(rule.get("principles") or [])
+                corrections = " · ".join(principles[:2]) or str(
+                    rule.get("summary") or "См. карточку проверяемого навыка."
+                )
                 st.markdown(
                     f'<div class="gap-card"><span class="count">{len(gap["students"])} чел.</span>'
                     f'<h4>{escape(title)}</h4><p><b>У кого:</b> {escape(students_text)}</p>'
@@ -857,11 +1079,6 @@ def render_teacher() -> None:
                     f'<p><b>Ориентир:</b> {escape(corrections)}</p></div>',
                     unsafe_allow_html=True,
                 )
-        if legacy_attempts:
-            st.caption(
-                f"{legacy_attempts} старых попыток не включены в точную диагностику: "
-                "они были выполнены до обновления формата проверки."
-            )
     with detail_right:
         st.subheader("Последние результаты")
         rows = [
