@@ -35,6 +35,7 @@ from vivatrace.rulebook import load_rulebook
 ROOT = Path(__file__).resolve().parent
 CURRICULUM = load_curriculum(DATA_DIR / "curriculum.json")
 LLM = LocalLLM()
+ASSESSMENT_VERSION = 2
 RULEBOOK = load_rulebook()
 DIFFICULTY_LABELS = {1: "Базовый", 2: "Средний", 3: "Продвинутый"}
 COLORS = {
@@ -153,6 +154,11 @@ def render_criterion_results(assessment: dict) -> None:
     if not items:
         return
     with st.expander("Разбор исходного решения", expanded=not assessment["is_correct"]):
+        if assessment.get("objective_check"):
+            st.caption(
+                "Локальная LLM объясняет результат, а заполненные позиции дополнительно "
+                "сверяются с предметной рубрикой, чтобы модель не пропустила видимую ошибку."
+            )
         for item in items:
             status = item["status"]
             css = "ok" if status == "correct" else "partial" if status == "partial" else "bad"
@@ -235,6 +241,7 @@ def start_assessment(student: dict, assignment: dict, artifact: str) -> None:
         if item["score"] < 0.75
     ]
     st.session_state.learning_flow = {
+        "assessment_version": ASSESSMENT_VERSION,
         "student_id": student["id"],
         "assignment_id": assignment["id"],
         "artifact": artifact,
@@ -368,6 +375,9 @@ def render_student(student: dict) -> None:
         st.caption(f'Завершённых попыток: {len(history)} · последняя оценка задания: {(history[0].get("submission_score") or 0):.0%}')
 
     flow = st.session_state.get("learning_flow")
+    if flow is not None and flow.get("assessment_version") != ASSESSMENT_VERSION:
+        reset_flow()
+        st.rerun()
     if flow is None:
         st.subheader("1. Выполните задание")
         artifact = st.text_area(

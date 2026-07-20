@@ -1,12 +1,177 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
 
-from vivatrace.local_llm import LLMTrace, LocalLLM, LocalLLMError
+from vivatrace.local_llm import LLMTrace, LocalLLM, LocalLLMError, check_article_cloze
 from vivatrace.models import ProbeQuestion
 from vivatrace.models import Evidence
+
+
+ARTICLE_ASSIGNMENT = {
+    "subject": "Английский язык · B2",
+    "topic": "A/an, the и нулевой артикль",
+    "instructions": (
+        "Insert a/an, the or —: ‘Yesterday I took ___ train to Brighton. "
+        "___ train was crowded. We had lunch near ___ sea. ___ food was excellent. "
+        "___ travel often changes how people see the world.’"
+    ),
+    "skill_ids": ["eng_articles"],
+    "rubric": {
+        "reference_answer": "a train; The train; the sea; The food; — travel.",
+        "criteria": [
+            "a for first mention",
+            "the for repeated or situationally specific nouns",
+            "zero article for travel as a general concept",
+        ],
+    },
+}
+
+
+def test_article_cloze_finds_exact_wrong_position():
+    answer = (
+        "Yesterday I took a train to Brighton. a train was crowded. "
+        "We had lunch near the sea. the food was excellent. "
+        "travel often changes how people see the world."
+    )
+
+    result = check_article_cloze(ARTICLE_ASSIGNMENT, answer)
+
+    assert result is not None
+    assert result["score"] == 0.8
+    assert result["correct"] is False
+    wrong = [slot for slot in result["slots"] if not slot["correct"]]
+    assert len(wrong) == 1
+    assert wrong[0]["position"] == 2
+    assert wrong[0]["student_evidence"] == "a train"
+    assert wrong[0]["expected_phrase"] == "the train"
+
+
+def test_objective_article_check_overrides_false_positive_from_llm(monkeypatch):
+    llm = LocalLLM()
+    trace = LLMTrace(
+        trace_id="local-false-positive",
+        backend="llama.cpp",
+        model="Qwen2.5-3B-Instruct-Q4_K_M",
+        model_sha256="abc123",
+        stage="проверка задания",
+        duration_ms=100,
+        created_at="2026-01-01T00:00:00+00:00",
+    )
+
+    def fake_call(stage, *args, **kwargs):
+        if stage == "проверка задания":
+            return (
+                {
+                    "submission_score": 0.85,
+                    "is_correct": True,
+                    "feedback": "Ошибок нет.",
+                    "mode": "viva",
+                    "skill_results": [
+                        {"skill_id": "eng_articles", "score": 0.85, "diagnosis": "Верно."}
+                    ],
+                    "criterion_results": [
+                        {
+                            "criterion": "articles",
+                            "status": "correct",
+                            "student_evidence": "a train",
+                            "issue": "Ошибок нет.",
+                            "correction": "a train",
+                        }
+                    ],
+                },
+                trace,
+            )
+        if stage == "формирование вопроса 1":
+            return (
+                {
+                    "skill_id": "eng_articles",
+                    "text": "Какой артикль нужен перед повторным train?",
+                    "expected_answer": "Нужен the, потому что поезд уже упомянут.",
+                },
+                trace,
+            )
+        return (
+            {
+                "skill_id": "eng_articles",
+                "rule_focus": "the указывает на повторно упомянутый предмет",
+                "expected_answer": "I saw a film. The film was excellent.",
+            },
+            trace,
+        )
+
+    monkeypatch.setattr(llm, "_call_json", fake_call)
+    answer = (
+        "Yesterday I took a train to Brighton. a train was crowded. "
+        "We had lunch near the sea. the food was excellent. "
+        "travel often changes how people see the world."
+    )
+
+    result, _ = llm.assess_submission(
+        ARTICLE_ASSIGNMENT, answer, {"eng_articles": "Артикли"}
+    )
+
+    assert result["submission_score"] == 0.8
+    assert result["is_correct"] is False
+    assert result["mode"] == "diagnostic"
+    assert result["criterion_results"][1]["status"] == "incorrect"
+    assert result["criterion_results"][1]["correction"] == "the train"
+
+
+def test_invalid_json_is_retried_once(monkeypatch):
+    llm = LocalLLM()
+    monkeypatch.setattr(llm, "ensure_fast_available", lambda: None)
+    monkeypatch.setattr(
+        llm,
+        "identity",
+        lambda: {
+            "model": "quality",
+            "fast_model_sha256": "abc123",
+            "model_sha256": "def456",
+        },
+    )
+    contents = iter(['{"score":', '{"score": 0.9}'])
+    calls = []
+
+    class FakeResponse:
+        status = 200
+
+        def __init__(self, content):
+            self.content = content
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def read(self):
+            raw = {
+                "id": "retry-test",
+                "model": "fast",
+                "choices": [{"message": {"content": self.content}}],
+            }
+            return json.dumps(raw).encode("utf-8")
+
+    def fake_urlopen(*args, **kwargs):
+        calls.append(1)
+        return FakeResponse(next(contents))
+
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+
+    result, _ = llm._call_json(
+        "оценка ответа viva",
+        "Верни JSON.",
+        {"answer": "test"},
+        {"type": "object"},
+        100,
+        fast=True,
+    )
+
+    assert result == {"score": 0.9}
+    assert len(calls) == 2
 
 
 def test_missing_local_model_blocks_assessment(tmp_path, monkeypatch):

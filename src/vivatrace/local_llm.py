@@ -44,6 +44,85 @@ def extract_surface_facts(answer: str) -> dict[str, Any]:
     }
 
 
+def check_article_cloze(assignment: dict[str, Any], answer: str) -> dict[str, Any] | None:
+    """Literally compare article blanks with the rubric before semantic grading.
+
+    The local LLM still explains and routes the attempt, while this check prevents it
+    from overlooking an article that is visibly different from the reference answer.
+    """
+    if "eng_articles" not in assignment.get("skill_ids", []):
+        return None
+    instructions = str(assignment.get("instructions") or "")
+    reference = str((assignment.get("rubric") or {}).get("reference_answer") or "")
+    if "___" not in instructions or not reference:
+        return None
+
+    segments = [part.strip(" .‘’'\"") for part in reference.split(";") if part.strip()]
+    if len(segments) != instructions.count("___"):
+        return None
+
+    answer_tokens = re.findall(r"[A-Za-z]+(?:'[A-Za-z]+)?", answer)
+    lowered_answer = [token.lower() for token in answer_tokens]
+    articles = {"a", "an", "the"}
+    cursor = 0
+    slots: list[dict[str, Any]] = []
+
+    for index, segment in enumerate(segments, start=1):
+        reference_tokens = re.findall(r"[A-Za-z]+(?:'[A-Za-z]+)?", segment)
+        if not reference_tokens:
+            return None
+        first = reference_tokens[0].lower()
+        expected = first if first in articles else "—"
+        anchor = reference_tokens[1:] if first in articles else reference_tokens
+        anchor_lower = [token.lower() for token in anchor]
+        match_index = next(
+            (
+                position
+                for position in range(cursor, len(lowered_answer) - len(anchor_lower) + 1)
+                if lowered_answer[position : position + len(anchor_lower)] == anchor_lower
+            ),
+            None,
+        )
+        if match_index is None:
+            actual = "не найдено"
+            evidence = "Фрагмент отсутствует в ответе"
+            cursor = len(lowered_answer)
+        else:
+            previous = lowered_answer[match_index - 1] if match_index > 0 else ""
+            actual = previous if previous in articles else "—"
+            phrase_start = match_index - 1 if previous in articles else match_index
+            evidence = " ".join(answer_tokens[phrase_start : match_index + len(anchor)])
+            cursor = match_index + len(anchor)
+        is_correct = actual == expected
+        expected_phrase = " ".join(([expected] if expected != "—" else []) + anchor)
+        actual_label = "нулевой артикль" if actual == "—" else actual
+        expected_label = "нулевой артикль" if expected == "—" else expected
+        slots.append(
+            {
+                "position": index,
+                "anchor": " ".join(anchor),
+                "expected": expected,
+                "actual": actual,
+                "correct": is_correct,
+                "student_evidence": evidence,
+                "expected_phrase": expected_phrase,
+                "issue": (
+                    ""
+                    if is_correct
+                    else f"Получено «{actual_label}», но по эталону нужен {expected_label}."
+                ),
+            }
+        )
+
+    correct_count = sum(bool(slot["correct"]) for slot in slots)
+    return {
+        "source": "deterministic_rubric_guard",
+        "correct": correct_count == len(slots),
+        "score": correct_count / len(slots),
+        "slots": slots,
+    }
+
+
 class LocalLLMError(RuntimeError):
     """Raised when the required local model cannot produce a verified result."""
 
@@ -300,6 +379,7 @@ class LocalLLM:
         }
         rubric = assignment.get("rubric") or {}
         grounded_rules = rules_for_assignment(assignment, self.rulebook)
+        objective_check = check_article_cloze(assignment, answer)
         system = (
             "Ты строгий методист университета. Оценивай фактическую правильность, а не длину "
             "и уверенность текста. Бессмысленный, нерелевантный или тавтологический ответ получает "
@@ -330,6 +410,7 @@ class LocalLLM:
             "grounded_rules": grounded_rules,
             "skills": {skill_id: skill_names[skill_id] for skill_id in assignment["skill_ids"]},
             "student_answer": answer,
+            "objective_check": objective_check,
         }
         result, grade_trace = self._call_json(
             "проверка задания",
@@ -340,25 +421,45 @@ class LocalLLM:
             fast=not self.quality_mode,
         )
         submission_score = float(result["submission_score"])
+        result["objective_check"] = objective_check
         is_correct = bool(result["is_correct"]) and submission_score >= 0.75
+        if objective_check and not objective_check["correct"]:
+            is_correct = False
+            submission_score = min(submission_score, float(objective_check["score"]))
+            result["criterion_results"] = [
+                {
+                    "criterion": (
+                        f'Позиция {slot["position"]} · {slot["expected_phrase"]}'
+                    ),
+                    "status": "correct" if slot["correct"] else "incorrect",
+                    "student_evidence": slot["student_evidence"],
+                    "issue": slot["issue"],
+                    "correction": slot["expected_phrase"],
+                }
+                for slot in objective_check["slots"]
+            ]
+            wrong_positions = [
+                str(slot["position"])
+                for slot in objective_check["slots"]
+                if not slot["correct"]
+            ]
+            result["feedback"] = (
+                "Найдены ошибки в заполнении позиций: " + ", ".join(wrong_positions) + "."
+            )
         result["is_correct"] = is_correct
         result["mode"] = "viva" if is_correct else "diagnostic"
         if is_correct:
             result["submission_score"] = max(submission_score, 0.85)
-            result["feedback"] = "Содержательных ошибок в решении не обнаружено."
-            for criterion in result["criterion_results"]:
-                criterion["status"] = "correct"
-                criterion["issue"] = (
-                    "Содержательных ошибок по этому критерию не обнаружено."
-                )
-                criterion["correction"] = criterion["student_evidence"]
             for skill_result in result["skill_results"]:
                 skill_result["score"] = max(float(skill_result["score"]), 0.85)
-                skill_result["diagnosis"] = (
-                    "Ответ подтверждает проверяемый навык."
-                )
         else:
-            result["submission_score"] = min(submission_score, 0.7)
+            result["submission_score"] = submission_score
+            if objective_check:
+                for skill_result in result["skill_results"]:
+                    skill_result["score"] = min(
+                        float(skill_result["score"]), float(objective_check["score"])
+                    )
+                    skill_result["diagnosis"] = result["feedback"]
         question_schema = {
             "type": "object",
             "additionalProperties": False,
@@ -732,6 +833,7 @@ class LocalLLM:
         schema: dict[str, Any],
         max_tokens: int,
         fast: bool = False,
+        retry_on_invalid: bool = True,
     ) -> tuple[dict[str, Any], LLMTrace]:
         if fast:
             self.ensure_fast_available()
@@ -766,11 +868,30 @@ class LocalLLM:
             raise LocalLLMError(f"Локальная LLM не завершила этап «{stage}»: {error}") from error
 
         try:
-            content = raw["choices"][0]["message"]["content"]
+            content = raw["choices"][0]["message"]["content"].strip()
             if content.startswith("```"):
                 content = content.split("\n", 1)[1].rsplit("```", 1)[0]
+            start = content.find("{")
+            end = content.rfind("}")
+            if start >= 0 and end >= start:
+                content = content[start : end + 1]
             result = json.loads(content)
         except (KeyError, IndexError, TypeError, json.JSONDecodeError) as error:
+            if retry_on_invalid:
+                retry_system = (
+                    system
+                    + " Предыдущий ответ не разобрался как JSON. Повтори результат короче, "
+                    "строго одним полным JSON-объектом без Markdown и текста вокруг."
+                )
+                return self._call_json(
+                    stage,
+                    retry_system,
+                    payload,
+                    schema,
+                    max(max_tokens * 2, 460),
+                    fast=fast,
+                    retry_on_invalid=False,
+                )
             raise LocalLLMError(
                 f"Локальная LLM вернула невалидный JSON на этапе «{stage}»."
             ) from error
