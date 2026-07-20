@@ -1,0 +1,132 @@
+[
+  {
+    "title": "Present Perfect или Past Simple",
+    "subject": "Английский язык · B2",
+    "topic": "Времена и связь с настоящим",
+    "instructions": "Complete the sentences and briefly explain each choice: 1) I ___ (lose) my keys, so I can't open the door. 2) We ___ (visit) Prague in 2023. 3) ___ you ever ___ (try) scuba diving? 4) She ___ (not finish) the report yet.",
+    "starter_code": "1) ...\n2) ...\n3) ...\n4) ...\nExplanation: ...",
+    "skill_ids": ["eng_present_perfect"],
+    "rubric": {
+      "reference_answer": "1) have lost; 2) visited; 3) Have, tried; 4) hasn't finished.",
+      "criteria": ["Present Perfect for a present result, life experience and yet", "Past Simple for a finished time in 2023", "correct auxiliary and past participle"],
+      "common_errors": ["using Past Simple with yet", "using Present Perfect with a finished date"]
+    }
+  },
+  {
+    "title": "First и Second Conditional",
+    "subject": "Английский язык · B2",
+    "topic": "Реальные и гипотетические условия",
+    "instructions": "Complete and classify the conditionals: 1) If the weather ___ (improve), we ___ (go) hiking tomorrow. 2) If I ___ (be) the team leader, I ___ (change) the schedule. 3) What would you do if you ___ (miss) an important deadline?",
+    "starter_code": "1) ... — type ...\n2) ... — type ...\n3) ...",
+    "skill_ids": ["eng_conditionals"],
+    "rubric": {
+      "reference_answer": "1) improves, will go — First Conditional; 2) were, would change — Second Conditional; 3) missed.",
+      "criteria": ["present form after if in First Conditional", "past form and would in Second Conditional", "distinguishes realistic future from hypothetical present/future"],
+      "common_errors": ["will after if", "would in both clauses"]
+    }
+  },
+  {
+    "title": "Active to Passive",
+    "subject": "Английский язык · B2",
+    "topic": "Страдательный залог",
+    "instructions": "Rewrite in the passive without changing the tense: 1) Researchers developed the vaccine in 2020. 2) The company is testing a new payment system. 3) Someone has stolen my bicycle. 4) They will announce the results tomorrow.",
+    "starter_code": "1) ...\n2) ...\n3) ...\n4) ...",
+    "skill_ids": ["eng_passive"],
+    "rubric": {
+      "reference_answer": "1) The vaccine was developed in 2020. 2) A new payment system is being tested. 3) My bicycle has been stolen. 4) The results will be announced tomorrow.",
+      "criteria": ["correct form of be", "past participle", "original tense preserved"],
+      "common_errors": ["missing be", "using past simple in every sentence"]
+    }
+  },
+  {
+    "title": "Reported Speech",
+    "subject": "Английский язык · B2",
+    "topic": "Косвенная речь",
+    "instructions": "Report the statements as if you were speaking the next day: 1) Maya said, ‘I am working from home today.’ 2) Leo said, ‘I finished the task yesterday.’ 3) Nina asked, ‘Have you seen this document?’",
+    "starter_code": "1) Maya said that ...\n2) Leo said that ...\n3) Nina asked ...",
+    "skill_ids": ["eng_reported_speech"],
+    "rubric": {
+      "reference_answer": "1) Maya said that she was working from home that day. 2) Leo said that he had finished the task the day before. 3) Nina asked whether/if I had seen that document.",
+      "criteria": ["backshift after a past reporting verb", "pronoun changes", "today/yesterday/this changed appropriately", "reported yes/no question uses if or whether and statement order"],
+      "common_errors": ["keeping question word order", "not changing time expressions"]
+    }
+  },
+  {
+    "title": "Must, might или can’t",
+    "subject": "Английский язык · B2",
+    "topic": "Модальные глаголы предположения",
+    "instructions": "Choose must, might/could or can't and explain the evidence: 1) The lights are off and nobody answers; they ___ be at home. 2) Her car is outside; she ___ be in the office. 3) I am not sure, but the email ___ be in the spam folder. 4) He knew the confidential details; someone ___ have told him.",
+    "starter_code": "1) ... because ...\n2) ... because ...\n3) ... because ...\n4) ... because ...",
+    "skill_ids": ["eng_modals_deduction"],
+    "rubric": {
+      "reference_answer": "1) can't; 2) must; 3) might/could; 4) must have.",
+      "criteria": ["can't for strong negative deduction", "must for strong positive deduction", "might/could for possibility", "modal + have + past participle for past deduction"],
+      "common_errors": ["mustn't for negative deduction", "must told instead of must have told"]
+    }
+  },
+  {
+    "title": "Relative Clauses",
+    "subject": "Английский язык · B2",
+    "topic": "Defining и non-defining clauses",
+    "instructions": "Combine the sentences with a relative clause and add commas where needed: 1) The woman designed the app. She won an award. 2) My laptop is five years old. It still works perfectly. 3) The café serves vegan food. We met there.",
+    "starter_code": "1) ...\n2) ...\n3) ...\nWhich clause is non-defining? ...",
+    "skill_ids": ["eng_relative_clauses"],
+    "rubric": {
+      "reference_answer": "1) The woman who designed the app won an award. 2) My laptop, which is five years old, still works perfectly. 3) The café where we met serves vegan food.",
+      "criteria": ["who for people", "which for things", "where for places", "commas around non-defining information"],
+      "common_errors": ["that in a non-defining clause", "missing commas"]
+    }
+  },
+  {
+    "title": "Gerund или Infinitive",
+    "subject": "Английский язык · B2",
+    "topic": "Формы после глаголов",
+    "instructions": "Complete the sentences and explain the difference in meaning where relevant: 1) I remember ___ (meet) her before. 2) Remember ___ (send) the invoice. 3) He stopped ___ (smoke) last year. 4) He stopped ___ (buy) some water.",
+    "starter_code": "1) ...\n2) ...\n3) ...\n4) ...\nMeaning difference: ...",
+    "skill_ids": ["eng_gerund_infinitive"],
+    "rubric": {
+      "reference_answer": "1) meeting; 2) to send; 3) smoking; 4) to buy.",
+      "criteria": ["remember doing refers to a memory", "remember to do refers to a future duty", "stop doing means quit", "stop to do means pause another action for a purpose"],
+      "common_errors": ["treating gerund and infinitive as interchangeable"]
+    }
+  },
+  {
+    "title": "Articles in Context",
+    "subject": "Английский язык · B2",
+    "topic": "A/an, the и нулевой артикль",
+    "instructions": "Insert a/an, the or — and explain two choices: ‘Last summer I took ___ train to ___ Netherlands. ___ journey took six hours. I spent most of my time looking at ___ beautiful countryside. ___ travel can teach us a lot about other cultures.’",
+    "starter_code": "Last summer ...\nExplanations: 1) ... 2) ...",
+    "skill_ids": ["eng_articles"],
+    "rubric": {
+      "reference_answer": "a train; the Netherlands; The journey; the beautiful countryside; — travel.",
+      "criteria": ["a for first mention of a singular countable noun", "the with the Netherlands", "the for a specific previously established journey/countryside", "zero article for travel in general"],
+      "common_errors": ["a Netherlands", "the travel for a general concept"]
+    }
+  },
+  {
+    "title": "Связный аргумент B2",
+    "subject": "Английский язык · B2",
+    "topic": "Linking words",
+    "instructions": "Write 90–120 words: ‘Should university attendance be optional?’ Use at least four different linking devices for contrast, reason, result and conclusion. Underline or list the linkers after the paragraph.",
+    "starter_code": "Paragraph:\n\nLinkers used: ...",
+    "skill_ids": ["eng_linking"],
+    "rubric": {
+      "reference_answer": "Any coherent 90–120 word argument that uses accurate B2 linkers such as however/although, because/since, therefore/as a result, and in conclusion/overall.",
+      "criteria": ["clear position", "logical paragraph progression", "at least four accurate linkers with different functions", "90–120 words"],
+      "common_errors": ["using however as a conjunction", "listing linkers without logical relations"]
+    }
+  },
+  {
+    "title": "Formal Email to a Course Coordinator",
+    "subject": "Английский язык · B2",
+    "topic": "Формальное письмо",
+    "instructions": "Write a 120–150 word email to a course coordinator. You missed a presentation because of illness. Explain the situation, ask for an alternative date and offer evidence. Use an appropriate subject line, greeting and closing.",
+    "starter_code": "Subject: ...\nDear ...\n\n...\n\nKind regards,\n...",
+    "skill_ids": ["eng_formal_writing", "eng_linking"],
+    "rubric": {
+      "reference_answer": "A polite formal email with a clear subject, reason for absence, specific request for another date, offer of a medical certificate, and an appropriate closing.",
+      "criteria": ["all three content points covered", "formal polite register", "clear structure and cohesion", "120–150 words"],
+      "common_errors": ["informal slang", "no concrete request", "missing greeting or closing"]
+    }
+  }
+]

@@ -19,7 +19,6 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-llm = ["openai>=1.54,<3"]
 dev = ["pytest>=8.3,<9", "ruff>=0.8,<1"]
 
 [tool.setuptools.packages.find]
@@ -32,4 +31,3 @@ testpaths = ["tests"]
 [tool.ruff]
 line-length = 100
 target-version = "py311"
-

@@ -13,6 +13,7 @@ from .models import ArtifactFinding, Evidence
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_DB_PATH = PROJECT_ROOT / "vivatrace.db"
+ENGLISH_ASSIGNMENTS_PATH = PROJECT_ROOT / "data" / "english_b2_assignments.json"
 STUDENT_SEED = (
     ("s01", "Анна Морозова"),
     ("s02", "Максим Волков"),
@@ -48,6 +49,21 @@ print("accuracy:", accuracy_score(y_test, pred))
         "cross_validation",
         "reproducibility",
     ],
+    "subject": "Машинное обучение",
+    "rubric": {
+        "reference_answer": "Разделение выполняется до обучения преобразований; preprocessing обучается только на train через Pipeline; фиксируется random_state; помимо accuracy рассматриваются метрики под дисбаланс; test не используется для подбора модели.",
+        "criteria": [
+            "нет утечки данных из test",
+            "разделены роли train/validation/test",
+            "метрики соответствуют задаче",
+            "эксперимент воспроизводим",
+        ],
+        "common_errors": [
+            "fit_transform до train_test_split",
+            "только accuracy",
+            "нет random_state",
+        ],
+    },
 }
 
 
@@ -104,6 +120,7 @@ def init_database() -> None:
             );
             """
         )
+        _migrate_schema(connection)
         connection.executemany(
             "INSERT OR IGNORE INTO students(id, name) VALUES (?, ?)",
             STUDENT_SEED,
@@ -111,6 +128,44 @@ def init_database() -> None:
         assignment_count = connection.execute("SELECT COUNT(*) FROM assignments").fetchone()[0]
         if assignment_count == 0:
             create_assignment(connection=connection, **DEFAULT_ASSIGNMENT)
+        _seed_english_assignments(connection)
+
+
+def _migrate_schema(connection: sqlite3.Connection) -> None:
+    assignment_columns = {
+        row["name"] for row in connection.execute("PRAGMA table_info(assignments)").fetchall()
+    }
+    attempt_columns = {
+        row["name"] for row in connection.execute("PRAGMA table_info(attempts)").fetchall()
+    }
+    assignment_additions = {
+        "subject": "TEXT NOT NULL DEFAULT 'Машинное обучение'",
+        "rubric_json": "TEXT NOT NULL DEFAULT '{}'",
+    }
+    attempt_additions = {
+        "submission_score": "REAL",
+        "submission_correct": "INTEGER",
+        "assessment_mode": "TEXT",
+        "next_activity_json": "TEXT NOT NULL DEFAULT '{}'",
+        "teacher_recommendation_json": "TEXT NOT NULL DEFAULT '{}'",
+        "traces_json": "TEXT NOT NULL DEFAULT '[]'",
+    }
+    for column, definition in assignment_additions.items():
+        if column not in assignment_columns:
+            connection.execute(f"ALTER TABLE assignments ADD COLUMN {column} {definition}")
+    for column, definition in attempt_additions.items():
+        if column not in attempt_columns:
+            connection.execute(f"ALTER TABLE attempts ADD COLUMN {column} {definition}")
+
+
+def _seed_english_assignments(connection: sqlite3.Connection) -> None:
+    payload = json.loads(ENGLISH_ASSIGNMENTS_PATH.read_text(encoding="utf-8"))
+    existing = {
+        row[0] for row in connection.execute("SELECT title FROM assignments").fetchall()
+    }
+    for assignment in payload:
+        if assignment["title"] not in existing:
+            create_assignment(connection=connection, **assignment)
 
 
 def list_students() -> list[dict[str, str]]:
@@ -143,6 +198,7 @@ def _assignment_from_row(row: sqlite3.Row) -> dict[str, Any]:
     item = dict(row)
     item["skill_ids"] = json.loads(item.pop("skill_ids_json"))
     item["active"] = bool(item["active"])
+    item["rubric"] = json.loads(item.pop("rubric_json", "{}"))
     return item
 
 
@@ -152,14 +208,17 @@ def create_assignment(
     instructions: str,
     starter_code: str,
     skill_ids: list[str],
+    subject: str = "Учебный курс",
+    rubric: dict[str, Any] | None = None,
     connection: sqlite3.Connection | None = None,
 ) -> int:
     owns_connection = connection is None
     connection = connection or connect()
     cursor = connection.execute(
         """
-        INSERT INTO assignments(title, topic, instructions, starter_code, skill_ids_json, created_at)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO assignments(
+            title, topic, instructions, starter_code, skill_ids_json, subject, rubric_json, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             title.strip(),
@@ -167,6 +226,8 @@ def create_assignment(
             instructions.strip(),
             starter_code,
             json.dumps(skill_ids, ensure_ascii=False),
+            subject.strip(),
+            json.dumps(rubric or {}, ensure_ascii=False),
             datetime.now(UTC).isoformat(),
         ),
     )
@@ -183,12 +244,15 @@ def update_assignment(
     instructions: str,
     starter_code: str,
     skill_ids: list[str],
+    subject: str = "Учебный курс",
+    rubric: dict[str, Any] | None = None,
 ) -> None:
     with connect() as connection:
         connection.execute(
             """
             UPDATE assignments
-            SET title = ?, topic = ?, instructions = ?, starter_code = ?, skill_ids_json = ?
+            SET title = ?, topic = ?, instructions = ?, starter_code = ?, skill_ids_json = ?,
+                subject = ?, rubric_json = ?
             WHERE id = ?
             """,
             (
@@ -197,6 +261,8 @@ def update_assignment(
                 instructions.strip(),
                 starter_code,
                 json.dumps(skill_ids, ensure_ascii=False),
+                subject.strip(),
+                json.dumps(rubric or {}, ensure_ascii=False),
                 assignment_id,
             ),
         )
@@ -218,6 +284,12 @@ def save_attempt(
     findings: list[ArtifactFinding],
     evidence: list[Evidence],
     mastery: dict[str, float],
+    submission_score: float | None = None,
+    submission_correct: bool | None = None,
+    assessment_mode: str | None = None,
+    next_activity: dict[str, Any] | None = None,
+    teacher_recommendation: dict[str, Any] | None = None,
+    traces: list[dict[str, Any]] | None = None,
 ) -> int:
     now = datetime.now(UTC).isoformat()
     overall_score = sum(item.score for item in evidence) / max(len(evidence), 1)
@@ -226,8 +298,10 @@ def save_attempt(
             """
             INSERT INTO attempts(
                 student_id, assignment_id, artifact, findings_json, evidence_json,
-                mastery_json, overall_score, completed_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                mastery_json, overall_score, completed_at, submission_score,
+                submission_correct, assessment_mode, next_activity_json,
+                teacher_recommendation_json, traces_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 student_id,
@@ -238,6 +312,12 @@ def save_attempt(
                 json.dumps(mastery, ensure_ascii=False),
                 overall_score,
                 now,
+                submission_score,
+                None if submission_correct is None else int(submission_correct),
+                assessment_mode,
+                json.dumps(next_activity or {}, ensure_ascii=False),
+                json.dumps(teacher_recommendation or {}, ensure_ascii=False),
+                json.dumps(traces or [], ensure_ascii=False),
             ),
         )
         connection.executemany(
@@ -290,6 +370,13 @@ def _attempt_from_row(row: sqlite3.Row) -> dict[str, Any]:
     item["findings"] = json.loads(item.pop("findings_json"))
     item["evidence"] = json.loads(item.pop("evidence_json"))
     item["mastery"] = json.loads(item.pop("mastery_json"))
+    item["next_activity"] = json.loads(item.pop("next_activity_json", "{}") or "{}")
+    item["teacher_recommendation"] = json.loads(
+        item.pop("teacher_recommendation_json", "{}") or "{}"
+    )
+    item["traces"] = json.loads(item.pop("traces_json", "[]") or "[]")
+    if item.get("submission_correct") is not None:
+        item["submission_correct"] = bool(item["submission_correct"])
     return item
 
 

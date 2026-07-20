@@ -1,0 +1,227 @@
+{
+  "model": {
+    "ready": true,
+    "running": true,
+    "backend": "llama.cpp",
+    "model": "Qwen2.5-7B-Instruct-Q4_K_M",
+    "model_sha256": "1875fb29e8c91c86615c00e92d8b4114e56bc24359adb5a8db8b36452fae4a49",
+    "model_path": "D:\\JMLC\\models\\qwen2.5-7b-instruct-q4_k_m.gguf",
+    "server_path": "D:\\JMLC\\tools\\llama\\llama-server.exe",
+    "setup_command": "powershell -ExecutionPolicy Bypass -File scripts\\setup_local_llm.ps1"
+  },
+  "metrics": {
+    "routing_accuracy": 1.0,
+    "nonsense_rejection_rate": 1.0,
+    "max_nonsense_score": 0.1,
+    "cases": 5
+  },
+  "cases": {
+    "correct_submission": {
+      "result": {
+        "submission_score": 0.85,
+        "is_correct": true,
+        "feedback": "Ответ студента соответствует критериям задания и правильным формам времён. Все объяснения верны.",
+        "mode": "viva",
+        "skill_results": [
+          {
+            "skill_id": "eng_present_perfect",
+            "score": 1,
+            "diagnosis": "Студент правильно использовал Present Perfect и объяснил его применение."
+          }
+        ],
+        "questions": [
+          {
+            "id": "local-chatcmpl-CHcIa3pwTnwD0eRYsdioljEXfe6IA6PI-1",
+            "skill_id": "eng_present_perfect",
+            "text": "Почему здесь нельзя использовать Past Simple вместо Present Perfect? Приведи пример, где оба времена могут быть использованы.",
+            "purpose": "Проверить понимание различий между Present Perfect и Past Simple.",
+            "expected_concepts": [],
+            "misconception_patterns": {}
+          },
+          {
+            "id": "local-chatcmpl-CHcIa3pwTnwD0eRYsdioljEXfe6IA6PI-2",
+            "skill_id": "eng_present_perfect",
+            "text": "Что изменится, если в предложении 4 использовать 'has finished' вместо 'has not finished'? Почему это не подходит?",
+            "purpose": "Проверить понимание использования 'yet' в контексте Present Perfect.",
+            "expected_concepts": [],
+            "misconception_patterns": {}
+          },
+          {
+            "id": "local-chatcmpl-CHcIa3pwTnwD0eRYsdioljEXfe6IA6PI-3",
+            "skill_id": "eng_present_perfect",
+            "text": "Приведи ещё один пример, где можно использовать Present Perfect для описания жизни или опыта, и объясни, почему это подходит.",
+            "purpose": "Проверить способность к самостоятельному применению правила.",
+            "expected_concepts": [],
+            "misconception_patterns": {}
+          }
+        ]
+      },
+      "traces": [
+        {
+          "trace_id": "chatcmpl-Xb6dpDC596Mmk7RXWgWdg2eBB0PmWAjd",
+          "backend": "llama.cpp",
+          "model": "qwen2.5-7b-instruct-q4_k_m.gguf",
+          "model_sha256": "1875fb29e8c91c86615c00e92d8b4114e56bc24359adb5a8db8b36452fae4a49",
+          "stage": "проверка задания",
+          "duration_ms": 18502,
+          "created_at": "2026-07-20T10:15:27.920675+00:00",
+          "prompt_tokens": 650,
+          "completion_tokens": 116
+        },
+        {
+          "trace_id": "chatcmpl-CHcIa3pwTnwD0eRYsdioljEXfe6IA6PI",
+          "backend": "llama.cpp",
+          "model": "qwen2.5-7b-instruct-q4_k_m.gguf",
+          "model_sha256": "1875fb29e8c91c86615c00e92d8b4114e56bc24359adb5a8db8b36452fae4a49",
+          "stage": "формирование viva или диагностики",
+          "duration_ms": 35498,
+          "created_at": "2026-07-20T10:16:03.419287+00:00",
+          "prompt_tokens": 636,
+          "completion_tokens": 229
+        }
+      ]
+    },
+    "nonsense_submission": {
+      "result": {
+        "submission_score": 0.05,
+        "is_correct": false,
+        "feedback": "Ответ студента не соответствует заданию. Вопросы не заполнены правильно, и нет объяснений выбора времён.",
+        "mode": "diagnostic",
+        "skill_results": [
+          {
+            "skill_id": "eng_present_perfect",
+            "score": 0.05,
+            "diagnosis": "Студент не использовал ни одно из требуемых времён (Present Perfect или Past Simple) и не дал никаких объяснений."
+          }
+        ],
+        "questions": [
+          {
+            "id": "local-chatcmpl-rJr3NiligIwfnC3HA4j9PPkCV0inuP67-1",
+            "skill_id": "eng_present_perfect",
+            "text": "Почему здесь нельзя использовать 'yesterday' или 'last week'? Что делает Present Perfect подходящим для этого предложения?",
+            "purpose": "Проверить понимание использования Present Perfect для выражения жизни и опыта.",
+            "expected_concepts": [],
+            "misconception_patterns": {}
+          },
+          {
+            "id": "local-chatcmpl-rJr3NiligIwfnC3HA4j9PPkCV0inuP67-2",
+            "skill_id": "eng_present_perfect",
+            "text": "Приведи пример, где можно использовать 'have tried' вместо 'tried'. Что изменится, если использовать Past Simple вместо Present Perfect?",
+            "purpose": "Проверить способность применить правило Present Perfect и понять разницу между Past Simple и Present Perfect.",
+            "expected_concepts": [],
+            "misconception_patterns": {}
+          },
+          {
+            "id": "local-chatcmpl-rJr3NiligIwfnC3HA4j9PPkCV0inuP67-3",
+            "skill_id": "eng_present_perfect",
+            "text": "Почем почему здесь нельзя использовать 'finished' вместо 'hasn't finished'? Какое время здесь лучше всего подходит?",
+            "purpose": "Проверить понимание использования Present Perfect для выражения неоконченного действия.",
+            "expected_concepts": [],
+            "misconception_patterns": {}
+          }
+        ]
+      },
+      "traces": [
+        {
+          "trace_id": "chatcmpl-CDCuIJeiBDnbxGQjFf8UUTgC18vHDv2V",
+          "backend": "llama.cpp",
+          "model": "qwen2.5-7b-instruct-q4_k_m.gguf",
+          "model_sha256": "1875fb29e8c91c86615c00e92d8b4114e56bc24359adb5a8db8b36452fae4a49",
+          "stage": "проверка задания",
+          "duration_ms": 18135,
+          "created_at": "2026-07-20T10:16:21.555534+00:00",
+          "prompt_tokens": 612,
+          "completion_tokens": 133
+        },
+        {
+          "trace_id": "chatcmpl-rJr3NiligIwfnC3HA4j9PPkCV0inuP67",
+          "backend": "llama.cpp",
+          "model": "qwen2.5-7b-instruct-q4_k_m.gguf",
+          "model_sha256": "1875fb29e8c91c86615c00e92d8b4114e56bc24359adb5a8db8b36452fae4a49",
+          "stage": "формирование viva или диагностики",
+          "duration_ms": 36114,
+          "created_at": "2026-07-20T10:16:57.670128+00:00",
+          "prompt_tokens": 616,
+          "completion_tokens": 237
+        }
+      ]
+    },
+    "nonsense_viva_answers": [
+      {
+        "answer": "на первой, не знаю",
+        "evidence": {
+          "skill_id": "eng_present_perfect",
+          "score": 0.1,
+          "confidence": 0.9,
+          "quote": "на первой, не знаю",
+          "rationale": "Студент не смог объяснить причину использования Present Perfect. Верный ответ был бы: 'на первой, потому что ключи пропали и это привело к непосредственному результату - неспособности открыть дверь.'",
+          "misconception": "Студент не понимает, что Present Perfect используется для описания события, которое повлияло на настоящее.",
+          "source": "local_llm",
+          "evaluator_model": "qwen2.5-7b-instruct-q4_k_m.gguf",
+          "trace_id": "chatcmpl-xIvdlTjRTHIJYpZvzzYvLbKfzlZK5IH2"
+        },
+        "trace": {
+          "trace_id": "chatcmpl-xIvdlTjRTHIJYpZvzzYvLbKfzlZK5IH2",
+          "backend": "llama.cpp",
+          "model": "qwen2.5-7b-instruct-q4_k_m.gguf",
+          "model_sha256": "1875fb29e8c91c86615c00e92d8b4114e56bc24359adb5a8db8b36452fae4a49",
+          "stage": "оценка ответа viva",
+          "duration_ms": 19430,
+          "created_at": "2026-07-20T10:17:17.101760+00:00",
+          "prompt_tokens": 453,
+          "completion_tokens": 120
+        }
+      },
+      {
+        "answer": "вся информация",
+        "evidence": {
+          "skill_id": "eng_present_perfect",
+          "score": 0.1,
+          "confidence": 0.9,
+          "quote": "вся информация",
+          "rationale": "Студент просто написал 'вся информация', что не дает никаких объяснений или причин. Вопрос требует конкретного объяснения, почему Present Perfect используется в данном предложении.",
+          "misconception": "Студент не предоставил никаких причин или объяснений, почему Present Perfect используется в предложении 'I have lost my keys'.",
+          "source": "local_llm",
+          "evaluator_model": "qwen2.5-7b-instruct-q4_k_m.gguf",
+          "trace_id": "chatcmpl-EBO7uFhZSm22BCc5xn0r7nvl0ziRNogt"
+        },
+        "trace": {
+          "trace_id": "chatcmpl-EBO7uFhZSm22BCc5xn0r7nvl0ziRNogt",
+          "backend": "llama.cpp",
+          "model": "qwen2.5-7b-instruct-q4_k_m.gguf",
+          "model_sha256": "1875fb29e8c91c86615c00e92d8b4114e56bc24359adb5a8db8b36452fae4a49",
+          "stage": "оценка ответа viva",
+          "duration_ms": 15874,
+          "created_at": "2026-07-20T10:17:32.976608+00:00",
+          "prompt_tokens": 451,
+          "completion_tokens": 115
+        }
+      },
+      {
+        "answer": "нужно воспроизвести",
+        "evidence": {
+          "skill_id": "eng_present_perfect",
+          "score": 0.1,
+          "confidence": 0.9,
+          "quote": "нужно воспроизвести",
+          "rationale": "Студент просто воспроизвел вопрос, не предоставив никакого объяснения. Верный ответ был бы, что Present Perfect используется, потому что ключи пропали и это привело к непосредственному результату — неспособности открыть дверь.",
+          "misconception": "Студент не показал понимания связи результата с настоящим, как требовалось.",
+          "source": "local_llm",
+          "evaluator_model": "qwen2.5-7b-instruct-q4_k_m.gguf",
+          "trace_id": "chatcmpl-nCFZPIHWn3tEgWQQH0nEYMGLlf8YaHlL"
+        },
+        "trace": {
+          "trace_id": "chatcmpl-nCFZPIHWn3tEgWQQH0nEYMGLlf8YaHlL",
+          "backend": "llama.cpp",
+          "model": "qwen2.5-7b-instruct-q4_k_m.gguf",
+          "model_sha256": "1875fb29e8c91c86615c00e92d8b4114e56bc24359adb5a8db8b36452fae4a49",
+          "stage": "оценка ответа viva",
+          "duration_ms": 17280,
+          "created_at": "2026-07-20T10:17:50.258142+00:00",
+          "prompt_tokens": 454,
+          "completion_tokens": 124
+        }
+      }
+    ]
+  }
+}

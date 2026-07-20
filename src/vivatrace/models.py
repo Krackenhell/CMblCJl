@@ -54,6 +54,8 @@ class Evidence:
     rationale: str
     misconception: str | None = None
     source: str = "viva"
+    evaluator_model: str | None = None
+    trace_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -81,4 +83,3 @@ class Recommendation:
     action: str
     duration_minutes: int
     skill_id: str
-

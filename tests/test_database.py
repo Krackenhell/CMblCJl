@@ -19,7 +19,10 @@ def test_database_starts_with_three_students_and_no_attempts(tmp_path, monkeypat
     init_database()
 
     assert [student["id"] for student in list_students()] == ["s01", "s02", "s03"]
-    assignment = list_assignments()[0]
+    assignments = list_assignments()
+    assert len(assignments) == 11
+    assert sum(item["subject"] == "Английский язык · B2" for item in assignments) == 10
+    assignment = assignments[0]
     assert latest_attempts(assignment["id"]) == []
 
 

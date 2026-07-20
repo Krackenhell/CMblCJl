@@ -13,3 +13,11 @@ artifacts/*.joblib
 .playwright-cli/
 streamlit.stdout.log
 streamlit.stderr.log
+models/*.gguf
+models/local-model-manifest.json
+tools/llama/*.exe
+tools/llama/*.dll
+tools/llama/*.zip
+logs/
+.local-llm-download/
+local-llm-setup.*.log

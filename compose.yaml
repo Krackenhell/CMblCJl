@@ -1,15 +1,31 @@
 services:
+  local-llm:
+    image: ghcr.io/ggml-org/llama.cpp:server
+    command:
+      - --model
+      - /models/qwen2.5-7b-instruct-q4_k_m.gguf
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8080"
+      - --ctx-size
+      - "6144"
+      - --jinja
+      - --no-webui
+    volumes:
+      - ./models:/models:ro
   vivatrace:
     build: .
     ports:
       - "8501:8501"
     environment:
-      LLM_API_KEY: ${LLM_API_KEY:-}
-      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.openai.com/v1}
-      LLM_MODEL: ${LLM_MODEL:-gpt-4.1-mini}
+      LOCAL_LLM_URL: http://local-llm:8080
+      LOCAL_LLM_MODEL: Qwen2.5-7B-Instruct-Q4_K_M
       VIVATRACE_DB_PATH: /data/vivatrace.db
     volumes:
       - vivatrace_data:/data
+    depends_on:
+      - local-llm
 
 volumes:
   vivatrace_data:
