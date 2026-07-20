@@ -5,7 +5,14 @@ from pathlib import Path
 
 import pytest
 
-from vivatrace.local_llm import LLMTrace, LocalLLM, LocalLLMError, check_article_cloze
+from vivatrace.local_llm import (
+    LLMTrace,
+    LocalLLM,
+    LocalLLMError,
+    check_article_cloze,
+    generated_question_is_valid,
+    sanitize_mixed_modal_negation,
+)
 from vivatrace.models import ProbeQuestion
 from vivatrace.models import Evidence
 
@@ -190,6 +197,99 @@ def test_invalid_json_is_retried_once(monkeypatch):
 
     assert result == {"score": 0.9}
     assert len(calls) == 2
+
+
+def test_structured_modal_score_bypasses_llm_grade(monkeypatch):
+    llm = LocalLLM()
+    trace = LLMTrace(
+        trace_id="modal-question",
+        backend="llama.cpp",
+        model="Qwen2.5-3B-Instruct-Q4_K_M",
+        model_sha256="abc123",
+        stage="формирование вопроса",
+        duration_ms=10,
+        created_at="2026-01-01T00:00:00+00:00",
+    )
+    assignment = {
+        "subject": "Английский язык · B2",
+        "topic": "Модальные глаголы предположения",
+        "instructions": "Choose the correct modal: 1) ___ 2) ___ 3) ___ 4) ___",
+        "skill_ids": ["eng_modals_deduction"],
+        "rubric": {
+            "reference_answer": "1) can't; 2) must; 3) might/could; 4) must have.",
+            "criteria": ["modal deduction"],
+        },
+    }
+    stages = []
+
+    def fake_call(stage, *args, **kwargs):
+        stages.append(stage)
+        if stage == "формирование вопроса 1":
+            return (
+                {
+                    "skill_id": "eng_modals_deduction",
+                    "text": "Почему в четвёртом пункте нужна форма must have?",
+                    "expected_answer": "Она выражает сильный вывод о прошлом.",
+                },
+                trace,
+            )
+        return (
+            {
+                "skill_id": "eng_modals_deduction",
+                "rule_focus": "для вывода о прошлом используется modal plus have plus V3",
+                "expected_answer": "She must have left early — это сильный вывод о прошлом.",
+            },
+            trace,
+        )
+
+    monkeypatch.setattr(llm, "_call_json", fake_call)
+
+    result, _ = llm.assess_submission(
+        assignment,
+        "1) can't\n2) must\n3) might\n4)",
+        {"eng_modals_deduction": "Модальные глаголы предположения"},
+    )
+
+    assert result["submission_score"] == 0.75
+    assert result["is_correct"] is False
+    assert [item["status"] for item in result["criterion_results"]] == [
+        "correct",
+        "correct",
+        "correct",
+        "incorrect",
+    ]
+    assert stages == ["формирование вопроса 1", "формирование вопроса 2"]
+
+
+def test_broken_or_off_topic_generated_questions_are_rejected():
+    assert not generated_question_is_valid(
+        {
+            "text": "В предложении ",
+            "expected_answer": "Someone must have told him.",
+        },
+        "must have",
+    )
+    assert not generated_question_is_valid(
+        {
+            "rule_focus": "Модальный глагол must выражает сильный вывод",
+            "expected_answer": "Must be a good day today. Это сильный вывод.",
+        },
+        "must have",
+        transfer=True,
+    )
+    assert generated_question_is_valid(
+        {
+            "text": "Почему для вывода о прошлом нужна форма must have?",
+            "expected_answer": "Must have + V3 выражает сильный вывод о прошлом.",
+        },
+        "must have",
+    )
+
+
+def test_mixed_russian_negation_is_never_shown_inside_english_modal():
+    assert sanitize_mixed_modal_negation("Нужно написать must не, а другую форму.") == (
+        "Нужно написать must not, а другую форму."
+    )
 
 
 def test_missing_local_model_blocks_assessment(tmp_path, monkeypatch):

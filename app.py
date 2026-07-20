@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from collections import Counter
 from dataclasses import asdict, replace
 from html import escape
@@ -29,6 +30,7 @@ from vivatrace.database import (
     update_assignment,
 )
 from vivatrace.demo import DATA_DIR
+from vivatrace.grading import grade_structured_answer
 from vivatrace.local_llm import LLMTrace, LocalLLM, LocalLLMError
 from vivatrace.models import ArtifactFinding, Curriculum, Evidence, StudentState
 from vivatrace.rulebook import load_rulebook
@@ -37,7 +39,7 @@ from vivatrace.rulebook import load_rulebook
 ROOT = Path(__file__).resolve().parent
 CURRICULUM = load_curriculum(DATA_DIR / "curriculum.json")
 LLM = LocalLLM()
-ASSESSMENT_VERSION = 3
+ASSESSMENT_VERSION = 4
 RULEBOOK = load_rulebook()
 DIFFICULTY_LABELS = {1: "Базовый", 2: "Средний", 3: "Продвинутый"}
 COLORS = {
@@ -146,6 +148,50 @@ def difficulty_label(assignment: dict) -> str:
     return DIFFICULTY_LABELS.get(int(assignment.get("difficulty") or 1), "Базовый")
 
 
+def regrade_legacy_attempt(attempt: dict, assignment: dict) -> dict:
+    stored_check = (attempt.get("assessment") or {}).get("objective_check") or {}
+    if stored_check.get("source") == "deterministic_answer_key":
+        return attempt
+    check = grade_structured_answer(assignment, str(attempt.get("artifact") or ""))
+    if not check:
+        return attempt
+    result = dict(attempt)
+    wrong_positions = [
+        str(slot["position"]) for slot in check["slots"] if not slot["correct"]
+    ]
+    unit = "позициях" if "eng_articles" in assignment["skill_ids"] else "пунктах"
+    feedback = (
+        "Все ответы совпадают с проверяемым ключом."
+        if check["correct"]
+        else f'Ошибки или пропуски в {unit}: {", ".join(wrong_positions)}.'
+    )
+    result["submission_score"] = float(check["score"])
+    result["submission_correct"] = bool(check["correct"])
+    result["assessment_mode"] = "viva" if check["correct"] else "diagnostic"
+    result["assessment"] = {
+        "submission_score": float(check["score"]),
+        "is_correct": bool(check["correct"]),
+        "feedback": feedback,
+        "mode": result["assessment_mode"],
+        "objective_check": check,
+        "criterion_results": [
+            {
+                "criterion": f'Пункт {slot["position"]} · {slot["expected_phrase"]}',
+                "status": "correct" if slot["correct"] else "incorrect",
+                "student_evidence": slot["student_evidence"],
+                "issue": slot["issue"],
+                "correction": slot["expected_phrase"],
+            }
+            for slot in check["slots"]
+        ],
+    }
+    result["evidence"] = []
+    result["next_activity"] = {}
+    result["teacher_recommendation"] = {}
+    result["regraded_legacy"] = True
+    return result
+
+
 def rule_for_evidence(evidence: Evidence | dict) -> dict:
     rule_id = evidence.rule_id if isinstance(evidence, Evidence) else evidence.get("rule_id")
     return RULEBOOK.get(str(rule_id or ""), {})
@@ -158,8 +204,8 @@ def render_criterion_results(assessment: dict) -> None:
     with st.expander("Разбор исходного решения", expanded=not assessment["is_correct"]):
         if assessment.get("objective_check"):
             st.caption(
-                "Локальная LLM объясняет результат, а заполненные позиции дополнительно "
-                "сверяются с предметной рубрикой, чтобы модель не пропустила видимую ошибку."
+                "Правильность и балл определены скриптом по предметному ключу. Локальная LLM "
+                "получает только найденные ошибки и использует их для объяснения и Viva."
             )
         for item in items:
             status = item["status"]
@@ -384,6 +430,7 @@ def completed_flow_from_attempt(student: dict, assignment: dict, attempt: dict) 
             else "remediation"
         ),
         "teacher_recommendation": attempt.get("teacher_recommendation") or {},
+        "regraded_legacy": bool(attempt.get("regraded_legacy")),
     }
 
 
@@ -398,7 +445,11 @@ def begin_new_attempt(student: dict, assignment: dict, history: list[dict]) -> N
 
 
 def render_student_dashboard(student: dict, assignments: list[dict]) -> None:
-    history = student_history(student["id"])
+    assignments_by_id = {item["id"]: item for item in assignments}
+    history = [
+        regrade_legacy_attempt(item, assignments_by_id[item["assignment_id"]])
+        for item in student_history(student["id"])
+    ]
     latest_by_assignment = {}
     for attempt in history:
         latest_by_assignment.setdefault(attempt["assignment_id"], attempt)
@@ -409,6 +460,7 @@ def render_student_dashboard(student: dict, assignments: list[dict]) -> None:
         if completed_count
         else 0
     )
+    valid_viva_count = sum(not item.get("regraded_legacy") for item in history)
     error_counts: Counter[str] = Counter()
     for attempt in history:
         assessment = attempt.get("assessment") or {}
@@ -434,7 +486,7 @@ def render_student_dashboard(student: dict, assignments: list[dict]) -> None:
         with columns[0]:
             metric_card("Выполнено заданий", f"{completed_count} из {len(assignments)}", "уникальные задания")
         with columns[1]:
-            metric_card("Проверок знаний", str(len(history)), "завершённые циклы")
+            metric_card("Проверок знаний", str(valid_viva_count), "валидные завершённые циклы")
         with columns[2]:
             metric_card("Средний результат", f"{mean_submission:.0%}", "по последним попыткам")
         st.markdown("#### Что повторить")
@@ -453,7 +505,11 @@ def render_student_dashboard(student: dict, assignments: list[dict]) -> None:
                         "Задание": item.get("assignment_title", "—"),
                         "Тема": item.get("topic", "—"),
                         "Задание, %": round(float(item.get("submission_score") or 0) * 100),
-                        "Viva, %": round(float(item.get("overall_score") or 0) * 100),
+                        "Viva, %": (
+                            "пересдать"
+                            if item.get("regraded_legacy")
+                            else round(float(item.get("overall_score") or 0) * 100)
+                        ),
                     }
                     for item in latest_by_assignment.values()
                 ]
@@ -519,7 +575,10 @@ def render_student(student: dict) -> None:
         f'{difficulty_label(assignment)} уровень · персональный вариант {assignment.get("variant", 1)} · '
         f'прогресс по теме: {completed_in_topic} из {len(topic_assignments)}'
     )
-    history = student_attempts(student["id"], assignment["id"])
+    history = [
+        regrade_legacy_attempt(item, assignment)
+        for item in student_attempts(student["id"], assignment["id"])
+    ]
     if history:
         st.caption(f'Завершённых попыток: {len(history)} · последняя оценка задания: {(history[0].get("submission_score") or 0):.0%}')
 
@@ -572,7 +631,11 @@ def render_student(student: dict) -> None:
             st.markdown(f'<div class="{css}"><b>{assessment["feedback"]}</b></div>', unsafe_allow_html=True)
         with columns[1]:
             branch_name = "Короткая проверка понимания" if correct else "Уточняющие вопросы и помощь"
-            branch_hint = "три вопроса по правилам из задания" if correct else "сначала определим точный пробел"
+            branch_hint = (
+                f'{len(flow["questions"])} вопроса по правилам из задания'
+                if correct
+                else "сначала определим точный пробел"
+            )
             metric_card("Следующий этап", branch_name, branch_hint)
 
         render_criterion_results(assessment)
@@ -620,26 +683,37 @@ def render_student(student: dict) -> None:
         return
 
     st.subheader("Обучающий цикл завершён")
-    st.success("Результат сохранён и уже доступен преподавателю.")
+    if flow.get("regraded_legacy"):
+        st.warning(
+            "Задание пересчитано новым предметным ключом. Старая проверка понимания скрыта как "
+            "недостоверная — перезапустите задание, чтобы пройти новую Viva."
+        )
+    else:
+        st.success("Результат сохранён и уже доступен преподавателю.")
     st.markdown(f'**Оценка исходного задания: {assessment["submission_score"]:.0%}**')
     render_criterion_results(assessment)
     for evidence in flow["evidence"]:
         skill = CURRICULUM.skill_by_id[evidence.skill_id]
         mastery = flow["mastery"][evidence.skill_id]
+        if evidence.verdict == "correct":
+            review_details = (
+                f'<p><b>Что подтверждено:</b> {escape(evidence.what_was_correct or "Ответ принят.")}</p>'
+            )
+        else:
+            review_details = (
+                f'<p><b>Что уже верно:</b> {escape(evidence.what_was_correct or "—")}</p>'
+                f'<p><b>Что исправить:</b> {escape(evidence.what_needs_improvement or "—")}</p>'
+                f'<p><b>Ожидаемый ответ:</b> {escape(evidence.correct_answer or "—")}</p>'
+            )
         st.markdown(
             f'<div class="evidence"><b>{skill.name}</b><br>'
             f'<span class="muted">Исходный вопрос:</span> {escape(evidence.question_text)}<br>'
             f'<span class="muted">Ваш ответ:</span> «{escape(evidence.quote)}»<br>'
             f'<b>Оценка текущего ответа: {evidence.score:.0%}</b> · '
             f'<span class="muted">накопленное освоение с учётом прошлых попыток: {mastery:.0%}</span><br>'
-            f'<p><b>Что верно:</b> {escape(evidence.what_was_correct or "—")}</p>'
-            f'<p><b>Что улучшить:</b> {escape(evidence.what_needs_improvement or "—")}</p>'
-            f'<p><b>Корректный ответ:</b> {escape(evidence.correct_answer or "—")}</p>'
-            f'<span class="muted">{escape(evidence.rationale)}</span></div>',
+            f'{review_details}</div>',
             unsafe_allow_html=True,
         )
-        if evidence.typo_handling and not evidence.typo_handling.lower().startswith("нет"):
-            st.caption(f"Опечатки: {evidence.typo_handling}")
         rule = rule_for_evidence(evidence)
         if rule:
             with st.expander(f'Правило: {rule["title"]}'):
@@ -715,7 +789,7 @@ def grounded_group_gaps(attempts: list[dict]) -> dict[str, dict]:
                 for item in attempt.get("evidence", [])
                 if item.get("rule_id") or item.get("skill_id")
             ),
-            "eng_articles" if objective else "",
+            str(objective.get("rule_id") or ""),
         )
         for slot in objective.get("slots", []):
             if slot.get("correct") or not objective_rule_id:
@@ -725,6 +799,7 @@ def grounded_group_gaps(attempts: list[dict]) -> dict[str, dict]:
                 {
                     "students": set(),
                     "observations": [],
+                    "expected_forms": [],
                     "viva_failures": 0,
                     "rule": RULEBOOK.get(objective_rule_id, {}),
                 },
@@ -736,6 +811,9 @@ def grounded_group_gaps(attempts: list[dict]) -> dict[str, dict]:
             )
             if observation not in gap["observations"]:
                 gap["observations"].append(observation)
+            expected_form = str(slot.get("expected_phrase") or "")
+            if expected_form and expected_form not in gap["expected_forms"]:
+                gap["expected_forms"].append(expected_form)
         for entry in attempt.get("evidence", []):
             if float(entry.get("score", 0)) >= 0.75:
                 continue
@@ -747,6 +825,7 @@ def grounded_group_gaps(attempts: list[dict]) -> dict[str, dict]:
                 {
                     "students": set(),
                     "observations": [],
+                    "expected_forms": [],
                     "viva_failures": 0,
                     "rule": RULEBOOK.get(rule_id, {}),
                 },
@@ -766,12 +845,21 @@ def grounded_teacher_summary(attempts: list[dict]) -> dict[str, str] | None:
     )
     rule = gap["rule"]
     title = str(rule.get("title") or "Проверяемый навык")
+    student_count = len(gap["students"])
+    student_word = (
+        "студент"
+        if student_count % 10 == 1 and student_count % 100 != 11
+        else "студента"
+        if student_count % 10 in {2, 3, 4} and student_count % 100 not in {12, 13, 14}
+        else "студентов"
+    )
+    student_genitive = "студента" if student_count == 1 else "студентов"
     facts = "; ".join(gap["observations"][:2])
     if facts:
-        reason = f'{len(gap["students"])} студ. допустили проверяемые ошибки: {facts}.'
+        reason = f"{student_count} {student_word}: проверяемые ошибки — {facts}."
     else:
         reason = (
-            f'У {len(gap["students"])} студентов — {gap["viva_failures"]} ответов Viva ниже 75%. '
+            f'У {student_count} {student_genitive} — ответов Viva ниже 75%: {gap["viva_failures"]}. '
             f'Навык: «{title}».'
         )
     newest = max(attempts, key=lambda item: item["completed_at"])
@@ -782,10 +870,22 @@ def grounded_teacher_summary(attempts: list[dict]) -> dict[str, str] | None:
     llm_plan_is_valid = (
         45 <= len(candidate) <= 320
         and not any(fragment in candidate.lower() for fragment in unsafe_fragments)
-        and not candidate.endswith((":", "[", "{"))
+        and candidate.endswith((".", "!", "?"))
+        and all(marker in candidate for marker in ("1)", "2)", "3)"))
+        and "правильно:" not in candidate.lower()
     )
     principles = list(rule.get("principles") or [])
-    focus = principles[0] if principles else str(rule.get("summary") or title)
+    expected_focus = " ".join(gap.get("expected_forms") or [])
+    if principles and expected_focus:
+        focus_tokens = set(re.findall(r"[a-z]+(?:'[a-z]+)?", expected_focus.lower()))
+        focus = max(
+            principles,
+            key=lambda item: len(
+                focus_tokens & set(re.findall(r"[a-z]+(?:'[a-z]+)?", item.lower()))
+            ),
+        )
+    else:
+        focus = principles[0] if principles else str(rule.get("summary") or title)
     fallback_plan = (
         f"1) Сопоставьте ошибочные и правильные формы по правилу: {focus} "
         "2) Дайте два новых контрастных примера. 3) Завершите коротким exit-ticket."
@@ -977,7 +1077,11 @@ def render_teacher() -> None:
             skill_id for item in topic_assignments for skill_id in item["skill_ids"]
         )
     )
-    attempts = latest_topic_attempts(topic_key)
+    topic_assignments_by_id = {item["id"]: item for item in topic_assignments}
+    attempts = [
+        regrade_legacy_attempt(item, topic_assignments_by_id[item["assignment_id"]])
+        for item in latest_topic_attempts(topic_key)
+    ]
     students = list_students()
     hero(
         "Пульс учебной группы",
@@ -997,17 +1101,30 @@ def render_teacher() -> None:
     frame = mastery_frame(cohort, states)
     skill_ids = [skill.id for skill in cohort.skills]
     mean_submission = sum((item.get("submission_score") or 0) for item in attempts) / len(attempts)
-    mean_viva = sum(item["overall_score"] for item in attempts) / len(attempts)
+    valid_viva_attempts = [item for item in attempts if not item.get("regraded_legacy")]
+    mean_viva = (
+        sum(item["overall_score"] for item in valid_viva_attempts)
+        / len(valid_viva_attempts)
+        if valid_viva_attempts
+        else None
+    )
     needs_help = sum(
-        1 for item in attempts if not item.get("submission_correct") or item["overall_score"] < 0.55
+        1
+        for item in attempts
+        if not item.get("submission_correct")
+        or (not item.get("regraded_legacy") and item["overall_score"] < 0.55)
     )
     columns = st.columns(4)
     with columns[0]:
         metric_card("Завершили", f"{len(attempts)} из {len(students)}", "последние попытки")
     with columns[1]:
-        metric_card("Задание", f"{mean_submission:.0%}", "средняя LLM-оценка")
+        metric_card("Задание", f"{mean_submission:.0%}", "средняя предметная оценка")
     with columns[2]:
-        metric_card("Viva", f"{mean_viva:.0%}", "среднее понимание")
+        metric_card(
+            "Viva",
+            f"{mean_viva:.0%}" if mean_viva is not None else "—",
+            "среднее понимание" if mean_viva is not None else "нужна новая проверка",
+        )
     with columns[3]:
         metric_card("Нужна помощь", str(needs_help), "ошибка в задании или viva")
 
@@ -1069,9 +1186,23 @@ def render_teacher() -> None:
                     viva_fact = f'ответов Viva ниже 75%: {gap["viva_failures"]}'
                     observations = f"{observations} · {viva_fact}" if observations else viva_fact
                 principles = list(rule.get("principles") or [])
-                corrections = " · ".join(principles[:2]) or str(
-                    rule.get("summary") or "См. карточку проверяемого навыка."
-                )
+                expected_focus = " ".join(gap.get("expected_forms") or [])
+                if principles and expected_focus:
+                    focus_tokens = set(
+                        re.findall(r"[a-z]+(?:'[a-z]+)?", expected_focus.lower())
+                    )
+                    selected_principle = max(
+                        principles,
+                        key=lambda item: len(
+                            focus_tokens
+                            & set(re.findall(r"[a-z]+(?:'[a-z]+)?", item.lower()))
+                        ),
+                    )
+                    corrections = selected_principle
+                else:
+                    corrections = " · ".join(principles[:2]) or str(
+                        rule.get("summary") or "См. карточку проверяемого навыка."
+                    )
                 st.markdown(
                     f'<div class="gap-card"><span class="count">{len(gap["students"])} чел.</span>'
                     f'<h4>{escape(title)}</h4><p><b>У кого:</b> {escape(students_text)}</p>'
@@ -1086,7 +1217,11 @@ def render_teacher() -> None:
                 "Студент": item["student_name"],
                 "Вариант": item.get("assignment_title", "—"),
                 "Задание": round((item.get("submission_score") or 0) * 100),
-                "Viva": round(item["overall_score"] * 100),
+                "Viva": (
+                    "нужна повторная проверка"
+                    if item.get("regraded_legacy")
+                    else round(item["overall_score"] * 100)
+                ),
                 "Маршрут": "Проверка понимания" if item.get("submission_correct") else "Диагностика пробела",
             }
             for item in attempts
@@ -1099,6 +1234,11 @@ def render_teacher() -> None:
         st.markdown(f'**Оценка задания: {(detail.get("submission_score") or 0):.0%}**')
         st.caption(f'Вариант: {detail.get("assignment_title", "—")}')
         st.code(detail["artifact"], language="text")
+        if detail.get("regraded_legacy"):
+            st.warning(
+                "Оценка задания пересчитана новым предметным ключом. Старая Viva скрыта как "
+                "недостоверная; студенту нужно пройти проверку понимания заново."
+            )
         for entry in detail["evidence"]:
             name = CURRICULUM.skill_by_id[entry["skill_id"]].name
             st.markdown(

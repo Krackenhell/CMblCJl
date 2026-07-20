@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+from .grading import grade_article_cloze, grade_structured_answer
 from .models import Evidence, ProbeQuestion
 from .rulebook import load_rulebook, rules_for_assignment
 
@@ -44,105 +45,64 @@ def extract_surface_facts(answer: str) -> dict[str, Any]:
     }
 
 
-def check_article_cloze(assignment: dict[str, Any], answer: str) -> dict[str, Any] | None:
-    """Literally compare article blanks with the rubric before semantic grading.
-
-    The local LLM still explains and routes the attempt, while this check prevents it
-    from overlooking an article that is visibly different from the reference answer.
-    """
-    if "eng_articles" not in assignment.get("skill_ids", []):
-        return None
-    instructions = str(assignment.get("instructions") or "")
-    reference = str((assignment.get("rubric") or {}).get("reference_answer") or "")
-    if "___" not in instructions or not reference:
-        return None
-
-    segments = [part.strip(" .‘’'\"") for part in reference.split(";") if part.strip()]
-    if len(segments) != instructions.count("___"):
-        return None
-
-    answer_tokens = re.findall(r"[A-Za-z]+(?:'[A-Za-z]+)?", answer)
-    lowered_answer = [token.lower() for token in answer_tokens]
-    instruction_sections = instructions.split("___")
-    articles = {"a", "an", "the"}
-    cursor = 0
-    slots: list[dict[str, Any]] = []
-
-    for index, segment in enumerate(segments, start=1):
-        reference_tokens = re.findall(r"[A-Za-z]+(?:'[A-Za-z]+)?", segment)
-        if not reference_tokens:
-            return None
-        first = reference_tokens[0].lower()
-        expected = first if first in articles else "—"
-        anchor = reference_tokens[1:] if first in articles else reference_tokens
-        anchor_lower = [token.lower() for token in anchor]
-        match_index = next(
-            (
-                position
-                for position in range(cursor, len(lowered_answer) - len(anchor_lower) + 1)
-                if lowered_answer[position : position + len(anchor_lower)] == anchor_lower
-            ),
-            None,
-        )
-        left_context = re.findall(
-            r"[A-Za-z]+(?:'[A-Za-z]+)?", instruction_sections[index - 1]
-        )[-3:]
-        left_context_lower = [token.lower() for token in left_context]
-        left_match = None
-        if match_index is not None and left_context_lower:
-            left_match = next(
-                (
-                    position
-                    for position in range(match_index - len(left_context_lower), -1, -1)
-                    if lowered_answer[position : position + len(left_context_lower)]
-                    == left_context_lower
-                ),
-                None,
-            )
-        if match_index is None:
-            actual = "не найдено"
-            evidence = "Фрагмент отсутствует в ответе"
-            cursor = len(lowered_answer)
-        elif left_match is not None:
-            gap_start = left_match + len(left_context_lower)
-            inserted_tokens = answer_tokens[gap_start:match_index]
-            actual = " ".join(token.lower() for token in inserted_tokens) if inserted_tokens else "—"
-            evidence = " ".join(inserted_tokens + answer_tokens[match_index : match_index + len(anchor)])
-            cursor = match_index + len(anchor)
-        else:
-            previous = lowered_answer[match_index - 1] if match_index > 0 else ""
-            actual = previous if previous in articles else "—"
-            phrase_start = match_index - 1 if previous in articles else match_index
-            evidence = " ".join(answer_tokens[phrase_start : match_index + len(anchor)])
-            cursor = match_index + len(anchor)
-        is_correct = actual == expected
-        expected_phrase = " ".join(([expected] if expected != "—" else []) + anchor)
-        actual_label = "нулевой артикль" if actual == "—" else actual
-        expected_label = "нулевой артикль" if expected == "—" else expected
-        slots.append(
-            {
-                "position": index,
-                "anchor": " ".join(anchor),
-                "expected": expected,
-                "actual": actual,
-                "correct": is_correct,
-                "student_evidence": evidence,
-                "expected_phrase": expected_phrase,
-                "issue": (
-                    ""
-                    if is_correct
-                    else f"Получено «{actual_label}», но по эталону нужен {expected_label}."
-                ),
-            }
-        )
-
-    correct_count = sum(bool(slot["correct"]) for slot in slots)
-    return {
-        "source": "deterministic_rubric_guard",
-        "correct": correct_count == len(slots),
-        "score": correct_count / len(slots),
-        "slots": slots,
+def sanitize_mixed_modal_negation(value: str) -> str:
+    replacements = {
+        "can": "cannot",
+        "could": "could not",
+        "must": "must not",
+        "might": "might not",
+        "should": "should not",
+        "would": "would not",
     }
+    for modal, replacement in replacements.items():
+        value = re.sub(
+            rf"\b{modal}\s+не\b",
+            replacement,
+            value,
+            flags=re.IGNORECASE,
+        )
+    return value
+
+
+def select_relevant_principle(rule: dict[str, Any], focus: str) -> str:
+    principles = [str(item) for item in rule.get("principles") or []]
+    if not principles:
+        return str(rule.get("summary") or "проверяемое правило")
+    focus_tokens = set(re.findall(r"[a-z]+(?:'[a-z]+)?", focus.lower()))
+
+    def overlap(principle: str) -> int:
+        tokens = set(re.findall(r"[a-z]+(?:'[a-z]+)?", principle.lower()))
+        return len(focus_tokens & tokens)
+
+    return max(principles, key=overlap)
+
+
+def generated_question_is_valid(
+    item: dict[str, Any], required_form: str = "", *, transfer: bool = False
+) -> bool:
+    text_key = "rule_focus" if transfer else "text"
+    text = str(item.get(text_key) or "").strip()
+    expected = str(item.get("expected_answer") or "").strip()
+    if len(text) < 20 or len(expected) < 20:
+        return False
+    if not transfer and not text.endswith("?"):
+        return False
+    if not re.search(r"[А-Яа-яЁё]", text) or not re.search(
+        r"[А-Яа-яЁё]", expected
+    ):
+        return False
+    required_tokens = set(re.findall(r"[a-z]+(?:'[a-z]+)?", required_form.lower()))
+    if required_tokens:
+        generated_tokens = set(
+            re.findall(r"[a-z]+(?:'[a-z]+)?", (text + " " + expected).lower())
+        )
+        if not required_tokens.issubset(generated_tokens):
+            return False
+    return True
+
+
+def check_article_cloze(assignment: dict[str, Any], answer: str) -> dict[str, Any] | None:
+    return grade_article_cloze(assignment, answer)
 
 
 class LocalLLMError(RuntimeError):
@@ -401,7 +361,7 @@ class LocalLLM:
         }
         rubric = assignment.get("rubric") or {}
         grounded_rules = rules_for_assignment(assignment, self.rulebook)
-        objective_check = check_article_cloze(assignment, answer)
+        objective_check = grade_structured_answer(assignment, answer)
         system = (
             "Ты строгий методист университета. Оценивай фактическую правильность, а не длину "
             "и уверенность текста. Бессмысленный, нерелевантный или тавтологический ответ получает "
@@ -424,64 +384,77 @@ class LocalLLM:
             "Пиши объяснения по-русски, а примеры "
             "английского оставляй на английском. Верни только JSON по заданной схеме."
         )
-        user_payload = {
-            "subject": assignment.get("subject"),
-            "topic": assignment["topic"],
-            "task": assignment["instructions"],
-            "rubric": rubric,
-            "grounded_rules": grounded_rules,
-            "skills": {skill_id: skill_names[skill_id] for skill_id in assignment["skill_ids"]},
-            "student_answer": answer,
-            "objective_check": objective_check,
-        }
-        result, grade_trace = self._call_json(
-            "проверка задания",
-            system,
-            user_payload,
-            grade_schema,
-            650,
-            fast=not self.quality_mode,
-        )
-        submission_score = float(result["submission_score"])
-        result["objective_check"] = objective_check
-        is_correct = bool(result["is_correct"]) and submission_score >= 0.75
-        if objective_check and not objective_check["correct"]:
-            is_correct = False
-            submission_score = min(submission_score, float(objective_check["score"]))
-            result["criterion_results"] = [
-                {
-                    "criterion": (
-                        f'Позиция {slot["position"]} · {slot["expected_phrase"]}'
-                    ),
-                    "status": "correct" if slot["correct"] else "incorrect",
-                    "student_evidence": slot["student_evidence"],
-                    "issue": slot["issue"],
-                    "correction": slot["expected_phrase"],
-                }
-                for slot in objective_check["slots"]
-            ]
+        grade_trace = None
+        if objective_check:
+            submission_score = float(objective_check["score"])
+            is_correct = bool(objective_check["correct"])
             wrong_positions = [
                 str(slot["position"])
                 for slot in objective_check["slots"]
                 if not slot["correct"]
             ]
-            result["feedback"] = (
-                "Найдены ошибки в заполнении позиций: " + ", ".join(wrong_positions) + "."
+            unit = "позициях" if "eng_articles" in assignment["skill_ids"] else "пунктах"
+            feedback = (
+                "Все ответы совпадают с проверяемым ключом."
+                if is_correct
+                else f'Ошибки или пропуски в {unit}: {", ".join(wrong_positions)}.'
             )
-        result["is_correct"] = is_correct
-        result["mode"] = "viva" if is_correct else "diagnostic"
-        if is_correct:
-            result["submission_score"] = max(submission_score, 0.85)
-            for skill_result in result["skill_results"]:
-                skill_result["score"] = max(float(skill_result["score"]), 0.85)
+            result = {
+                "submission_score": submission_score,
+                "is_correct": is_correct,
+                "feedback": feedback,
+                "mode": "viva" if is_correct else "diagnostic",
+                "skill_results": [
+                    {
+                        "skill_id": skill_id,
+                        "score": submission_score,
+                        "diagnosis": feedback,
+                    }
+                    for skill_id in assignment["skill_ids"]
+                ],
+                "criterion_results": [
+                    {
+                        "criterion": f'Пункт {slot["position"]} · {slot["expected_phrase"]}',
+                        "status": "correct" if slot["correct"] else "incorrect",
+                        "student_evidence": slot["student_evidence"],
+                        "issue": slot["issue"],
+                        "correction": slot["expected_phrase"],
+                    }
+                    for slot in objective_check["slots"]
+                ],
+                "objective_check": objective_check,
+            }
         else:
-            result["submission_score"] = submission_score
-            if objective_check:
+            user_payload = {
+                "subject": assignment.get("subject"),
+                "topic": assignment["topic"],
+                "task": assignment["instructions"],
+                "rubric": rubric,
+                "grounded_rules": grounded_rules,
+                "skills": {
+                    skill_id: skill_names[skill_id] for skill_id in assignment["skill_ids"]
+                },
+                "student_answer": answer,
+            }
+            result, grade_trace = self._call_json(
+                "проверка открытого задания",
+                system,
+                user_payload,
+                grade_schema,
+                650,
+                fast=not self.quality_mode,
+            )
+            submission_score = float(result["submission_score"])
+            is_correct = bool(result["is_correct"]) and submission_score >= 0.75
+            result["is_correct"] = is_correct
+            result["mode"] = "viva" if is_correct else "diagnostic"
+            result["objective_check"] = None
+            if is_correct:
+                result["submission_score"] = max(submission_score, 0.85)
                 for skill_result in result["skill_results"]:
-                    skill_result["score"] = min(
-                        float(skill_result["score"]), float(objective_check["score"])
-                    )
-                    skill_result["diagnosis"] = result["feedback"]
+                    skill_result["score"] = max(float(skill_result["score"]), 0.85)
+            else:
+                result["submission_score"] = min(submission_score, 0.7)
         question_schema = {
             "type": "object",
             "additionalProperties": False,
@@ -511,15 +484,13 @@ class LocalLLM:
         )
         if result["mode"] == "viva":
             first_instruction = (
-                "Процитируй одну конкретную правильную форму из student_answer и спроси, почему "
-                "именно применённое в ней правило верно. Не спрашивай, почему эту форму нельзя использовать. "
-                "Образец text: «Почему в форме 'The journey' используется артикль the?» Образец "
-                "expected_answer: «The journey — уже определённая поездка, поэтому нужен the». "
-                "expected_answer обязан объяснять правило и не может повторять вопрос."
+                "Выбери одну конкретную правильную форму из student_answer и спроси, почему она "
+                "соответствует правилу из grounded_rules. Не придумывай ошибку в форме, которую ключ уже "
+                "признал правильной. expected_answer обязан кратко объяснять правило, а не повторять вопрос."
             )
             second_instruction = (
                 "Выбери одно конкретное правило для переноса. В rule_focus запиши по-русски только условие "
-                "вида «артикль the указывает на повторно упомянутый предмет». В expected_answer дай одно "
+                "его применения. В expected_answer дай одно "
                 "НОВОЕ английское предложение и коротко объясни его по-русски. expected_answer не должен "
                 "содержать вопрос или несколько разных примеров."
             )
@@ -532,17 +503,27 @@ class LocalLLM:
                 "Выбери правило из выявленного пробела. В rule_focus запиши по-русски только условие "
                 "правила. В expected_answer дай одно НОВОЕ правильное английское предложение и объяснение."
             )
+        wrong_slots = [
+            slot
+            for slot in (objective_check or {}).get("slots", [])
+            if not slot.get("correct")
+        ]
+        required_form = (
+            str(wrong_slots[0].get("expected_phrase") or "") if wrong_slots else ""
+        )
         first_question_payload = {
             "topic": assignment["topic"],
             "student_answer": answer,
             "mode": result["mode"],
             "criterion_results": result["criterion_results"],
             "grounded_rules": grounded_rules,
+            "required_form": required_form,
         }
         second_question_payload = {
             "topic": assignment["topic"],
             "mode": result["mode"],
             "grounded_rules": grounded_rules,
+            "required_form": required_form,
         }
         first_item, first_trace = self._call_json(
             "формирование вопроса 1",
@@ -552,6 +533,21 @@ class LocalLLM:
             200,
             fast=True,
         )
+        question_traces = [first_trace]
+        first_item_trace = first_trace
+        if not generated_question_is_valid(first_item, required_form):
+            first_item, first_item_trace = self._call_json(
+                "исправление вопроса 1",
+                common_question_system
+                + first_instruction
+                + " Предыдущий вопрос был оборван или ушёл от required_form. Создай законченный "
+                "вопрос со знаком вопроса и объяснение по-русски; required_form обязательно процитируй без изменения.",
+                {**first_question_payload, "invalid_output": first_item},
+                question_schema,
+                300,
+                fast=True,
+            )
+            question_traces.append(first_item_trace)
         second_item, second_trace = self._call_json(
             "формирование вопроса 2",
             common_question_system + second_instruction,
@@ -560,12 +556,67 @@ class LocalLLM:
             260,
             fast=True,
         )
-        second_item["text"] = (
-            "Приведите новое английское предложение, в котором "
-            f'{second_item.pop("rule_focus").rstrip(".?")}?'
+        question_traces.append(second_trace)
+        second_item_trace = second_trace
+        if not generated_question_is_valid(second_item, required_form, transfer=True):
+            second_item, second_item_trace = self._call_json(
+                "исправление вопроса 2",
+                common_question_system
+                + second_instruction
+                + " Предыдущий перенос ушёл от required_form. rule_focus и новый пример обязаны "
+                "проверять именно required_form; добавь короткое объяснение по-русски.",
+                {**second_question_payload, "invalid_output": second_item},
+                transfer_schema,
+                320,
+                fast=True,
+            )
+            question_traces.append(second_item_trace)
+        grounded_focus = required_form or str(
+            ((objective_check or {}).get("slots") or [{}])[0].get("expected_phrase") or ""
         )
+        rule = self.rulebook.get(assignment["skill_ids"][0], {})
+        principle = select_relevant_principle(rule, grounded_focus)
+        examples = [str(item) for item in rule.get("examples") or []]
+        example = next(
+            (
+                item
+                for item in examples
+                if set(re.findall(r"[a-z]+", grounded_focus.lower()))
+                <= set(re.findall(r"[a-z]+", item.lower()))
+            ),
+            examples[0] if examples else grounded_focus,
+        )
+        if not generated_question_is_valid(first_item, required_form):
+            if wrong_slots:
+                position = wrong_slots[0].get("position")
+                question_text = (
+                    f"Почему в пункте {position} нужна форма «{grounded_focus}» и какое правило она выражает?"
+                )
+            else:
+                question_text = (
+                    f"Какое правило подтверждает форма «{grounded_focus}» в выполненном задании?"
+                )
+            first_item = {
+                "skill_id": assignment["skill_ids"][0],
+                "text": question_text,
+                "expected_answer": f"{grounded_focus}: {principle}",
+            }
+        if not generated_question_is_valid(second_item, required_form, transfer=True):
+            second_item = {
+                "skill_id": assignment["skill_ids"][0],
+                "rule_focus": principle,
+                "expected_answer": f"{example} Это новый пример правила: {principle}",
+            }
+        rule_focus = second_item.pop("rule_focus").rstrip(".?")
+        second_item["text"] = (
+            f"Приведите новое английское предложение по правилу: «{rule_focus}»?"
+        )
+        for item in (first_item, second_item):
+            for key, value in item.items():
+                if isinstance(value, str):
+                    item[key] = sanitize_mixed_modal_negation(value)
         question_items = [first_item, second_item]
-        question_traces = [first_trace, second_trace]
+        question_item_traces = [first_item_trace, second_item_trace]
         result["questions"] = [
             ProbeQuestion(
                 id=f"local-{trace.trace_id}-{index}",
@@ -582,10 +633,11 @@ class LocalLLM:
                 context_constraint="Нет дополнительных ограничений контекста.",
             )
             for index, (item, trace) in enumerate(
-                zip(question_items, question_traces, strict=True), start=1
+                zip(question_items, question_item_traces, strict=True), start=1
             )
         ]
-        return result, [grade_trace, *question_traces]
+        traces = ([grade_trace] if grade_trace is not None else []) + question_traces
+        return result, traces
 
     def evaluate_answer(
         self,
@@ -661,16 +713,19 @@ class LocalLLM:
         result, trace = self._call_json(
             "оценка ответа viva", system, payload, schema, 230, fast=True
         )
+        for key, value in result.items():
+            if isinstance(value, str):
+                result[key] = sanitize_mixed_modal_negation(value)
         verdict = str(result["verdict"])
         if verdict == "correct":
             result["score"] = max(float(result["score"]), 0.85)
             result["what_was_correct"] = (
-                f"Ответ подтверждает правило: {question.expected_answer}"
+                f"Ответ применяет проверяемое правило: «{answer.strip()}»."
             )
             result["what_needs_improvement"] = (
                 "По проверяемому правилу исправления не нужны."
             )
-            result["correct_answer"] = question.expected_answer or result["correct_answer"]
+            result["correct_answer"] = answer.strip()
         elif verdict == "partial":
             result["score"] = min(max(float(result["score"]), 0.3), 0.7)
             result["correct_answer"] = question.expected_answer or result["correct_answer"]
@@ -704,7 +759,7 @@ class LocalLLM:
             what_was_correct=str(result["what_was_correct"]),
             what_needs_improvement=str(result["what_needs_improvement"]),
             correct_answer=str(result["correct_answer"]),
-            typo_handling=str(result["typo_handling"]),
+            typo_handling=str(result.get("typo_handling") or ""),
         )
         return evidence, trace
 
@@ -790,6 +845,9 @@ class LocalLLM:
             460,
             fast=not self.quality_mode,
         )
+        for key, value in student_result.get("student_activity", {}).items():
+            if isinstance(value, str):
+                student_result["student_activity"][key] = sanitize_mixed_modal_negation(value)
         needs_remediation = not bool(assessment["is_correct"]) or any(
             item.score < 0.75 for item in evidence
         )
@@ -798,17 +856,37 @@ class LocalLLM:
             weakest = min(evidence, key=lambda item: item.score)
             rule = self.rulebook.get(weakest.rule_id or weakest.skill_id, {})
             if rule:
-                principles = list(rule.get("principles") or [])
                 examples = list(rule.get("examples") or [])
-                principle = principles[0] if principles else str(rule["summary"])
+                wrong_slots = [
+                    slot
+                    for slot in (assessment.get("objective_check") or {}).get("slots", [])
+                    if not slot.get("correct")
+                ]
+                focus_text = " ".join(
+                    str(slot.get("expected_phrase") or "") for slot in wrong_slots
+                ) or weakest.correct_answer
+                principle = select_relevant_principle(rule, focus_text)
                 example_text = " · ".join(examples[:2])
+                if wrong_slots:
+                    why = " ".join(
+                        (
+                            f'Пункт {slot.get("position")}: '
+                            f'«{slot.get("student_evidence") or "ответ отсутствует"}» '
+                            f'→ «{slot.get("expected_phrase")}».'
+                        )
+                        for slot in wrong_slots[:2]
+                    )
+                else:
+                    why = (
+                        f'Ответ на вопрос «{weakest.question_text}» получил {weakest.score:.0%}; '
+                        "правило нужно подтвердить ещё раз."
+                    )
                 student_result["student_activity"] = {
                     "title": f'Разбор: {rule["title"]}',
                     "instructions": (
                         "Изучите правило и примеры, затем выполните повторную практику."
                     ),
-                    "why": weakest.what_needs_improvement
-                    or "Текущий ответ не подтвердил применение правила.",
+                    "why": why,
                     "explanation": str(rule["summary"]),
                     "worked_example": f"Сравните примеры: {example_text}",
                     "practice_task": (
@@ -826,13 +904,32 @@ class LocalLLM:
         teacher_system = (
             "Ты методист преподавателя. По фактическим данным cohort_results и current_evidence предложи "
             "один конкретный фокус следующего занятия и короткий план из трёх действий. Пиши по-русски. "
-            "Назови наблюдаемые ошибки и число затронутых студентов, если оно следует из данных. Не "
-            "придумывай студентов, ответы или проценты. Не давай общих советов без связи с evidence. Верни JSON."
+            "Используй только rule_id, score и objective_errors: свободные диагнозы не передаются намеренно. "
+            "Не пиши, что одна и та же форма должна быть заменена сама на себя. lesson_plan обязан содержать "
+            "ровно три законченных действия с метками 1), 2), 3) и закончиться точкой. Не придумывай студентов, "
+            "ответы или проценты. Не давай общих советов без связи с evidence. Верни JSON."
         )
+        objective_errors = [
+            {
+                "position": slot.get("position"),
+                "student_form": slot.get("student_evidence"),
+                "expected_form": slot.get("expected_phrase"),
+            }
+            for slot in (assessment.get("objective_check") or {}).get("slots", [])
+            if not slot.get("correct")
+        ]
         teacher_payload = {
             "topic": assignment["topic"],
             "cohort_results": cohort_context,
-            "current_evidence": compact_evidence,
+            "current_evidence": [
+                {
+                    "question": item.question_text,
+                    "score": item.score,
+                    "rule_id": item.rule_id,
+                }
+                for item in evidence
+            ],
+            "objective_errors": objective_errors,
         }
         teacher_result, teacher_trace = self._call_json(
             "рекомендация преподавателю",
@@ -842,6 +939,9 @@ class LocalLLM:
             300,
             fast=not self.quality_mode,
         )
+        for key, value in teacher_result.items():
+            if isinstance(value, str):
+                teacher_result[key] = sanitize_mixed_modal_negation(value)
         return {
             **student_result,
             "teacher_recommendation": teacher_result,
