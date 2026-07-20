@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 from dataclasses import asdict, replace
 from html import escape
 from pathlib import Path
@@ -537,6 +538,161 @@ def attempts_to_states(attempts: list[dict]) -> list[StudentState]:
     ]
 
 
+def topic_key_for_new_topic(topic: str, skill_id: str) -> str:
+    digest = hashlib.sha1(topic.strip().lower().encode("utf-8")).hexdigest()[:10]
+    return f"custom_{skill_id}_{digest}"
+
+
+def lines_from_text(value: str) -> list[str]:
+    return [line.strip(" -•\t") for line in value.splitlines() if line.strip(" -•\t")]
+
+
+@st.dialog("Добавить задание или тему", width="large")
+def render_quick_assignment_dialog(assignments: list[dict]) -> None:
+    creation_type = st.segmented_control(
+        "Что добавить?",
+        ["Задание к существующей теме", "Новую тему"],
+        default="Задание к существующей теме",
+        width="stretch",
+    )
+    if creation_type is None:
+        return
+
+    topics: dict[str, list[dict]] = {}
+    for item in assignments:
+        topics.setdefault(assignment_topic_key(item), []).append(item)
+    labels = {
+        f'{items[0]["subject"]} · {items[0]["topic"]}': key
+        for key, items in topics.items()
+    }
+    skill_labels = {skill.name: skill.id for skill in CURRICULUM.skills}
+
+    if creation_type == "Задание к существующей теме":
+        selected_label = st.selectbox("Тема", list(labels), key="quick-existing-topic")
+        selected_key = labels[selected_label]
+        selected_items = topics[selected_key]
+        base = selected_items[0]
+        subject = str(base["subject"])
+        topic = str(base["topic"])
+        topic_key = selected_key
+        skill_ids = list(
+            dict.fromkeys(
+                skill_id for item in selected_items for skill_id in item["skill_ids"]
+            )
+        )
+        variant = max(int(item.get("variant") or 1) for item in selected_items) + 1
+        st.caption(
+            f"Предмет: {subject} · вариант {variant} · навыки подставлены автоматически."
+        )
+    else:
+        st.info("Новая тема появится после создания её первого задания.")
+        subject = st.text_input(
+            "Предмет и уровень",
+            value="Английский язык · B2",
+            placeholder="Например: Английский язык · B2",
+        )
+        topic = st.text_input(
+            "Название новой темы",
+            placeholder="Например: Phrasal verbs в академической речи",
+        )
+        skill_names = list(skill_labels)
+        preferred_skill_index = next(
+            (
+                index
+                for index, name in enumerate(skill_names)
+                if skill_labels[name].startswith("eng_")
+            ),
+            0,
+        )
+        selected_skill = st.selectbox(
+            "Какой основной навык проверяем?",
+            skill_names,
+            index=preferred_skill_index,
+            help="Навык связывает ответы студентов с картой освоения группы.",
+        )
+        skill_ids = [skill_labels[selected_skill]]
+        topic_key = topic_key_for_new_topic(topic, skill_ids[0]) if topic.strip() else ""
+        variant = 1
+
+    with st.form(f"quick-create-{creation_type}"):
+        title = st.text_input(
+            "Название задания",
+            placeholder="Короткое название, которое увидит студент",
+        )
+        difficulty = st.select_slider(
+            "Сложность",
+            options=list(DIFFICULTY_LABELS),
+            value=1,
+            format_func=lambda value: DIFFICULTY_LABELS[value],
+        )
+        instructions = st.text_area(
+            "Условие задания",
+            height=150,
+            placeholder="Напишите точное условие и все данные, необходимые студенту.",
+        )
+        starter = st.text_area(
+            "Шаблон ответа — необязательно",
+            height=80,
+            placeholder="Например: 1) ...  2) ...",
+        )
+        st.markdown("#### Как проверять")
+        reference_answer = st.text_area(
+            "Эталонный ответ",
+            height=110,
+            placeholder="Правильное решение или возможный образец ответа",
+        )
+        criteria_text = st.text_area(
+            "Критерии — каждый с новой строки",
+            height=120,
+            placeholder="Правильно применено правило\nОтвет соответствует контексту",
+        )
+        common_errors_text = st.text_area(
+            "Типичные ошибки — необязательно, каждая с новой строки",
+            height=90,
+            placeholder="Неверная форма\nПравило применено без учёта контекста",
+        )
+        submitted = st.form_submit_button(
+            "Создать и показать студентам", type="primary", width="stretch"
+        )
+
+    if not submitted:
+        return
+    criteria = lines_from_text(criteria_text)
+    common_errors = lines_from_text(common_errors_text)
+    if not all(
+        [
+            subject.strip(),
+            topic.strip(),
+            title.strip(),
+            instructions.strip(),
+            reference_answer.strip(),
+            criteria,
+            skill_ids,
+        ]
+    ):
+        st.error("Заполните название, условие, эталон и хотя бы один критерий.")
+        return
+    rubric = {
+        "reference_answer": reference_answer.strip(),
+        "criteria": criteria,
+        "common_errors": common_errors,
+    }
+    create_assignment(
+        title,
+        topic,
+        instructions,
+        starter,
+        skill_ids,
+        subject,
+        rubric,
+        topic_key,
+        difficulty,
+        variant,
+    )
+    st.success("Готово: задание создано и уже доступно студентам.")
+    st.rerun()
+
+
 def render_teacher() -> None:
     assignments = list_assignments(active_only=False)
     topics: dict[str, list[dict]] = {}
@@ -546,7 +702,14 @@ def render_teacher() -> None:
         f'{items[0]["subject"]} · {items[0]["topic"]} · {len(items)} вариантов': key
         for key, items in topics.items()
     }
-    topic_key = by_label[st.selectbox("Результаты по теме", list(by_label))]
+    selector_column, action_column = st.columns([3, 1])
+    with selector_column:
+        topic_key = by_label[st.selectbox("Результаты по теме", list(by_label))]
+    with action_column:
+        st.write("")
+        st.write("")
+        if st.button("＋ Добавить", type="primary", width="stretch"):
+            render_quick_assignment_dialog(assignments)
     topic_assignments = topics[topic_key]
     assignment = dict(topic_assignments[0])
     assignment["skill_ids"] = list(
@@ -724,7 +887,7 @@ def render_teacher() -> None:
 
 
 def render_assignment_management(selected_assignment: dict) -> None:
-    with st.expander("Управление заданиями"):
+    with st.expander("Расширенное редактирование задания"):
         mode = st.radio("Действие", ["Изменить текущее", "Создать новое"], horizontal=True)
         defaults = selected_assignment if mode == "Изменить текущее" else {
             "title": "", "subject": "", "topic": "", "instructions": "", "starter_code": "",
