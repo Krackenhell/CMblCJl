@@ -46,6 +46,50 @@ def main() -> None:
             {"answer": answer, "evidence": asdict(evidence), "trace": asdict(trace)}
         )
 
+    articles_assignment = get_assignment(9)
+    article_cases = [
+        (
+            "home_without_context_restriction",
+            "Приведите любой пример с нулевым артиклем для общего понятия.",
+            "Например: Home is a place where I feel comfortable.",
+            "home is a place where i feel comfortable",
+        ),
+        (
+            "minor_typo_does_not_break_article_evidence",
+            "Приведите пример: при первом упоминании используйте a, при повторном — the.",
+            "Например: I took a train. I enjoyed the train.",
+            "Yesterday I tooka a train. I enjoyed the train so much.",
+        ),
+        (
+            "general_travel_zero_article",
+            "Приведите пример с нулевым артиклем для общего понятия.",
+            "Например: Travel broadens the mind.",
+            "travel is one of the greatest human passions",
+        ),
+    ]
+    article_rows = []
+    for case_id, text, expected_answer, answer in article_cases:
+        article_question = ProbeQuestion(
+            id=case_id,
+            skill_id="eng_articles",
+            text=text,
+            purpose="Проверить перенос правила об артиклях.",
+            expected_concepts=(),
+            rule_id="eng_articles",
+            expected_answer=expected_answer,
+        )
+        evidence, trace = llm.evaluate_answer(
+            articles_assignment, article_question, answer
+        )
+        article_rows.append(
+            {
+                "case_id": case_id,
+                "answer": answer,
+                "evidence": asdict(evidence),
+                "trace": asdict(trace),
+            }
+        )
+
     routing_checks = [
         correct_result["is_correct"] is True and correct_result["mode"] == "viva",
         nonsense_result["is_correct"] is False
@@ -58,7 +102,13 @@ def main() -> None:
             "routing_accuracy": sum(routing_checks) / len(routing_checks),
             "nonsense_rejection_rate": sum(rejected) / len(rejected),
             "max_nonsense_score": max(row["evidence"]["score"] for row in answer_rows),
-            "cases": len(routing_checks) + len(answer_rows),
+            "article_regression_accuracy": sum(
+                row["evidence"]["verdict"] == "correct"
+                and row["evidence"]["score"] >= 0.85
+                for row in article_rows
+            )
+            / len(article_rows),
+            "cases": len(routing_checks) + len(answer_rows) + len(article_rows),
         },
         "cases": {
             "correct_submission": {
@@ -70,6 +120,7 @@ def main() -> None:
                 "traces": [asdict(trace) for trace in nonsense_traces],
             },
             "nonsense_viva_answers": answer_rows,
+            "article_regressions": article_rows,
         },
     }
     OUTPUT_PATH.parent.mkdir(exist_ok=True)

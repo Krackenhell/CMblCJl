@@ -11,6 +11,7 @@ artifacts/*.joblib
 *.db
 .DS_Store
 .playwright-cli/
+output/playwright/
 streamlit.stdout.log
 streamlit.stderr.log
 models/*.gguf
@@ -18,6 +19,9 @@ models/local-model-manifest.json
 tools/llama/*.exe
 tools/llama/*.dll
 tools/llama/*.zip
+tools/llama-vulkan/*.exe
+tools/llama-vulkan/*.dll
+tools/llama-vulkan/*.zip
 logs/
 .local-llm-download/
 local-llm-setup.*.log

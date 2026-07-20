@@ -43,6 +43,9 @@ class ProbeQuestion:
     purpose: str
     expected_concepts: tuple[tuple[str, ...], ...]
     misconception_patterns: dict[str, tuple[str, ...]] = field(default_factory=dict)
+    rule_id: str | None = None
+    expected_answer: str = ""
+    context_constraint: str = "Нет дополнительных ограничений контекста."
 
 
 @dataclass(frozen=True)
@@ -56,6 +59,16 @@ class Evidence:
     source: str = "viva"
     evaluator_model: str | None = None
     trace_id: str | None = None
+    question_text: str = ""
+    question_purpose: str = ""
+    rule_id: str | None = None
+    rule_title: str | None = None
+    rule_url: str | None = None
+    verdict: str = ""
+    what_was_correct: str = ""
+    what_needs_improvement: str = ""
+    correct_answer: str = ""
+    typo_handling: str = ""
 
 
 @dataclass(frozen=True)

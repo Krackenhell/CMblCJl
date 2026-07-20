@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict, replace
+from html import escape
 from pathlib import Path
 
 import pandas as pd
@@ -9,28 +10,32 @@ import plotly.express as px
 import streamlit as st
 
 from vivatrace.bkt import BKTModel, BKTParameters
-from vivatrace.cohort import mastery_frame, misconception_summary
+from vivatrace.cohort import mastery_frame
 from vivatrace.curriculum import load_curriculum
 from vivatrace.database import (
     create_assignment,
     get_mastery,
     init_database,
-    latest_attempts,
+    latest_topic_attempts,
     list_assignments,
     list_students,
     reset_learning_data,
     save_attempt,
     student_attempts,
+    student_progress,
     update_assignment,
 )
 from vivatrace.demo import DATA_DIR
 from vivatrace.local_llm import LLMTrace, LocalLLM, LocalLLMError
 from vivatrace.models import ArtifactFinding, Curriculum, Evidence, StudentState
+from vivatrace.rulebook import load_rulebook
 
 
 ROOT = Path(__file__).resolve().parent
 CURRICULUM = load_curriculum(DATA_DIR / "curriculum.json")
 LLM = LocalLLM()
+RULEBOOK = load_rulebook()
+DIFFICULTY_LABELS = {1: "Базовый", 2: "Средний", 3: "Продвинутый"}
 COLORS = {
     "green": "#176B50",
     "lime": "#C9F26B",
@@ -87,6 +92,11 @@ h1, h2, h3 { color: #18231F; letter-spacing: -0.035em; }
 .llm-ok { background:#174E3B; border:1px solid #28785D; border-radius:12px; padding:11px; font-size:.74rem; }
 .llm-off { background:#5A302B; border:1px solid #A75B50; border-radius:12px; padding:11px; font-size:.74rem; }
 .empty { background: white; border: 1px dashed #BCC9C2; border-radius: 22px; padding: 42px; text-align: center; }
+.review-item { background:white; border:1px solid #E2E7E2; border-radius:14px; padding:14px 16px; margin:9px 0; }
+.review-item.ok { border-left:4px solid #176B50; }.review-item.partial { border-left:4px solid #F4B860; }.review-item.bad { border-left:4px solid #EC7565; }
+.gap-card { background:white; border:1px solid #E2E7E2; border-radius:16px; padding:16px 18px; margin:10px 0; box-shadow:0 6px 18px rgba(16,45,35,.05); }
+.gap-card .count { float:right; background:#FFF0EC; color:#9D382E; border-radius:999px; padding:4px 9px; font-weight:800; font-size:.72rem; }
+.rule-card { background:#F0F5FF; border:1px solid #D8E2F7; border-radius:14px; padding:14px 16px; margin:10px 0; color:#273A63; }
 .stButton > button, .stFormSubmitButton > button { border-radius: 12px; font-weight: 750; border: 0; background: #176B50; color: white; }
 [data-testid="stExpander"] { background: white; border: 1px solid #E2E7E2; border-radius: 16px; }
 </style>
@@ -124,6 +134,45 @@ def assignment_curriculum(assignment: dict) -> Curriculum:
     return replace(CURRICULUM, skills=tuple(s for s in CURRICULUM.skills if s.id in allowed))
 
 
+def assignment_topic_key(assignment: dict) -> str:
+    return str(assignment.get("topic_key") or assignment["skill_ids"][0])
+
+
+def difficulty_label(assignment: dict) -> str:
+    return DIFFICULTY_LABELS.get(int(assignment.get("difficulty") or 1), "Базовый")
+
+
+def rule_for_evidence(evidence: Evidence | dict) -> dict:
+    rule_id = evidence.rule_id if isinstance(evidence, Evidence) else evidence.get("rule_id")
+    return RULEBOOK.get(str(rule_id or ""), {})
+
+
+def render_criterion_results(assessment: dict) -> None:
+    items = assessment.get("criterion_results") or []
+    if not items:
+        return
+    with st.expander("Разбор исходного решения", expanded=not assessment["is_correct"]):
+        for item in items:
+            status = item["status"]
+            css = "ok" if status == "correct" else "partial" if status == "partial" else "bad"
+            label = "Верно" if status == "correct" else "Частично" if status == "partial" else "Нужно исправить"
+            evidence = escape(str(item.get("student_evidence") or "—"))
+            if status == "correct":
+                details = '<p><b>Критерий выполнен.</b> Исправления не требуются.</p>'
+            else:
+                issue = escape(str(item.get("issue") or "—"))
+                correction = escape(str(item.get("correction") or "—"))
+                details = (
+                    f'<p><b>Точная ошибка:</b> {issue}<br>'
+                    f'<b>Исправленный вариант:</b> {correction}</p>'
+                )
+            st.markdown(
+                f'<div class="review-item {css}"><b>{label} · {escape(str(item["criterion"]))}</b>'
+                f'<p><span class="muted">В ответе:</span> {evidence}</p>{details}</div>',
+                unsafe_allow_html=True,
+            )
+
+
 def reset_flow() -> None:
     st.session_state.pop("learning_flow", None)
     st.session_state["attempt_nonce"] = st.session_state.get("attempt_nonce", 0) + 1
@@ -133,13 +182,19 @@ def render_llm_status() -> None:
     identity = LLM.identity()
     css_class = "llm-ok" if identity["ready"] else "llm-off"
     status = "готова" if identity["ready"] else "не установлена"
+    active_model = identity["model"] if identity["quality_mode"] else identity["fast_model"]
+    active_hash = (
+        identity["model_sha256"]
+        if identity["quality_mode"]
+        else identity["fast_model_sha256"]
+    )
     st.markdown(
-        f'<div class="{css_class}"><b>Локальная LLM: {status}</b><br>{identity["model"]}<br>'
+        f'<div class="{css_class}"><b>Локальная LLM: {status}</b><br>{active_model}<br>'
         f'llama.cpp · без API и облака</div>',
         unsafe_allow_html=True,
     )
     if identity["ready"]:
-        short_hash = str(identity["model_sha256"])[:16]
+        short_hash = str(active_hash)[:16]
         st.caption(f"SHA-256: {short_hash}…")
     else:
         st.caption(r"Установка: scripts\setup_local_llm.ps1")
@@ -193,36 +248,54 @@ def start_assessment(student: dict, assignment: dict, artifact: str) -> None:
     }
 
 
-def cohort_context_for_llm(assignment_id: int, current_student: dict, flow: dict) -> list[dict]:
+def cohort_context_for_llm(assignment: dict, current_student: dict, flow: dict) -> list[dict]:
     rows = [
         {
             "student_id": row["student_id"],
+            "assignment_title": row.get("assignment_title"),
             "submission_score": row.get("submission_score"),
             "viva_score": row["overall_score"],
-            "misconceptions": [item.get("misconception") for item in row["evidence"] if item.get("misconception")],
+            "errors": [
+                {
+                    "rule_id": item.get("rule_id"),
+                    "gap": item.get("what_needs_improvement") or item.get("misconception"),
+                    "correct_answer": item.get("correct_answer"),
+                }
+                for item in row["evidence"]
+                if item.get("score", 0) < 0.75
+            ],
         }
-        for row in latest_attempts(assignment_id)
+        for row in latest_topic_attempts(assignment_topic_key(assignment))
         if row["student_id"] != current_student["id"]
     ]
     rows.append(
         {
             "student_id": current_student["id"],
+            "assignment_title": assignment["title"],
             "submission_score": flow["assessment"]["submission_score"],
             "viva_score": sum(item.score for item in flow["evidence"]) / max(len(flow["evidence"]), 1),
-            "misconceptions": [item.misconception for item in flow["evidence"] if item.misconception],
+            "errors": [
+                {
+                    "rule_id": item.rule_id,
+                    "gap": item.what_needs_improvement or item.misconception,
+                    "correct_answer": item.correct_answer,
+                }
+                for item in flow["evidence"]
+                if item.score < 0.75
+            ],
         }
     )
     return rows
 
 
 def complete_attempt(student: dict, assignment: dict, flow: dict) -> None:
-    final_result, trace = LLM.finalize_learning(
+    final_result, traces = LLM.finalize_learning(
         assignment,
         flow["assessment"],
         flow["evidence"],
-        cohort_context_for_llm(assignment["id"], student, flow),
+        cohort_context_for_llm(assignment, student, flow),
     )
-    flow["traces"].append(asdict(trace))
+    flow["traces"].extend(asdict(trace) for trace in traces)
     flow["next_activity"] = final_result["student_activity"]
     flow["branch"] = final_result["branch"]
     flow["teacher_recommendation"] = final_result["teacher_recommendation"]
@@ -245,9 +318,33 @@ def complete_attempt(student: dict, assignment: dict, flow: dict) -> None:
 
 def render_student(student: dict) -> None:
     assignments = list_assignments(active_only=True)
-    by_label = {f'{item["subject"]} · {item["title"]}': item for item in assignments}
-    selected = st.selectbox("Задание", list(by_label), label_visibility="collapsed")
-    assignment = by_label[selected]
+    progress = student_progress(student["id"])
+    topics: dict[str, list[dict]] = {}
+    for item in assignments:
+        topics.setdefault(assignment_topic_key(item), []).append(item)
+    topic_labels = {
+        f'{items[0]["subject"]} · {items[0]["topic"]} · {sum(i["id"] in progress for i in items)}/{len(items)}': key
+        for key, items in topics.items()
+    }
+    selected_topic_label = st.selectbox("Тема", list(topic_labels))
+    topic_key = topic_labels[selected_topic_label]
+    topic_assignments = sorted(
+        topics[topic_key], key=lambda item: (int(item.get("variant") or 1), item["id"])
+    )
+    offset = (int(student["id"][-2:]) - 1) % len(topic_assignments)
+    personal_order = topic_assignments[offset:] + topic_assignments[:offset]
+    task_labels = {}
+    for item in personal_order:
+        completed = item["id"] in progress
+        mark = "🟢 Выполнено" if completed else "○ Следующее"
+        task_labels[
+            f'{mark} · {difficulty_label(item)} · вариант {item.get("variant", 1)} · {item["title"]}'
+        ] = item
+    first_unfinished = next(
+        (index for index, item in enumerate(personal_order) if item["id"] not in progress), 0
+    )
+    selected = st.selectbox("Вариант задания", list(task_labels), index=first_unfinished)
+    assignment = task_labels[selected]
     context = (student["id"], assignment["id"])
     if st.session_state.get("learning_context") != context:
         st.session_state.learning_context = context
@@ -260,6 +357,11 @@ def render_student(student: dict) -> None:
     )
     names = [CURRICULUM.skill_by_id[item].name for item in assignment["skill_ids"]]
     st.markdown("".join(f'<span class="chip">{name}</span>' for name in names), unsafe_allow_html=True)
+    completed_in_topic = sum(item["id"] in progress for item in topic_assignments)
+    st.caption(
+        f'{difficulty_label(assignment)} уровень · персональный вариант {assignment.get("variant", 1)} · '
+        f'прогресс по теме: {completed_in_topic} из {len(topic_assignments)}'
+    )
     history = student_attempts(student["id"], assignment["id"])
     if history:
         st.caption(f'Завершённых попыток: {len(history)} · последняя оценка задания: {(history[0].get("submission_score") or 0):.0%}')
@@ -274,13 +376,13 @@ def render_student(student: dict) -> None:
             key=f'artifact-{student["id"]}-{assignment["id"]}-{st.session_state.get("attempt_nonce", 0)}',
         )
         if not LLM.identity()["ready"]:
-            st.error(r"Для проверки нужна локальная модель. Запустите scripts\setup_local_llm.ps1 один раз.")
-        if st.button("Проверить задание локальной LLM", width="stretch", disabled=not LLM.identity()["ready"]):
+            st.error(r"Сервис проверки сейчас недоступен. Запустите scripts\setup_local_llm.ps1 один раз.")
+        if st.button("Отправить на проверку", width="stretch", disabled=not LLM.identity()["ready"]):
             if len(artifact.strip()) < 2:
                 st.warning("Введите ответ перед проверкой.")
             else:
                 try:
-                    with st.spinner("Локальная модель проверяет решение и строит следующий шаг…"):
+                    with st.spinner("Проверяем решение и готовим следующий этап…"):
                         start_assessment(student, assignment, artifact)
                     st.rerun()
                 except LocalLLMError as error:
@@ -302,9 +404,11 @@ def render_student(student: dict) -> None:
             css = "finding-ok" if correct else "finding"
             st.markdown(f'<div class="{css}"><b>{assessment["feedback"]}</b></div>', unsafe_allow_html=True)
         with columns[1]:
-            branch_name = "Viva: проверка понимания" if correct else "Диагностика и помощь"
-            metric_card("Маршрут", branch_name, "выбран локальной LLM по содержанию ответа")
-            trace_card(flow["traces"][0], "проверка задания")
+            branch_name = "Короткая проверка понимания" if correct else "Уточняющие вопросы и помощь"
+            branch_hint = "три вопроса по правилам из задания" if correct else "сначала определим точный пробел"
+            metric_card("Следующий этап", branch_name, branch_hint)
+
+        render_criterion_results(assessment)
 
         question = flow["questions"][flow["current"]]
         st.progress(flow["current"] / len(flow["questions"]))
@@ -317,7 +421,7 @@ def render_student(student: dict) -> None:
             "Ответ своими словами",
             key=f'answer-{question.id}-{flow["current"]}',
             height=145,
-            placeholder="Можно написать даже «не знаю» — локальная модель должна корректно зафиксировать пробел.",
+            placeholder="Сформулируйте ответ своими словами и при необходимости приведите пример.",
         )
         left, right = st.columns([1, 3])
         with left:
@@ -327,10 +431,10 @@ def render_student(student: dict) -> None:
         with right:
             if st.button("Ответить и продолжить", width="stretch"):
                 if not answer.strip():
-                    st.warning("Введите ответ. Если не знаете — так и напишите.")
+                    st.warning("Введите ответ перед продолжением.")
                 else:
                     try:
-                        with st.spinner("Локальная модель оценивает содержание ответа…"):
+                        with st.spinner("Проверяем ответ…"):
                             evidence, trace = LLM.evaluate_answer(assignment, question, answer)
                             model = BKTModel(BKTParameters())
                             flow["mastery"][question.skill_id] = model.update(
@@ -351,18 +455,42 @@ def render_student(student: dict) -> None:
     st.subheader("Обучающий цикл завершён")
     st.success("Результат сохранён и уже доступен преподавателю.")
     st.markdown(f'**Оценка исходного задания: {assessment["submission_score"]:.0%}**')
+    render_criterion_results(assessment)
     for evidence in flow["evidence"]:
         skill = CURRICULUM.skill_by_id[evidence.skill_id]
         mastery = flow["mastery"][evidence.skill_id]
         st.markdown(
             f'<div class="evidence"><b>{skill.name}</b><br>'
+            f'<span class="muted">Исходный вопрос:</span> {escape(evidence.question_text)}<br>'
+            f'<span class="muted">Ваш ответ:</span> «{escape(evidence.quote)}»<br>'
             f'<b>Оценка текущего ответа: {evidence.score:.0%}</b> · '
             f'<span class="muted">накопленное освоение с учётом прошлых попыток: {mastery:.0%}</span><br>'
-            f'«{evidence.quote}»<br><span class="muted">{evidence.rationale}</span></div>',
+            f'<p><b>Что верно:</b> {escape(evidence.what_was_correct or "—")}</p>'
+            f'<p><b>Что улучшить:</b> {escape(evidence.what_needs_improvement or "—")}</p>'
+            f'<p><b>Корректный ответ:</b> {escape(evidence.correct_answer or "—")}</p>'
+            f'<span class="muted">{escape(evidence.rationale)}</span></div>',
             unsafe_allow_html=True,
         )
+        if evidence.typo_handling and not evidence.typo_handling.lower().startswith("нет"):
+            st.caption(f"Опечатки: {evidence.typo_handling}")
+        rule = rule_for_evidence(evidence)
+        if rule:
+            with st.expander(f'Правило: {rule["title"]}'):
+                st.write(rule["summary"])
+                for principle in rule["principles"]:
+                    st.markdown(f"- {principle}")
+                st.link_button(f'Открыть источник · {rule["source_title"]}', rule["source_url"])
+
+    reference_answer = (assignment.get("rubric") or {}).get("reference_answer")
+    if reference_answer:
+        with st.expander("Эталон исходного задания"):
+            st.write(reference_answer)
     activity = flow["next_activity"]
-    branch_label = "Перенос знания в новый контекст" if flow["branch"] == "transfer" else "Разбор пробела и повторная практика"
+    branch_label = (
+        "Задание на перенос знания"
+        if flow["branch"] == "transfer"
+        else "Диагноз LLM + проверенная база правил"
+    )
     help_blocks = ""
     if activity.get("explanation"):
         help_blocks += f'<p><b>Короткое объяснение:</b> {activity["explanation"]}</p>'
@@ -372,11 +500,24 @@ def render_student(student: dict) -> None:
         help_blocks += f'<p><b>Повторная практика:</b> {activity["practice_task"]}</p>'
     st.markdown(
         f'<div class="decision"><strong>{branch_label}</strong><h3>{activity["title"]}</h3>'
-        f'<p>{activity["instructions"]}</p>{help_blocks}<p><b>Зачем:</b> {activity["why"]}<br>'
+        f'<p>{activity["instructions"]}</p>{help_blocks}<p><b>Цель:</b> {activity["why"]}<br>'
         f'<b>Критерий успеха:</b> {activity["success_criteria"]}</p></div>',
         unsafe_allow_html=True,
     )
-    with st.expander("Доказательство работы локальной LLM"):
+    failed_rules = {
+        evidence.rule_id or evidence.skill_id: rule_for_evidence(evidence)
+        for evidence in flow["evidence"]
+        if evidence.score < 0.75 and rule_for_evidence(evidence)
+    }
+    if failed_rules:
+        st.markdown("#### Материалы по выявленным пробелам")
+        for rule in failed_rules.values():
+            st.link_button(
+                f'Изучить правило · {rule["title"]}',
+                rule["source_url"],
+                width="stretch",
+            )
+    with st.expander("Технический журнал проверки"):
         for trace in flow["traces"]:
             trace_card(trace)
     if st.button("Начать новую попытку"):
@@ -398,13 +539,26 @@ def attempts_to_states(attempts: list[dict]) -> list[StudentState]:
 
 def render_teacher() -> None:
     assignments = list_assignments(active_only=False)
-    by_label = {f'{item["subject"]} · {item["title"]}': item for item in assignments}
-    assignment = by_label[st.selectbox("Результаты по заданию", list(by_label))]
-    attempts = latest_attempts(assignment["id"])
+    topics: dict[str, list[dict]] = {}
+    for item in assignments:
+        topics.setdefault(assignment_topic_key(item), []).append(item)
+    by_label = {
+        f'{items[0]["subject"]} · {items[0]["topic"]} · {len(items)} вариантов': key
+        for key, items in topics.items()
+    }
+    topic_key = by_label[st.selectbox("Результаты по теме", list(by_label))]
+    topic_assignments = topics[topic_key]
+    assignment = dict(topic_assignments[0])
+    assignment["skill_ids"] = list(
+        dict.fromkeys(
+            skill_id for item in topic_assignments for skill_id in item["skill_ids"]
+        )
+    )
+    attempts = latest_topic_attempts(topic_key)
     students = list_students()
     hero(
         "Пульс учебной группы",
-        "Оценка задания, ответы viva, выявленные пробелы и тема следующего занятия построены локальной LLM по реальным попыткам.",
+        "Результаты разных персональных вариантов объединены по общему навыку и показывают конкретные пробелы группы.",
         f'ПРЕПОДАВАТЕЛЬ · {assignment["subject"].upper()} · {assignment["topic"].upper()}',
     )
     if not attempts:
@@ -412,7 +566,7 @@ def render_teacher() -> None:
             f'<div class="empty"><h2>Пока нет завершённых попыток</h2><p>Пульс пуст: предзаполненных результатов нет.</p><b>Пройдено: 0 из {len(students)}</b></div>',
             unsafe_allow_html=True,
         )
-        render_assignment_management(assignment)
+        render_assignment_management(topic_assignments[0])
         return
 
     states = attempts_to_states(attempts)
@@ -455,7 +609,15 @@ def render_teacher() -> None:
     with right:
         st.subheader("Тема следующего занятия")
         newest = max(attempts, key=lambda item: item["completed_at"])
-        recommendation = newest.get("teacher_recommendation") or {}
+        newest_is_current = any(
+            entry.get("question_text")
+            and entry.get("what_needs_improvement")
+            and entry.get("correct_answer")
+            for entry in newest["evidence"]
+        )
+        recommendation = (
+            newest.get("teacher_recommendation") or {} if newest_is_current else {}
+        )
         if recommendation:
             st.markdown(
                 f'<div class="decision"><strong>Сформировано локальной LLM по группе</strong>'
@@ -466,22 +628,73 @@ def render_teacher() -> None:
             if newest.get("traces"):
                 trace_card(newest["traces"][-1], "план следующей пары")
         else:
-            st.warning("Для старой попытки LLM-рекомендация ещё не сохранена.")
+            st.warning(
+                "Новая рекомендация появится после попытки в обновлённом формате проверки."
+            )
 
     st.divider()
-    misconceptions = misconception_summary(states)
     detail_left, detail_right = st.columns([1, 1.2], gap="large")
     with detail_left:
         st.subheader("Выявленные пробелы")
-        if misconceptions.empty:
-            st.info("Явные повторяющиеся заблуждения не зафиксированы.")
+        gaps: dict[str, dict] = {}
+        legacy_attempts = 0
+        for attempt in attempts:
+            has_structured_evidence = any(
+                entry.get("question_text")
+                and entry.get("what_needs_improvement")
+                and entry.get("correct_answer")
+                for entry in attempt["evidence"]
+            )
+            if not has_structured_evidence:
+                legacy_attempts += 1
+                continue
+            for entry in attempt["evidence"]:
+                if float(entry.get("score", 0)) >= 0.75:
+                    continue
+                key = str(entry.get("rule_id") or entry.get("skill_id"))
+                gap = gaps.setdefault(
+                    key,
+                    {
+                        "students": set(),
+                        "observations": [],
+                        "correct_answers": [],
+                        "rule": RULEBOOK.get(key, {}),
+                    },
+                )
+                gap["students"].add(attempt["student_name"])
+                observation = entry.get("what_needs_improvement") or entry.get("misconception")
+                if observation and observation not in gap["observations"]:
+                    gap["observations"].append(observation)
+                correction = entry.get("correct_answer")
+                if correction and correction not in gap["correct_answers"]:
+                    gap["correct_answers"].append(correction)
+        if not gaps:
+            st.info("В новых попытках явные повторяющиеся заблуждения не зафиксированы.")
         else:
-            st.dataframe(misconceptions, hide_index=True, width="stretch")
+            for gap in sorted(gaps.values(), key=lambda item: len(item["students"]), reverse=True):
+                rule = gap["rule"]
+                title = rule.get("title", "Проверяемый навык")
+                students_text = ", ".join(sorted(gap["students"]))
+                observations = " · ".join(gap["observations"][:2]) or "Нужен дополнительный разбор."
+                corrections = " · ".join(gap["correct_answers"][:2]) or "См. карточку правила."
+                st.markdown(
+                    f'<div class="gap-card"><span class="count">{len(gap["students"])} чел.</span>'
+                    f'<h4>{escape(title)}</h4><p><b>У кого:</b> {escape(students_text)}</p>'
+                    f'<p><b>Что не получается:</b> {escape(observations)}</p>'
+                    f'<p><b>Ориентир:</b> {escape(corrections)}</p></div>',
+                    unsafe_allow_html=True,
+                )
+        if legacy_attempts:
+            st.caption(
+                f"{legacy_attempts} старых попыток не включены в точную диагностику: "
+                "они были выполнены до обновления формата проверки."
+            )
     with detail_right:
         st.subheader("Последние результаты")
         rows = [
             {
                 "Студент": item["student_name"],
+                "Вариант": item.get("assignment_title", "—"),
                 "Задание": round((item.get("submission_score") or 0) * 100),
                 "Viva": round(item["overall_score"] * 100),
                 "Маршрут": "Проверка понимания" if item.get("submission_correct") else "Диагностика пробела",
@@ -494,13 +707,20 @@ def render_teacher() -> None:
         by_name = {item["student_name"]: item for item in attempts}
         detail = by_name[st.selectbox("Студент", list(by_name), key="teacher-detail")]
         st.markdown(f'**Оценка задания: {(detail.get("submission_score") or 0):.0%}**')
+        st.caption(f'Вариант: {detail.get("assignment_title", "—")}')
         st.code(detail["artifact"], language="text")
         for entry in detail["evidence"]:
             name = CURRICULUM.skill_by_id[entry["skill_id"]].name
-            st.markdown(f'**{name} · текущий ответ {entry["score"]:.0%}**  \n> {entry["quote"]}  \n{entry["rationale"]}')
+            st.markdown(
+                f'**{name} · текущий ответ {entry["score"]:.0%}**  \n'
+                f'**Вопрос:** {entry.get("question_text", "—")}  \n'
+                f'> {entry["quote"]}  \n'
+                f'**Пробел:** {entry.get("what_needs_improvement") or entry.get("misconception") or "—"}  \n'
+                f'**Корректный ответ:** {entry.get("correct_answer", "—")}'
+            )
         for trace in detail.get("traces", []):
             trace_card(trace)
-    render_assignment_management(assignment)
+    render_assignment_management(topic_assignments[0])
 
 
 def render_assignment_management(selected_assignment: dict) -> None:
@@ -508,13 +728,26 @@ def render_assignment_management(selected_assignment: dict) -> None:
         mode = st.radio("Действие", ["Изменить текущее", "Создать новое"], horizontal=True)
         defaults = selected_assignment if mode == "Изменить текущее" else {
             "title": "", "subject": "", "topic": "", "instructions": "", "starter_code": "",
-            "skill_ids": [], "rubric": {},
+            "skill_ids": [], "rubric": {}, "topic_key": "", "difficulty": 1, "variant": 1,
         }
         labels = {skill.name: skill.id for skill in CURRICULUM.skills}
         with st.form(f'assignment-{mode}-{selected_assignment["id"]}'):
             subject = st.text_input("Предмет и уровень", value=defaults.get("subject", ""))
             title = st.text_input("Название", value=defaults["title"])
             topic = st.text_input("Тема", value=defaults["topic"])
+            topic_key = st.text_input(
+                "Ключ темы",
+                value=defaults.get("topic_key") or (defaults.get("skill_ids") or [""])[0],
+            )
+            difficulty = st.selectbox(
+                "Сложность",
+                list(DIFFICULTY_LABELS),
+                index=max(0, int(defaults.get("difficulty") or 1) - 1),
+                format_func=lambda value: DIFFICULTY_LABELS[value],
+            )
+            variant = st.number_input(
+                "Номер варианта", min_value=1, value=int(defaults.get("variant") or 1)
+            )
             instructions = st.text_area("Условие", value=defaults["instructions"], height=130)
             starter = st.text_area("Шаблон ответа", value=defaults["starter_code"], height=170)
             chosen = st.multiselect(
@@ -535,9 +768,15 @@ def render_assignment_management(selected_assignment: dict) -> None:
                 if not all([subject.strip(), title.strip(), topic.strip(), instructions.strip(), skill_ids, rubric]):
                     raise ValueError("Заполните все поля, навыки и рубрику.")
                 if mode == "Изменить текущее":
-                    update_assignment(selected_assignment["id"], title, topic, instructions, starter, skill_ids, subject, rubric)
+                    update_assignment(
+                        selected_assignment["id"], title, topic, instructions, starter,
+                        skill_ids, subject, rubric, topic_key, difficulty, variant,
+                    )
                 else:
-                    create_assignment(title, topic, instructions, starter, skill_ids, subject, rubric)
+                    create_assignment(
+                        title, topic, instructions, starter, skill_ids, subject, rubric,
+                        topic_key, difficulty, variant,
+                    )
                 st.success("Задание сохранено.")
                 st.rerun()
             except (json.JSONDecodeError, ValueError) as error:

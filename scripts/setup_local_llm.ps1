@@ -1,16 +1,20 @@
 param(
-    [switch]$SkipModelDownload
+    [switch]$SkipModelDownload,
+    [switch]$CpuOnly
 )
 
 $ErrorActionPreference = "Stop"
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $modelDirectory = Join-Path $projectRoot "models"
 $toolDirectory = Join-Path $projectRoot "tools\llama"
+$vulkanDirectory = Join-Path $projectRoot "tools\llama-vulkan"
 $downloadDirectory = Join-Path $projectRoot ".local-llm-download"
 
 $llamaVersion = "b9637"
 $llamaArchiveUrl = "https://github.com/ggml-org/llama.cpp/releases/download/b9637/llama-b9637-bin-win-cpu-x64.zip"
 $llamaArchiveSha256 = "f7783c2b8c007f95e710ac40f26a24861a80b603b0b739fc54d7c926a4716c1e"
+$vulkanArchiveUrl = "https://github.com/ggml-org/llama.cpp/releases/download/b9637/llama-b9637-bin-win-vulkan-x64.zip"
+$vulkanArchiveSha256 = "a353945604cffdac3d0d6da6392de78ca565a531a6f2ff3521f44b9b7c6e553f"
 $modelCommit = "bb5d59e06d9551d752d08b292a50eb208b07ab1f"
 $modelBaseUrl = "https://huggingface.co/Qwen/Qwen2.5-7B-Instruct-GGUF/resolve/$modelCommit"
 $modelPart1Name = "qwen2.5-7b-instruct-q4_k_m-00001-of-00002.gguf"
@@ -19,10 +23,13 @@ $modelPart1Sha256 = "dfce12e3862a5283ccfb88221b48480e58745165de856439950d0f22590
 $modelPart2Sha256 = "539cf93f78e887edea1c04e2d7d8cdaca9d01dae9c9025bcb8accbe29df3d72a"
 $modelSha256 = "1875fb29e8c91c86615c00e92d8b4114e56bc24359adb5a8db8b36452fae4a49"
 $modelFile = Join-Path $modelDirectory "qwen2.5-7b-instruct-q4_k_m.gguf"
+$fastModelUrl = "https://huggingface.co/Qwen/Qwen2.5-3B-Instruct-GGUF/resolve/7dabda4d13d513e3e842b20f0d435c732f172cbe/qwen2.5-3b-instruct-q4_k_m.gguf"
+$fastModelSha256 = "626b4a6678b86442240e33df819e00132d3ba7dddfe1cdc4fbb18e0a9615c62d"
+$fastModelFile = Join-Path $modelDirectory "qwen2.5-3b-instruct-q4_k_m.gguf"
 $serverFile = Join-Path $toolDirectory "llama-server.exe"
 $mergeTool = Join-Path $toolDirectory "llama-gguf-split.exe"
 
-New-Item -ItemType Directory -Force -Path $modelDirectory, $toolDirectory, $downloadDirectory | Out-Null
+New-Item -ItemType Directory -Force -Path $modelDirectory, $toolDirectory, $vulkanDirectory, $downloadDirectory | Out-Null
 
 function Get-VerifiedFile {
     param(
@@ -66,6 +73,22 @@ if (-not (Test-Path -LiteralPath $serverFile)) {
     Copy-Item -Path (Join-Path $server.Directory.FullName "*") -Destination $toolDirectory -Recurse -Force
 }
 
+$vulkanServerFile = Join-Path $vulkanDirectory "llama-server.exe"
+if (-not $CpuOnly) {
+    $vulkanArchive = Join-Path $downloadDirectory "llama-$llamaVersion-win-vulkan.zip"
+    Get-VerifiedFile -Url $vulkanArchiveUrl -Destination $vulkanArchive -ExpectedSha256 $vulkanArchiveSha256 -Label "llama.cpp $llamaVersion Vulkan"
+    if (-not (Test-Path -LiteralPath $vulkanServerFile)) {
+        $vulkanExtractDirectory = Join-Path $downloadDirectory "llama-$llamaVersion-vulkan"
+        New-Item -ItemType Directory -Force -Path $vulkanExtractDirectory | Out-Null
+        Expand-Archive -LiteralPath $vulkanArchive -DestinationPath $vulkanExtractDirectory -Force
+        $vulkanServer = Get-ChildItem -Path $vulkanExtractDirectory -Recurse -Filter "llama-server.exe" | Select-Object -First 1
+        if (-not $vulkanServer) {
+            throw "Vulkan llama-server.exe was not found in the archive"
+        }
+        Copy-Item -Path (Join-Path $vulkanServer.Directory.FullName "*") -Destination $vulkanDirectory -Recurse -Force
+    }
+}
+
 if (-not $SkipModelDownload) {
     $modelIsValid = (Test-Path -LiteralPath $modelFile) -and `
         ((Get-FileHash -Algorithm SHA256 -LiteralPath $modelFile).Hash.ToLowerInvariant() -eq $modelSha256)
@@ -88,6 +111,7 @@ if (-not $SkipModelDownload) {
     } else {
         Write-Host "Qwen2.5-7B-Instruct Q4_K_M already exists and passed SHA-256 verification."
     }
+    Get-VerifiedFile -Url $fastModelUrl -Destination $fastModelFile -ExpectedSha256 $fastModelSha256 -Label "Qwen2.5-3B-Instruct Q4_K_M fast model"
 }
 
 if ((Test-Path -LiteralPath $serverFile) -and (Test-Path -LiteralPath $modelFile)) {
@@ -96,9 +120,14 @@ if ((Test-Path -LiteralPath $serverFile) -and (Test-Path -LiteralPath $modelFile
         model_file = (Split-Path -Leaf $modelFile)
         model_sha256 = $modelSha256
         model_source_commit = $modelCommit
+        fast_model = "Qwen2.5-3B-Instruct-Q4_K_M"
+        fast_model_file = (Split-Path -Leaf $fastModelFile)
+        fast_model_sha256 = $fastModelSha256
         runtime = "llama.cpp"
         runtime_version = $llamaVersion
         runtime_sha256 = $llamaArchiveSha256
+        vulkan_runtime_sha256 = $vulkanArchiveSha256
+        vulkan_available = (Test-Path -LiteralPath $vulkanServerFile)
         installed_at = (Get-Date).ToUniversalTime().ToString("o")
     }
     $manifest | ConvertTo-Json | Set-Content -Encoding UTF8 (Join-Path $modelDirectory "local-model-manifest.json")

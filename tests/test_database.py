@@ -20,8 +20,10 @@ def test_database_starts_with_three_students_and_no_attempts(tmp_path, monkeypat
 
     assert [student["id"] for student in list_students()] == ["s01", "s02", "s03"]
     assignments = list_assignments()
-    assert len(assignments) == 11
-    assert sum(item["subject"] == "Английский язык · B2" for item in assignments) == 10
+    assert len(assignments) == 31
+    english = [item for item in assignments if item["subject"] == "Английский язык · B2"]
+    assert len(english) == 30
+    assert {item["difficulty"] for item in english} == {1, 2, 3}
     assignment = assignments[0]
     assert latest_attempts(assignment["id"]) == []
 

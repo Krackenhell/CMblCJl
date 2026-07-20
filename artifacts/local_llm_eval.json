@@ -2,147 +2,211 @@
   "model": {
     "ready": true,
     "running": true,
+    "fast_running": true,
     "backend": "llama.cpp",
     "model": "Qwen2.5-7B-Instruct-Q4_K_M",
     "model_sha256": "1875fb29e8c91c86615c00e92d8b4114e56bc24359adb5a8db8b36452fae4a49",
     "model_path": "D:\\JMLC\\models\\qwen2.5-7b-instruct-q4_k_m.gguf",
+    "fast_model": "Qwen2.5-3B-Instruct-Q4_K_M",
+    "fast_model_sha256": "626b4a6678b86442240e33df819e00132d3ba7dddfe1cdc4fbb18e0a9615c62d",
+    "fast_model_path": "D:\\JMLC\\models\\qwen2.5-3b-instruct-q4_k_m.gguf",
+    "quality_mode": false,
     "server_path": "D:\\JMLC\\tools\\llama\\llama-server.exe",
+    "accelerated_runtime": true,
     "setup_command": "powershell -ExecutionPolicy Bypass -File scripts\\setup_local_llm.ps1"
   },
   "metrics": {
     "routing_accuracy": 1.0,
     "nonsense_rejection_rate": 1.0,
     "max_nonsense_score": 0.1,
-    "cases": 5
+    "article_regression_accuracy": 1.0,
+    "cases": 8
   },
   "cases": {
     "correct_submission": {
       "result": {
         "submission_score": 0.85,
         "is_correct": true,
-        "feedback": "Ответ студента соответствует критериям задания и правильным формам времён. Все объяснения верны.",
+        "feedback": "Содержательных ошибок в решении не обнаружено.",
         "mode": "viva",
         "skill_results": [
           {
             "skill_id": "eng_present_perfect",
-            "score": 1,
-            "diagnosis": "Студент правильно использовал Present Perfect и объяснил его применение."
+            "score": 0.85,
+            "diagnosis": "Ответ подтверждает проверяемый навык."
+          }
+        ],
+        "criterion_results": [
+          {
+            "criterion": "Present Perfect for a present result, life experience and yet",
+            "status": "correct",
+            "student_evidence": "1) have lost — the loss has a result now.",
+            "issue": "Содержательных ошибок по этому критерию не обнаружено.",
+            "correction": "1) have lost — the loss has a result now."
+          },
+          {
+            "criterion": "Past Simple for a finished time in 2023",
+            "status": "correct",
+            "student_evidence": "2) visited — 2023 is a finished past time.",
+            "issue": "Содержательных ошибок по этому критерию не обнаружено.",
+            "correction": "2) visited — 2023 is a finished past time."
           }
         ],
         "questions": [
           {
-            "id": "local-chatcmpl-CHcIa3pwTnwD0eRYsdioljEXfe6IA6PI-1",
+            "id": "local-chatcmpl-XGqjlprjKXdevmKRnFpCMDympJrh63jF-1",
             "skill_id": "eng_present_perfect",
-            "text": "Почему здесь нельзя использовать Past Simple вместо Present Perfect? Приведи пример, где оба времена могут быть использованы.",
-            "purpose": "Проверить понимание различий между Present Perfect и Past Simple.",
+            "text": "Почему в формуле «I have lost my keys, so I cannot open the door» используется Present Perfect, а в формуле «We visited Prague in 2023» — Past Simple?",
+            "purpose": "Подтвердить самостоятельное понимание и перенос правила.",
             "expected_concepts": [],
-            "misconception_patterns": {}
+            "misconception_patterns": {},
+            "rule_id": "eng_present_perfect",
+            "expected_answer": "В формуле «I have lost my keys, so I cannot open the door» используется Present Perfect, потому что связывает прошлое с настоящим: результат сейчас. В формуле «We visited Prague in",
+            "context_constraint": "Нет дополнительных ограничений контекста."
           },
           {
-            "id": "local-chatcmpl-CHcIa3pwTnwD0eRYsdioljEXfe6IA6PI-2",
+            "id": "local-chatcmpl-BREVxb3Cse9n5txr0xfNfOAIwLYph0W9-2",
             "skill_id": "eng_present_perfect",
-            "text": "Что изменится, если в предложении 4 использовать 'has finished' вместо 'has not finished'? Почему это не подходит?",
-            "purpose": "Проверить понимание использования 'yet' в контексте Present Perfect.",
+            "text": "Приведите новое английское предложение, в котором the указывает на повторно упомянутый предмет?",
+            "purpose": "Подтвердить самостоятельное понимание и перенос правила.",
             "expected_concepts": [],
-            "misconception_patterns": {}
-          },
-          {
-            "id": "local-chatcmpl-CHcIa3pwTnwD0eRYsdioljEXfe6IA6PI-3",
-            "skill_id": "eng_present_perfect",
-            "text": "Приведи ещё один пример, где можно использовать Present Perfect для описания жизни или опыта, и объясни, почему это подходит.",
-            "purpose": "Проверить способность к самостоятельному применению правила.",
-            "expected_concepts": [],
-            "misconception_patterns": {}
+            "misconception_patterns": {},
+            "rule_id": "eng_present_perfect",
+            "expected_answer": "I have already visited Prague, so I know all the best places to eat there. The first time I went, I didn't know where to go, but now I have a good sense of the city's culinary scene. The first visit was a bit confusing, but the present perfect helps me focus, ",
+            "context_constraint": "Нет дополнительных ограничений контекста."
           }
         ]
       },
       "traces": [
         {
-          "trace_id": "chatcmpl-Xb6dpDC596Mmk7RXWgWdg2eBB0PmWAjd",
+          "trace_id": "chatcmpl-qgNXWmCnBcDgAfCSnFnLK0ieTpRweRuM",
           "backend": "llama.cpp",
-          "model": "qwen2.5-7b-instruct-q4_k_m.gguf",
-          "model_sha256": "1875fb29e8c91c86615c00e92d8b4114e56bc24359adb5a8db8b36452fae4a49",
+          "model": "qwen2.5-3b-instruct-q4_k_m.gguf",
+          "model_sha256": "626b4a6678b86442240e33df819e00132d3ba7dddfe1cdc4fbb18e0a9615c62d",
           "stage": "проверка задания",
-          "duration_ms": 18502,
-          "created_at": "2026-07-20T10:15:27.920675+00:00",
-          "prompt_tokens": 650,
-          "completion_tokens": 116
+          "duration_ms": 20281,
+          "created_at": "2026-07-20T13:12:35.872617+00:00",
+          "prompt_tokens": 992,
+          "completion_tokens": 313
         },
         {
-          "trace_id": "chatcmpl-CHcIa3pwTnwD0eRYsdioljEXfe6IA6PI",
+          "trace_id": "chatcmpl-XGqjlprjKXdevmKRnFpCMDympJrh63jF",
           "backend": "llama.cpp",
-          "model": "qwen2.5-7b-instruct-q4_k_m.gguf",
-          "model_sha256": "1875fb29e8c91c86615c00e92d8b4114e56bc24359adb5a8db8b36452fae4a49",
-          "stage": "формирование viva или диагностики",
-          "duration_ms": 35498,
-          "created_at": "2026-07-20T10:16:03.419287+00:00",
-          "prompt_tokens": 636,
-          "completion_tokens": 229
+          "model": "qwen2.5-3b-instruct-q4_k_m.gguf",
+          "model_sha256": "626b4a6678b86442240e33df819e00132d3ba7dddfe1cdc4fbb18e0a9615c62d",
+          "stage": "формирование вопроса 1",
+          "duration_ms": 12657,
+          "created_at": "2026-07-20T13:12:48.531127+00:00",
+          "prompt_tokens": 719,
+          "completion_tokens": 111
+        },
+        {
+          "trace_id": "chatcmpl-BREVxb3Cse9n5txr0xfNfOAIwLYph0W9",
+          "backend": "llama.cpp",
+          "model": "qwen2.5-3b-instruct-q4_k_m.gguf",
+          "model_sha256": "626b4a6678b86442240e33df819e00132d3ba7dddfe1cdc4fbb18e0a9615c62d",
+          "stage": "формирование вопроса 2",
+          "duration_ms": 11679,
+          "created_at": "2026-07-20T13:13:00.223263+00:00",
+          "prompt_tokens": 467,
+          "completion_tokens": 107
         }
       ]
     },
     "nonsense_submission": {
       "result": {
-        "submission_score": 0.05,
+        "submission_score": 0.0,
         "is_correct": false,
-        "feedback": "Ответ студента не соответствует заданию. Вопросы не заполнены правильно, и нет объяснений выбора времён.",
+        "feedback": "Студент полностью неверно ответил на все пункты. Ошибки: использовал неправильные слова, не использовал правильные времена и формы.",
         "mode": "diagnostic",
         "skill_results": [
           {
             "skill_id": "eng_present_perfect",
-            "score": 0.05,
-            "diagnosis": "Студент не использовал ни одно из требуемых времён (Present Perfect или Past Simple) и не дал никаких объяснений."
+            "score": 0,
+            "diagnosis": "Студент использовал неправильные слова и времена. Например, в первом предложении вместо have lost использовал banana, во втором - yesterday have, в третьем - no idea, в четвертом - random words."
+          }
+        ],
+        "criterion_results": [
+          {
+            "criterion": "Present Perfect for a present result, life experience and yet",
+            "status": "incorrect",
+            "student_evidence": "1) banana; 3) no idea; 4) random words",
+            "issue": "Использовал неправильные времена и слова. Например, в первом предложении вместо have lost использовал banana, во втором - yesterday have, в третьем - no idea, в четвертом - random words.",
+            "correction": "1) have lost; 3) Have, tried; 4) hasn't finished"
+          },
+          {
+            "criterion": "Past Simple for a finished time in 2023",
+            "status": "incorrect",
+            "student_evidence": "2) yesterday have",
+            "issue": "Использовал неправильные времена. Второе предложение должно было быть в Past Simple: We visited Prague in 2023.",
+            "correction": "2) visited"
+          },
+          {
+            "criterion": "correct auxiliary and past participle",
+            "status": "incorrect",
+            "student_evidence": "3) no idea; 4) random words",
+            "issue": "Использовал неправильные времена и слова. В третьем предложении вместо Have, tried использовал no idea, в четвертом - random words.",
+            "correction": "3) Have, tried; 4) hasn't finished"
           }
         ],
         "questions": [
           {
-            "id": "local-chatcmpl-rJr3NiligIwfnC3HA4j9PPkCV0inuP67-1",
+            "id": "local-chatcmpl-o8UjlywFBhXlG2uoVhxfX3D8UJE4tHHO-1",
             "skill_id": "eng_present_perfect",
-            "text": "Почему здесь нельзя использовать 'yesterday' или 'last week'? Что делает Present Perfect подходящим для этого предложения?",
-            "purpose": "Проверить понимание использования Present Perfect для выражения жизни и опыта.",
+            "text": "Какое правило нарушено в предложении 'Yesterday have visited Prague in 2023'? И какое правильное время и форму нужно использовать?",
+            "purpose": "Точно определить пробел и помочь восстановить правило.",
             "expected_concepts": [],
-            "misconception_patterns": {}
+            "misconception_patterns": {},
+            "rule_id": "eng_present_perfect",
+            "expected_answer": "Правило нарушено в предложении 'Yesterday have visited Prague in 2023'. Использовано неправильное время Past Simple. Верное время и форму для этого предложения - Past Simple: 'We [",
+            "context_constraint": "Нет дополнительных ограничений контекста."
           },
           {
-            "id": "local-chatcmpl-rJr3NiligIwfnC3HA4j9PPkCV0inuP67-2",
+            "id": "local-chatcmpl-D4aHctTVNndYv0AspMvuIceh0ZQufpJl-2",
             "skill_id": "eng_present_perfect",
-            "text": "Приведи пример, где можно использовать 'have tried' вместо 'tried'. Что изменится, если использовать Past Simple вместо Present Perfect?",
-            "purpose": "Проверить способность применить правило Present Perfect и понять разницу между Past Simple и Present Perfect.",
+            "text": "Приведите новое английское предложение, в котором Использование have/has + past participle для Present Perfect и Past Simple?",
+            "purpose": "Точно определить пробел и помочь восстановить правило.",
             "expected_concepts": [],
-            "misconception_patterns": {}
-          },
-          {
-            "id": "local-chatcmpl-rJr3NiligIwfnC3HA4j9PPkCV0inuP67-3",
-            "skill_id": "eng_present_perfect",
-            "text": "Почем почему здесь нельзя использовать 'finished' вместо 'hasn't finished'? Какое время здесь лучше всего подходит?",
-            "purpose": "Проверить понимание использования Present Perfect для выражения неоконченного действия.",
-            "expected_concepts": [],
-            "misconception_patterns": {}
+            "misconception_patterns": {},
+            "rule_id": "eng_present_perfect",
+            "expected_answer": "The project has been completed, but the results are not yet available. (Present Perfect: завершённое действие до настоящего времени; Past Simple: завершённое действие в законченное время)",
+            "context_constraint": "Нет дополнительных ограничений контекста."
           }
         ]
       },
       "traces": [
         {
-          "trace_id": "chatcmpl-CDCuIJeiBDnbxGQjFf8UUTgC18vHDv2V",
+          "trace_id": "chatcmpl-k2fIycrNxd6EqhyBZeaww34b1rpXpdmJ",
           "backend": "llama.cpp",
-          "model": "qwen2.5-7b-instruct-q4_k_m.gguf",
-          "model_sha256": "1875fb29e8c91c86615c00e92d8b4114e56bc24359adb5a8db8b36452fae4a49",
+          "model": "qwen2.5-3b-instruct-q4_k_m.gguf",
+          "model_sha256": "626b4a6678b86442240e33df819e00132d3ba7dddfe1cdc4fbb18e0a9615c62d",
           "stage": "проверка задания",
-          "duration_ms": 18135,
-          "created_at": "2026-07-20T10:16:21.555534+00:00",
-          "prompt_tokens": 612,
-          "completion_tokens": 133
+          "duration_ms": 32339,
+          "created_at": "2026-07-20T13:13:32.563002+00:00",
+          "prompt_tokens": 954,
+          "completion_tokens": 508
         },
         {
-          "trace_id": "chatcmpl-rJr3NiligIwfnC3HA4j9PPkCV0inuP67",
+          "trace_id": "chatcmpl-o8UjlywFBhXlG2uoVhxfX3D8UJE4tHHO",
           "backend": "llama.cpp",
-          "model": "qwen2.5-7b-instruct-q4_k_m.gguf",
-          "model_sha256": "1875fb29e8c91c86615c00e92d8b4114e56bc24359adb5a8db8b36452fae4a49",
-          "stage": "формирование viva или диагностики",
-          "duration_ms": 36114,
-          "created_at": "2026-07-20T10:16:57.670128+00:00",
-          "prompt_tokens": 616,
-          "completion_tokens": 237
+          "model": "qwen2.5-3b-instruct-q4_k_m.gguf",
+          "model_sha256": "626b4a6678b86442240e33df819e00132d3ba7dddfe1cdc4fbb18e0a9615c62d",
+          "stage": "формирование вопроса 1",
+          "duration_ms": 7433,
+          "created_at": "2026-07-20T13:13:39.997702+00:00",
+          "prompt_tokens": 747,
+          "completion_tokens": 107
+        },
+        {
+          "trace_id": "chatcmpl-D4aHctTVNndYv0AspMvuIceh0ZQufpJl",
+          "backend": "llama.cpp",
+          "model": "qwen2.5-3b-instruct-q4_k_m.gguf",
+          "model_sha256": "626b4a6678b86442240e33df819e00132d3ba7dddfe1cdc4fbb18e0a9615c62d",
+          "stage": "формирование вопроса 2",
+          "duration_ms": 5448,
+          "created_at": "2026-07-20T13:13:45.446773+00:00",
+          "prompt_tokens": 429,
+          "completion_tokens": 88
         }
       ]
     },
@@ -152,24 +216,34 @@
         "evidence": {
           "skill_id": "eng_present_perfect",
           "score": 0.1,
-          "confidence": 0.9,
+          "confidence": 0.1,
           "quote": "на первой, не знаю",
-          "rationale": "Студент не смог объяснить причину использования Present Perfect. Верный ответ был бы: 'на первой, потому что ключи пропали и это привело к непосредственному результату - неспособности открыть дверь.'",
-          "misconception": "Студент не понимает, что Present Perfect используется для описания события, которое повлияло на настоящее.",
+          "rationale": "Верно: Ответ должен объяснить, что Present Perfect используется для связи прошлого события с настоящим. Нужно улучшить: Ответ не содержит конкретного объяснения использования Present Perfect в данном контексте.",
+          "misconception": "Ответ не содержит конкретного объяснения использования Present Perfect в данном контексте.",
           "source": "local_llm",
-          "evaluator_model": "qwen2.5-7b-instruct-q4_k_m.gguf",
-          "trace_id": "chatcmpl-xIvdlTjRTHIJYpZvzzYvLbKfzlZK5IH2"
+          "evaluator_model": "qwen2.5-3b-instruct-q4_k_m.gguf",
+          "trace_id": "chatcmpl-kyIxIvRyi0bHK4Gn7P4z0fqCU5xBbmzV",
+          "question_text": "Почему в предложении I have lost my keys используется Present Perfect?",
+          "question_purpose": "Проверить понимание связи результата с настоящим.",
+          "rule_id": "eng_present_perfect",
+          "rule_title": "Present Perfect и Past Simple",
+          "rule_url": "https://learnenglish.britishcouncil.org/free-resources/grammar/b1-b2/present-perfect-simple-continuous",
+          "verdict": "incorrect",
+          "what_was_correct": "Ответ должен объяснить, что Present Perfect используется для связи прошлого события с настоящим.",
+          "what_needs_improvement": "Ответ не содержит конкретного объяснения использования Present Perfect в данном контексте.",
+          "correct_answer": "Present Perfect используется для связи прошлого события с настоящим. В данном случае 'I have lost my keys' указывает на событие, которое произошло в прошлом и которое имеет настоящее значение, например, когда человек говорит, что потерял ключи и теперь они потеряны.",
+          "typo_handling": "Ответ содержит опечатку 'на первой', но это не влияет на понимание правила."
         },
         "trace": {
-          "trace_id": "chatcmpl-xIvdlTjRTHIJYpZvzzYvLbKfzlZK5IH2",
+          "trace_id": "chatcmpl-kyIxIvRyi0bHK4Gn7P4z0fqCU5xBbmzV",
           "backend": "llama.cpp",
-          "model": "qwen2.5-7b-instruct-q4_k_m.gguf",
-          "model_sha256": "1875fb29e8c91c86615c00e92d8b4114e56bc24359adb5a8db8b36452fae4a49",
+          "model": "qwen2.5-3b-instruct-q4_k_m.gguf",
+          "model_sha256": "626b4a6678b86442240e33df819e00132d3ba7dddfe1cdc4fbb18e0a9615c62d",
           "stage": "оценка ответа viva",
-          "duration_ms": 19430,
-          "created_at": "2026-07-20T10:17:17.101760+00:00",
-          "prompt_tokens": 453,
-          "completion_tokens": 120
+          "duration_ms": 15745,
+          "created_at": "2026-07-20T13:14:01.193377+00:00",
+          "prompt_tokens": 1008,
+          "completion_tokens": 187
         }
       },
       {
@@ -177,24 +251,34 @@
         "evidence": {
           "skill_id": "eng_present_perfect",
           "score": 0.1,
-          "confidence": 0.9,
+          "confidence": 0.75,
           "quote": "вся информация",
-          "rationale": "Студент просто написал 'вся информация', что не дает никаких объяснений или причин. Вопрос требует конкретного объяснения, почему Present Perfect используется в данном предложении.",
-          "misconception": "Студент не предоставил никаких причин или объяснений, почему Present Perfect используется в предложении 'I have lost my keys'.",
+          "rationale": "Верно: Привести пример использования Present Perfect для связи результата с настоящим. Нужно улучшить: Отсутствует конкретный пример использования Present Perfect для связи результата с настоящим.",
+          "misconception": "Отсутствует конкретный пример использования Present Perfect для связи результата с настоящим.",
           "source": "local_llm",
-          "evaluator_model": "qwen2.5-7b-instruct-q4_k_m.gguf",
-          "trace_id": "chatcmpl-EBO7uFhZSm22BCc5xn0r7nvl0ziRNogt"
+          "evaluator_model": "qwen2.5-3b-instruct-q4_k_m.gguf",
+          "trace_id": "chatcmpl-brMbIruu3Zthe8OJplMhbSnUhOGEWmxI",
+          "question_text": "Почему в предложении I have lost my keys используется Present Perfect?",
+          "question_purpose": "Проверить понимание связи результата с настоящим.",
+          "rule_id": "eng_present_perfect",
+          "rule_title": "Present Perfect и Past Simple",
+          "rule_url": "https://learnenglish.britishcouncil.org/free-resources/grammar/b1-b2/present-perfect-simple-continuous",
+          "verdict": "incorrect",
+          "what_was_correct": "Привести пример использования Present Perfect для связи результата с настоящим.",
+          "what_needs_improvement": "Отсутствует конкретный пример использования Present Perfect для связи результата с настоящим.",
+          "correct_answer": "I have lost my keys. Этот пример показывает, что Present Perfect используется для описания события, которое произошло в прошлом и имеет непосредственный эффект на настоящее.",
+          "typo_handling": "Орфографическая ошибка 'вся информация' не влияет на понимание артиклей и контекста."
         },
         "trace": {
-          "trace_id": "chatcmpl-EBO7uFhZSm22BCc5xn0r7nvl0ziRNogt",
+          "trace_id": "chatcmpl-brMbIruu3Zthe8OJplMhbSnUhOGEWmxI",
           "backend": "llama.cpp",
-          "model": "qwen2.5-7b-instruct-q4_k_m.gguf",
-          "model_sha256": "1875fb29e8c91c86615c00e92d8b4114e56bc24359adb5a8db8b36452fae4a49",
+          "model": "qwen2.5-3b-instruct-q4_k_m.gguf",
+          "model_sha256": "626b4a6678b86442240e33df819e00132d3ba7dddfe1cdc4fbb18e0a9615c62d",
           "stage": "оценка ответа viva",
-          "duration_ms": 15874,
-          "created_at": "2026-07-20T10:17:32.976608+00:00",
-          "prompt_tokens": 451,
-          "completion_tokens": 115
+          "duration_ms": 11906,
+          "created_at": "2026-07-20T13:14:13.107296+00:00",
+          "prompt_tokens": 1005,
+          "completion_tokens": 168
         }
       },
       {
@@ -202,24 +286,144 @@
         "evidence": {
           "skill_id": "eng_present_perfect",
           "score": 0.1,
-          "confidence": 0.9,
+          "confidence": 0.1,
           "quote": "нужно воспроизвести",
-          "rationale": "Студент просто воспроизвел вопрос, не предоставив никакого объяснения. Верный ответ был бы, что Present Perfect используется, потому что ключи пропали и это привело к непосредственному результату — неспособности открыть дверь.",
-          "misconception": "Студент не показал понимания связи результата с настоящим, как требовалось.",
+          "rationale": "Верно: Ответ должен содержать причинную связь между Present Perfect и результатом в настоящем. Нужно улучшить: Ответ должен быть более конкретным и содержать пример использования Present Perfect.",
+          "misconception": "Ответ должен быть более конкретным и содержать пример использования Present Perfect.",
           "source": "local_llm",
-          "evaluator_model": "qwen2.5-7b-instruct-q4_k_m.gguf",
-          "trace_id": "chatcmpl-nCFZPIHWn3tEgWQQH0nEYMGLlf8YaHlL"
+          "evaluator_model": "qwen2.5-3b-instruct-q4_k_m.gguf",
+          "trace_id": "chatcmpl-0SwArXF1fCzzqxTvZ80oTOfSHmTmIp9k",
+          "question_text": "Почему в предложении I have lost my keys используется Present Perfect?",
+          "question_purpose": "Проверить понимание связи результата с настоящим.",
+          "rule_id": "eng_present_perfect",
+          "rule_title": "Present Perfect и Past Simple",
+          "rule_url": "https://learnenglish.britishcouncil.org/free-resources/grammar/b1-b2/present-perfect-simple-continuous",
+          "verdict": "incorrect",
+          "what_was_correct": "Ответ должен содержать причинную связь между Present Perfect и результатом в настоящем.",
+          "what_needs_improvement": "Ответ должен быть более конкретным и содержать пример использования Present Perfect.",
+          "correct_answer": "I have lost my keys. Теперь я чувствую себя беспокоенным, потому что потерял ключи.",
+          "typo_handling": "Отсутствуют опечатки."
         },
         "trace": {
-          "trace_id": "chatcmpl-nCFZPIHWn3tEgWQQH0nEYMGLlf8YaHlL",
+          "trace_id": "chatcmpl-0SwArXF1fCzzqxTvZ80oTOfSHmTmIp9k",
           "backend": "llama.cpp",
-          "model": "qwen2.5-7b-instruct-q4_k_m.gguf",
-          "model_sha256": "1875fb29e8c91c86615c00e92d8b4114e56bc24359adb5a8db8b36452fae4a49",
+          "model": "qwen2.5-3b-instruct-q4_k_m.gguf",
+          "model_sha256": "626b4a6678b86442240e33df819e00132d3ba7dddfe1cdc4fbb18e0a9615c62d",
           "stage": "оценка ответа viva",
-          "duration_ms": 17280,
-          "created_at": "2026-07-20T10:17:50.258142+00:00",
-          "prompt_tokens": 454,
-          "completion_tokens": 124
+          "duration_ms": 8865,
+          "created_at": "2026-07-20T13:14:21.974120+00:00",
+          "prompt_tokens": 1012,
+          "completion_tokens": 128
+        }
+      }
+    ],
+    "article_regressions": [
+      {
+        "case_id": "home_without_context_restriction",
+        "answer": "home is a place where i feel comfortable",
+        "evidence": {
+          "skill_id": "eng_articles",
+          "score": 0.85,
+          "confidence": 1.0,
+          "quote": "home is a place where i feel comfortable",
+          "rationale": "Верно: Ответ подтверждает правило: Например: Home is a place where I feel comfortable. Нужно улучшить: По проверяемому правилу исправления не нужны.",
+          "misconception": null,
+          "source": "local_llm",
+          "evaluator_model": "qwen2.5-3b-instruct-q4_k_m.gguf",
+          "trace_id": "chatcmpl-ErBwhHS4Z3poFmY4zGZiSg9zSwIyg0jQ",
+          "question_text": "Приведите любой пример с нулевым артиклем для общего понятия.",
+          "question_purpose": "Проверить перенос правила об артиклях.",
+          "rule_id": "eng_articles",
+          "rule_title": "Артикли: a/an, the и нулевой артикль",
+          "rule_url": "https://dictionary.cambridge.org/grammar/british-grammar/a-an-the",
+          "verdict": "correct",
+          "what_was_correct": "Ответ подтверждает правило: Например: Home is a place where I feel comfortable.",
+          "what_needs_improvement": "По проверяемому правилу исправления не нужны.",
+          "correct_answer": "Например: Home is a place where I feel comfortable.",
+          "typo_handling": ""
+        },
+        "trace": {
+          "trace_id": "chatcmpl-ErBwhHS4Z3poFmY4zGZiSg9zSwIyg0jQ",
+          "backend": "llama.cpp",
+          "model": "qwen2.5-3b-instruct-q4_k_m.gguf",
+          "model_sha256": "626b4a6678b86442240e33df819e00132d3ba7dddfe1cdc4fbb18e0a9615c62d",
+          "stage": "оценка ответа viva",
+          "duration_ms": 12110,
+          "created_at": "2026-07-20T13:14:34.086403+00:00",
+          "prompt_tokens": 1153,
+          "completion_tokens": 93
+        }
+      },
+      {
+        "case_id": "minor_typo_does_not_break_article_evidence",
+        "answer": "Yesterday I tooka a train. I enjoyed the train so much.",
+        "evidence": {
+          "skill_id": "eng_articles",
+          "score": 0.85,
+          "confidence": 1.0,
+          "quote": "Yesterday I tooka a train. I enjoyed the train so much.",
+          "rationale": "Верно: Ответ подтверждает правило: Например: I took a train. I enjoyed the train. Нужно улучшить: По проверяемому правилу исправления не нужны.",
+          "misconception": null,
+          "source": "local_llm",
+          "evaluator_model": "qwen2.5-3b-instruct-q4_k_m.gguf",
+          "trace_id": "chatcmpl-dsOdtnRlOjf7v8fU4FKIVeMcSb0dcc4F",
+          "question_text": "Приведите пример: при первом упоминании используйте a, при повторном — the.",
+          "question_purpose": "Проверить перенос правила об артиклях.",
+          "rule_id": "eng_articles",
+          "rule_title": "Артикли: a/an, the и нулевой артикль",
+          "rule_url": "https://dictionary.cambridge.org/grammar/british-grammar/a-an-the",
+          "verdict": "correct",
+          "what_was_correct": "Ответ подтверждает правило: Например: I took a train. I enjoyed the train.",
+          "what_needs_improvement": "По проверяемому правилу исправления не нужны.",
+          "correct_answer": "Например: I took a train. I enjoyed the train.",
+          "typo_handling": ""
+        },
+        "trace": {
+          "trace_id": "chatcmpl-dsOdtnRlOjf7v8fU4FKIVeMcSb0dcc4F",
+          "backend": "llama.cpp",
+          "model": "qwen2.5-3b-instruct-q4_k_m.gguf",
+          "model_sha256": "626b4a6678b86442240e33df819e00132d3ba7dddfe1cdc4fbb18e0a9615c62d",
+          "stage": "оценка ответа viva",
+          "duration_ms": 11262,
+          "created_at": "2026-07-20T13:14:45.349443+00:00",
+          "prompt_tokens": 1178,
+          "completion_tokens": 126
+        }
+      },
+      {
+        "case_id": "general_travel_zero_article",
+        "answer": "travel is one of the greatest human passions",
+        "evidence": {
+          "skill_id": "eng_articles",
+          "score": 0.85,
+          "confidence": 1.0,
+          "quote": "travel is one of the greatest human passions",
+          "rationale": "Верно: Ответ подтверждает правило: Например: Travel broadens the mind. Нужно улучшить: По проверяемому правилу исправления не нужны.",
+          "misconception": null,
+          "source": "local_llm",
+          "evaluator_model": "qwen2.5-3b-instruct-q4_k_m.gguf",
+          "trace_id": "chatcmpl-nFieiFhwLDMk8lsKn1z60Oz03c2Oot6r",
+          "question_text": "Приведите пример с нулевым артиклем для общего понятия.",
+          "question_purpose": "Проверить перенос правила об артиклях.",
+          "rule_id": "eng_articles",
+          "rule_title": "Артикли: a/an, the и нулевой артикль",
+          "rule_url": "https://dictionary.cambridge.org/grammar/british-grammar/a-an-the",
+          "verdict": "correct",
+          "what_was_correct": "Ответ подтверждает правило: Например: Travel broadens the mind.",
+          "what_needs_improvement": "По проверяемому правилу исправления не нужны.",
+          "correct_answer": "Например: Travel broadens the mind.",
+          "typo_handling": ""
+        },
+        "trace": {
+          "trace_id": "chatcmpl-nFieiFhwLDMk8lsKn1z60Oz03c2Oot6r",
+          "backend": "llama.cpp",
+          "model": "qwen2.5-3b-instruct-q4_k_m.gguf",
+          "model_sha256": "626b4a6678b86442240e33df819e00132d3ba7dddfe1cdc4fbb18e0a9615c62d",
+          "stage": "оценка ответа viva",
+          "duration_ms": 9144,
+          "created_at": "2026-07-20T13:14:54.494235+00:00",
+          "prompt_tokens": 1148,
+          "completion_tokens": 89
         }
       }
     ]

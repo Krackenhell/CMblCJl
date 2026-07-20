@@ -1,0 +1,101 @@
+[
+  {
+    "id": "eng_present_perfect",
+    "title": "Present Perfect и Past Simple",
+    "summary": "Present Perfect связывает прошлое с настоящим: результат сейчас, опыт до настоящего или незавершённый период. Past Simple описывает завершённое событие в законченное время.",
+    "principles": [
+      "Present Perfect: have/has + past participle; не сочетается с finished-time markers вроде yesterday, in 2023, last week.",
+      "Past Simple используется с конкретным завершённым временем.",
+      "yet, already, ever и never часто указывают на связь с настоящим, но решение всегда зависит от смысла."
+    ],
+    "examples": ["I have lost my keys, so I cannot open the door.", "We visited Prague in 2023."],
+    "source_title": "British Council: Present perfect",
+    "source_url": "https://learnenglish.britishcouncil.org/free-resources/grammar/b1-b2/present-perfect-simple-continuous"
+  },
+  {
+    "id": "eng_conditionals",
+    "title": "First и Second Conditional",
+    "summary": "First Conditional говорит о реальном возможном будущем: if + Present Simple, will + infinitive. Second Conditional описывает гипотетическую ситуацию: if + Past Simple, would + infinitive.",
+    "principles": ["После if в First Conditional обычно не ставят will.", "В формальном варианте Second Conditional с I/he/she/it предпочтительно were.", "Would находится в главной части, а не одновременно в обеих частях."],
+    "examples": ["If it rains, we will stay home.", "If I were you, I would ask for help."],
+    "source_title": "British Council: B1–B2 grammar",
+    "source_url": "https://learnenglish.britishcouncil.org/free-resources/grammar/b1-b2"
+  },
+  {
+    "id": "eng_passive",
+    "title": "Passive Voice",
+    "summary": "Passive строится как be в нужном времени + past participle. Время исходного действия сохраняется, меняется фокус предложения.",
+    "principles": ["Object активного предложения становится subject пассивного.", "Форма be несёт время.", "Смысловой глагол используется в форме past participle."],
+    "examples": ["The results will be announced tomorrow.", "My bicycle has been stolen."],
+    "source_title": "British Council: Passives",
+    "source_url": "https://learnenglish.britishcouncil.org/free-resources/grammar/b1-b2/passives"
+  },
+  {
+    "id": "eng_reported_speech",
+    "title": "Reported Speech",
+    "summary": "После глагола сообщения в прошлом время часто сдвигается назад; также меняются местоимения, указатели времени и порядок слов в вопросах.",
+    "principles": ["Present обычно переходит в Past, Past Simple — в Past Perfect.", "today → that day, yesterday → the day before, this → that.", "В косвенном вопросе используется прямой порядок слов; yes/no question вводится if/whether."],
+    "examples": ["She said that she was working that day.", "He asked whether I had seen the document."],
+    "source_title": "British Council: Reported speech",
+    "source_url": "https://learnenglish.britishcouncil.org/free-resources/grammar/b1-b2/reported-speech-statements"
+  },
+  {
+    "id": "eng_modals_deduction",
+    "title": "Модальные глаголы предположения",
+    "summary": "Must выражает сильный положительный вывод, might/could — возможность, can't — сильный отрицательный вывод. О прошлом: modal + have + past participle.",
+    "principles": ["mustn't означает запрет, а не отрицательный вывод.", "Степень уверенности должна следовать из данных в ситуации.", "Для прошлого используется must/might/can't have + V3."],
+    "examples": ["Her car is outside; she must be here.", "Someone must have told him."],
+    "source_title": "British Council: Modals of deduction",
+    "source_url": "https://learnenglish.britishcouncil.org/free-resources/grammar/b1-b2/modals-deductions-about-past"
+  },
+  {
+    "id": "eng_relative_clauses",
+    "title": "Relative Clauses",
+    "summary": "Defining clause идентифицирует предмет и не отделяется запятыми. Non-defining clause добавляет необязательную информацию и отделяется запятыми.",
+    "principles": ["who — люди, which — вещи, where — места.", "That возможно в defining clause, но не в non-defining clause.", "Запятые меняют статус информации и иногда смысл."],
+    "examples": ["The woman who designed the app won an award.", "My laptop, which is five years old, still works."],
+    "source_title": "British Council: Relative clauses",
+    "source_url": "https://learnenglish.britishcouncil.org/free-resources/grammar/b1-b2/relative-clauses-defining-relative-clauses"
+  },
+  {
+    "id": "eng_gerund_infinitive",
+    "title": "Gerund и Infinitive",
+    "summary": "После некоторых глаголов выбор -ing или to-infinitive меняет смысл: remember doing — помнить прошлое действие, remember to do — не забыть сделать; stop doing — прекратить, stop to do — остановиться ради другого действия.",
+    "principles": ["Формы нельзя считать взаимозаменяемыми.", "Оценивается смысл всего предложения, а не только окончание.", "После предлогов обычно используется -ing."],
+    "examples": ["I remember meeting her.", "Remember to send the invoice."],
+    "source_title": "British Council: B1–B2 grammar",
+    "source_url": "https://learnenglish.britishcouncil.org/free-resources/grammar/b1-b2"
+  },
+  {
+    "id": "eng_articles",
+    "title": "Артикли: a/an, the и нулевой артикль",
+    "summary": "A/an вводит один неспецифичный исчисляемый предмет в единственном числе. The указывает на известный, уже упомянутый или однозначно определённый предмет. Нулевой артикль используется с общими абстрактными и неисчисляемыми понятиями, а также во многих устойчивых выражениях.",
+    "principles": [
+      "Первое упоминание: a train; повторное или определённое: the train.",
+      "Большинство стран употребляются без артикля; the используется с отдельными названиями и группами: the Netherlands, the United States.",
+      "Общее понятие: Travel broadens the mind; конкретное путешествие: The journey took six hours.",
+      "Home может употребляться без артикля как общее понятие или направление: Home is where I feel safe; go home. Контекст путешествий не обязателен, если вопрос прямо его не ограничивает."
+    ],
+    "examples": ["I took a train. The train was crowded.", "Travel can teach us a lot.", "Home is where I feel comfortable."],
+    "source_title": "Cambridge Dictionary: A/an and the",
+    "source_url": "https://dictionary.cambridge.org/grammar/british-grammar/a-an-the"
+  },
+  {
+    "id": "eng_linking",
+    "title": "Связность текста и linking words",
+    "summary": "Связки показывают отношение между идеями: contrast, reason, result и conclusion. Их грамматическая позиция важна так же, как значение.",
+    "principles": ["However обычно соединяет отдельные предложения и требует пунктуации.", "Although вводит придаточную часть и не сочетается с but в той же конструкции.", "Therefore/as a result обозначают следствие, а because/since — причину."],
+    "examples": ["Attendance can help; however, it should remain flexible.", "Since students learn differently, one policy may not suit everyone."],
+    "source_title": "British Council: B2 writing",
+    "source_url": "https://learnenglish.britishcouncil.org/free-resources/writing/b2"
+  },
+  {
+    "id": "eng_formal_writing",
+    "title": "Формальное письмо",
+    "summary": "Формальное письмо ясно обозначает тему, причину обращения, конкретную просьбу и вежливое завершение. Регистр нейтральный или формальный.",
+    "principles": ["Просьба должна быть конкретной.", "Нужны подходящие greeting и closing.", "Разговорные сокращения и slang нежелательны, но обычные грамматические contractions сами по себе не всегда критичны."],
+    "examples": ["I am writing to request an alternative presentation date.", "I would be happy to provide a medical certificate."],
+    "source_title": "British Council: B2 writing",
+    "source_url": "https://learnenglish.britishcouncil.org/free-resources/writing/b2"
+  }
+]

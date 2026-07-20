@@ -14,18 +14,36 @@ services:
       - --no-webui
     volumes:
       - ./models:/models:ro
+  local-llm-fast:
+    image: ghcr.io/ggml-org/llama.cpp:server
+    command:
+      - --model
+      - /models/qwen2.5-3b-instruct-q4_k_m.gguf
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8081"
+      - --ctx-size
+      - "3072"
+      - --jinja
+      - --no-webui
+    volumes:
+      - ./models:/models:ro
   vivatrace:
     build: .
     ports:
       - "8501:8501"
     environment:
       LOCAL_LLM_URL: http://local-llm:8080
+      LOCAL_LLM_FAST_URL: http://local-llm-fast:8081
       LOCAL_LLM_MODEL: Qwen2.5-7B-Instruct-Q4_K_M
+      LOCAL_LLM_FAST_MODEL: Qwen2.5-3B-Instruct-Q4_K_M
       VIVATRACE_DB_PATH: /data/vivatrace.db
     volumes:
       - vivatrace_data:/data
     depends_on:
       - local-llm
+      - local-llm-fast
 
 volumes:
   vivatrace_data:

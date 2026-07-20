@@ -50,6 +50,9 @@ print("accuracy:", accuracy_score(y_test, pred))
         "reproducibility",
     ],
     "subject": "Машинное обучение",
+    "topic_key": "ml_validation",
+    "difficulty": 2,
+    "variant": 1,
     "rubric": {
         "reference_answer": "Разделение выполняется до обучения преобразований; preprocessing обучается только на train через Pipeline; фиксируется random_state; помимо accuracy рассматриваются метрики под дисбаланс; test не используется для подбора модели.",
         "criteria": [
@@ -141,6 +144,9 @@ def _migrate_schema(connection: sqlite3.Connection) -> None:
     assignment_additions = {
         "subject": "TEXT NOT NULL DEFAULT 'Машинное обучение'",
         "rubric_json": "TEXT NOT NULL DEFAULT '{}'",
+        "topic_key": "TEXT NOT NULL DEFAULT ''",
+        "difficulty": "INTEGER NOT NULL DEFAULT 1",
+        "variant": "INTEGER NOT NULL DEFAULT 1",
     }
     attempt_additions = {
         "submission_score": "REAL",
@@ -156,16 +162,45 @@ def _migrate_schema(connection: sqlite3.Connection) -> None:
     for column, definition in attempt_additions.items():
         if column not in attempt_columns:
             connection.execute(f"ALTER TABLE attempts ADD COLUMN {column} {definition}")
+    connection.execute(
+        """
+        UPDATE assignments
+        SET topic_key = COALESCE(json_extract(skill_ids_json, '$[0]'), 'general')
+        WHERE topic_key = ''
+        """
+    )
 
 
 def _seed_english_assignments(connection: sqlite3.Connection) -> None:
     payload = json.loads(ENGLISH_ASSIGNMENTS_PATH.read_text(encoding="utf-8"))
     existing = {
-        row[0] for row in connection.execute("SELECT title FROM assignments").fetchall()
+        row["title"]: dict(row)
+        for row in connection.execute(
+            "SELECT id, title, topic_key FROM assignments"
+        ).fetchall()
     }
     for assignment in payload:
-        if assignment["title"] not in existing:
+        current = existing.get(assignment["title"])
+        if current is None:
             create_assignment(connection=connection, **assignment)
+        elif not current.get("topic_key"):
+            connection.execute(
+                """
+                UPDATE assignments
+                SET instructions = ?, starter_code = ?, rubric_json = ?, topic_key = ?,
+                    difficulty = ?, variant = ?
+                WHERE id = ?
+                """,
+                (
+                    assignment["instructions"],
+                    assignment["starter_code"],
+                    json.dumps(assignment["rubric"], ensure_ascii=False),
+                    assignment["topic_key"],
+                    assignment["difficulty"],
+                    assignment["variant"],
+                    current["id"],
+                ),
+            )
 
 
 def list_students() -> list[dict[str, str]]:
@@ -210,6 +245,9 @@ def create_assignment(
     skill_ids: list[str],
     subject: str = "Учебный курс",
     rubric: dict[str, Any] | None = None,
+    topic_key: str = "",
+    difficulty: int = 1,
+    variant: int = 1,
     connection: sqlite3.Connection | None = None,
 ) -> int:
     owns_connection = connection is None
@@ -217,8 +255,9 @@ def create_assignment(
     cursor = connection.execute(
         """
         INSERT INTO assignments(
-            title, topic, instructions, starter_code, skill_ids_json, subject, rubric_json, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            title, topic, instructions, starter_code, skill_ids_json, subject, rubric_json,
+            topic_key, difficulty, variant, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             title.strip(),
@@ -228,6 +267,9 @@ def create_assignment(
             json.dumps(skill_ids, ensure_ascii=False),
             subject.strip(),
             json.dumps(rubric or {}, ensure_ascii=False),
+            topic_key.strip() or skill_ids[0],
+            max(1, min(int(difficulty), 3)),
+            max(1, int(variant)),
             datetime.now(UTC).isoformat(),
         ),
     )
@@ -246,6 +288,9 @@ def update_assignment(
     skill_ids: list[str],
     subject: str = "Учебный курс",
     rubric: dict[str, Any] | None = None,
+    topic_key: str = "",
+    difficulty: int = 1,
+    variant: int = 1,
 ) -> None:
     with connect() as connection:
         connection.execute(
@@ -253,6 +298,7 @@ def update_assignment(
             UPDATE assignments
             SET title = ?, topic = ?, instructions = ?, starter_code = ?, skill_ids_json = ?,
                 subject = ?, rubric_json = ?
+                , topic_key = ?, difficulty = ?, variant = ?
             WHERE id = ?
             """,
             (
@@ -263,6 +309,9 @@ def update_assignment(
                 json.dumps(skill_ids, ensure_ascii=False),
                 subject.strip(),
                 json.dumps(rubric or {}, ensure_ascii=False),
+                topic_key.strip() or skill_ids[0],
+                max(1, min(int(difficulty), 3)),
+                max(1, int(variant)),
                 assignment_id,
             ),
         )
@@ -361,6 +410,46 @@ def student_attempts(student_id: str, assignment_id: int) -> list[dict[str, Any]
             ORDER BY id DESC
             """,
             (student_id, assignment_id),
+        ).fetchall()
+    return [_attempt_from_row(row) for row in rows]
+
+
+def student_progress(student_id: str) -> dict[int, dict[str, Any]]:
+    with connect() as connection:
+        rows = connection.execute(
+            """
+            SELECT a.assignment_id, a.submission_score, a.overall_score, a.completed_at
+            FROM attempts a
+            JOIN (
+                SELECT assignment_id, MAX(id) AS latest_id
+                FROM attempts
+                WHERE student_id = ?
+                GROUP BY assignment_id
+            ) latest ON latest.latest_id = a.id
+            """,
+            (student_id,),
+        ).fetchall()
+    return {int(row["assignment_id"]): dict(row) for row in rows}
+
+
+def latest_topic_attempts(topic_key: str) -> list[dict[str, Any]]:
+    with connect() as connection:
+        rows = connection.execute(
+            """
+            SELECT a.*, s.name AS student_name, x.title AS assignment_title
+            FROM attempts a
+            JOIN students s ON s.id = a.student_id
+            JOIN assignments x ON x.id = a.assignment_id
+            JOIN (
+                SELECT a2.student_id, MAX(a2.id) AS latest_id
+                FROM attempts a2
+                JOIN assignments x2 ON x2.id = a2.assignment_id
+                WHERE x2.topic_key = ?
+                GROUP BY a2.student_id
+            ) latest ON latest.latest_id = a.id
+            ORDER BY s.name
+            """,
+            (topic_key,),
         ).fetchall()
     return [_attempt_from_row(row) for row in rows]
 
