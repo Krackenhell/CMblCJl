@@ -1,0 +1,110 @@
+{
+  "cases": 10,
+  "within_band_accuracy": 1.0,
+  "mean_distance_to_band": 0.0,
+  "false_accepts": 0,
+  "false_rejects": 0,
+  "mean_latency_ms": 14716.3,
+  "results": [
+    {
+      "id": "reported_time_reference_partial",
+      "score": 0.35,
+      "min_score": 0.35,
+      "max_score": 0.7,
+      "within_band": true,
+      "distance_to_band": 0.0,
+      "verdict": "partial",
+      "duration_ms": 16903
+    },
+    {
+      "id": "reported_transfer_mostly_correct",
+      "score": 0.85,
+      "min_score": 0.6,
+      "max_score": 0.85,
+      "within_band": true,
+      "distance_to_band": 0.0,
+      "verdict": "correct",
+      "duration_ms": 17593
+    },
+    {
+      "id": "reported_request_tautology",
+      "score": 0.1,
+      "min_score": 0.0,
+      "max_score": 0.2,
+      "within_band": true,
+      "distance_to_band": 0.0,
+      "verdict": "incorrect",
+      "duration_ms": 12557
+    },
+    {
+      "id": "reported_request_correct",
+      "score": 0.85,
+      "min_score": 0.8,
+      "max_score": 1.0,
+      "within_band": true,
+      "distance_to_band": 0.0,
+      "verdict": "correct",
+      "duration_ms": 14238
+    },
+    {
+      "id": "gerund_stop_to_correct",
+      "score": 0.85,
+      "min_score": 0.8,
+      "max_score": 1.0,
+      "within_band": true,
+      "distance_to_band": 0.0,
+      "verdict": "correct",
+      "duration_ms": 14626
+    },
+    {
+      "id": "gerund_stop_random",
+      "score": 0.1,
+      "min_score": 0.0,
+      "max_score": 0.15,
+      "within_band": true,
+      "distance_to_band": 0.0,
+      "verdict": "incorrect",
+      "duration_ms": 12321
+    },
+    {
+      "id": "modal_past_correct",
+      "score": 0.85,
+      "min_score": 0.85,
+      "max_score": 1.0,
+      "within_band": true,
+      "distance_to_band": 0.0,
+      "verdict": "correct",
+      "duration_ms": 15428
+    },
+    {
+      "id": "modal_present_confused",
+      "score": 0.1,
+      "min_score": 0.1,
+      "max_score": 0.35,
+      "within_band": true,
+      "distance_to_band": 0.0,
+      "verdict": "incorrect",
+      "duration_ms": 11308
+    },
+    {
+      "id": "articles_valid_alternative",
+      "score": 0.85,
+      "min_score": 0.85,
+      "max_score": 1.0,
+      "within_band": true,
+      "distance_to_band": 0.0,
+      "verdict": "correct",
+      "duration_ms": 17340
+    },
+    {
+      "id": "articles_no_knowledge",
+      "score": 0.1,
+      "min_score": 0.0,
+      "max_score": 0.1,
+      "within_band": true,
+      "distance_to_band": 0.0,
+      "verdict": "incorrect",
+      "duration_ms": 14849
+    }
+  ]
+}

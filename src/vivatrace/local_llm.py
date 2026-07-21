@@ -140,6 +140,27 @@ def grounded_transfer_example(
 ) -> str:
     stems = english_stems(source_prompt)
     normalized_form = required_form.lower().strip()
+    lowered_principle = principle.lower()
+    if "просьб" in lowered_principle or "please" in source_prompt.lower():
+        return (
+            "The manager asked the team to send the report. Здесь ask + object + "
+            "to-infinitive передаёт просьбу в косвенной речи."
+        )
+    if "today" in lowered_principle and "that day" in lowered_principle:
+        return (
+            "Lena said that she was working that day. В прямой речи было today; "
+            "при переносе точки отсчёта используется that day."
+        )
+    if "past perfect" in lowered_principle or "сдвиг времени" in lowered_principle:
+        return (
+            "Oleg said that he had finished the task. Past Simple из прямой речи "
+            "сдвинут в Past Perfect после said."
+        )
+    if "if/whether" in lowered_principle or "косвен" in lowered_principle and "вопрос" in lowered_principle:
+        return (
+            "Mia asked whether I needed help. Общий косвенный вопрос вводится whether "
+            "и использует прямой порядок слов."
+        )
     if "stop" in stems and normalized_form.startswith("to "):
         return (
             "The driver stopped to buy some water. Здесь stop + to-infinitive означает, "
@@ -162,6 +183,75 @@ def grounded_transfer_example(
         )
     example = examples[0] if examples else required_form
     return f"{example} Это новый пример правила: {principle}"
+
+
+def _semantic_text(value: str) -> str:
+    value = value.lower().replace("ё", "е").replace("’", "'")
+    value = re.sub(r"[^a-zа-я0-9'+]+", " ", value)
+    return " ".join(value.split())
+
+
+def _semantic_term_matches(answer: str, term: str) -> bool:
+    normalized_answer = f" {_semantic_text(answer)} "
+    normalized_term = _semantic_text(term)
+    if not normalized_term:
+        return False
+    if f" {normalized_term} " in normalized_answer:
+        return True
+    answer_tokens = normalized_answer.split()
+    term_tokens = normalized_term.split()
+    if len(term_tokens) == 1 and len(term_tokens[0]) >= 5:
+        stem = term_tokens[0][: max(4, len(term_tokens[0]) - 2)]
+        return any(token.startswith(stem) for token in answer_tokens)
+    if len(term_tokens) > 1:
+        for start in range(len(answer_tokens) - len(term_tokens) + 1):
+            candidate = answer_tokens[start : start + len(term_tokens)]
+            if all(
+                actual == expected
+                or (
+                    len(actual) >= 5
+                    and len(expected) >= 5
+                    and actual[:4] == expected[:4]
+                )
+                for actual, expected in zip(candidate, term_tokens, strict=True)
+            ):
+                return True
+    return False
+
+
+def semantic_concept_coverage(
+    expected_concepts: tuple[tuple[str, ...], ...] | list[list[str]], answer: str
+) -> dict[str, Any]:
+    groups = [tuple(str(term) for term in group) for group in expected_concepts if group]
+    if not groups:
+        return {"coverage": None, "covered": [], "missing": []}
+    covered = [
+        group[0]
+        for group in groups
+        if any(_semantic_term_matches(answer, term) for term in group)
+    ]
+    missing = [group[0] for group in groups if group[0] not in covered]
+    return {
+        "coverage": len(covered) / len(groups),
+        "covered": covered,
+        "missing": missing,
+    }
+
+
+def calibrated_viva_score(raw_score: float, concept_coverage: float | None) -> float:
+    score = min(max(raw_score, 0.0), 1.0)
+    if concept_coverage is None:
+        return score
+    ceilings = ((0.01, 0.30), (0.30, 0.50), (0.66, 0.70))
+    for threshold, ceiling in ceilings:
+        if concept_coverage < threshold:
+            score = min(score, ceiling)
+            break
+    floors = ((0.99, 0.85), (0.66, 0.65), (0.49, 0.45), (0.30, 0.35))
+    for threshold, floor in floors:
+        if concept_coverage >= threshold:
+            return max(score, floor)
+    return score
 
 
 def check_article_cloze(assignment: dict[str, Any], answer: str) -> dict[str, Any] | None:
@@ -460,7 +550,10 @@ class LocalLLM:
             feedback = (
                 "Все ответы совпадают с проверяемым ключом."
                 if is_correct
-                else f'Ошибки или пропуски в {unit}: {", ".join(wrong_positions)}.'
+                else (
+                    f'Работа выполнена на {submission_score:.0%}. Нужно доработать отдельные '
+                    f'компоненты в {unit}: {", ".join(wrong_positions)}.'
+                )
             )
             result = {
                 "submission_score": submission_score,
@@ -477,8 +570,15 @@ class LocalLLM:
                 ],
                 "criterion_results": [
                     {
-                        "criterion": f'Пункт {slot["position"]} · {slot["expected_phrase"]}',
-                        "status": "correct" if slot["correct"] else "incorrect",
+                        "criterion": f'Пункт {slot["position"]}',
+                        "status": (
+                            "correct"
+                            if slot["correct"]
+                            else "partial"
+                            if float(slot.get("score", 0)) >= 0.4
+                            else "incorrect"
+                        ),
+                        "score": float(slot.get("score", int(slot["correct"]))),
                         "student_evidence": slot["student_evidence"],
                         "issue": slot["issue"],
                         "correction": slot["expected_phrase"],
@@ -566,9 +666,10 @@ class LocalLLM:
         source_prompt = str(focused_slot.get("prompt") or assignment["instructions"])
         grounded_focus = required_form
         rule = self.rulebook.get(assignment["skill_ids"][0], {})
-        principle = select_relevant_principle(
+        diagnostic = dict(focused_slot.get("diagnostic") or {})
+        principle = str(diagnostic.get("rule_focus") or select_relevant_principle(
             rule, f"{source_prompt} {grounded_focus}"
-        )
+        ))
         question_payload = {
             "topic": assignment["topic"],
             "student_answer": answer,
@@ -578,6 +679,7 @@ class LocalLLM:
             "source_prompt": source_prompt,
             "required_form": required_form,
             "grounded_rule_focus": principle,
+            "verified_diagnostic": diagnostic,
             "instructions": (
                 "Если mode=diagnostic, первый вопрос просит объяснить исправление именно source_prompt. "
                 "Если mode=viva, он просит объяснить уже правильную форму. Второй вопрос просит придумать "
@@ -599,7 +701,9 @@ class LocalLLM:
         if not generated_question_is_valid(
             first_item, required_form, source_prompt=source_prompt
         ):
-            if wrong_slots:
+            if diagnostic:
+                question_text = str(diagnostic["question"])
+            elif wrong_slots:
                 position = wrong_slots[0].get("position")
                 question_text = (
                     f"В пункте {position} дано «{source_prompt}». Почему здесь нужна форма "
@@ -613,13 +717,15 @@ class LocalLLM:
             first_item = {
                 "skill_id": assignment["skill_ids"][0],
                 "text": question_text,
-                "expected_answer": f"{grounded_focus}: {principle}",
+                "expected_answer": str(
+                    diagnostic.get("expected_answer") or f"{grounded_focus}: {principle}"
+                ),
             }
         if not generated_question_is_valid(
             second_item,
-            required_form,
+            "",
             transfer=True,
-            source_prompt=source_prompt,
+            source_prompt=principle,
         ):
             second_item = {
                 "skill_id": assignment["skill_ids"][0],
@@ -649,7 +755,10 @@ class LocalLLM:
                     if result["mode"] == "viva"
                     else "Точно определить пробел и помочь восстановить правило."
                 ),
-                expected_concepts=(),
+                expected_concepts=tuple(
+                    tuple(str(term) for term in group)
+                    for group in diagnostic.get("expected_concepts", [])
+                ),
                 rule_id=item["skill_id"],
                 expected_answer=item["expected_answer"],
                 context_constraint="Нет дополнительных ограничений контекста.",
@@ -718,6 +827,9 @@ class LocalLLM:
             "китайский или другой язык, кроме английских примеров из задания. typo_handling оставь "
             "пустым, если нет явной орфографической опечатки: альтернативная валидная формулировка вроде "
             "'is a place' вместо 'is where' не является опечаткой. "
+            "Если question.expected_concepts не пуст, оцени долю явно раскрытых атомарных понятий. Не требуй "
+            "дословного совпадения с expected_answer и не штрафуй правильное перефразирование. Итоговый score "
+            "должен отражать покрытие понятий и наличие противоречий. "
             "Верни только JSON."
         )
         payload = {
@@ -738,7 +850,21 @@ class LocalLLM:
         for key, value in result.items():
             if isinstance(value, str):
                 result[key] = sanitize_mixed_modal_negation(value)
-        verdict = str(result["verdict"])
+        coverage = semantic_concept_coverage(question.expected_concepts, answer)
+        result["score"] = calibrated_viva_score(
+            float(result["score"]), coverage["coverage"]
+        )
+        if coverage["covered"] and str(result["verdict"]) != "correct":
+            result["what_was_correct"] = (
+                "В ответе подтверждены элементы: " + ", ".join(coverage["covered"]) + "."
+            )
+        if coverage["missing"]:
+            result["what_needs_improvement"] = (
+                "Нужно явно раскрыть: " + ", ".join(coverage["missing"]) + "."
+            )
+        score = float(result["score"])
+        verdict = "correct" if score >= 0.75 else "partial" if score >= 0.3 else "incorrect"
+        result["verdict"] = verdict
         if verdict == "correct":
             result["score"] = max(float(result["score"]), 0.85)
             result["what_was_correct"] = (

@@ -1,0 +1,102 @@
+[
+  {
+    "id": "reported_time_reference_partial",
+    "rule_id": "eng_reported_speech",
+    "question": "В прямой речи есть today, а reporting verb стоит в прошлом. На какую форму меняется today и почему?",
+    "expected_answer": "Today меняется на that day, потому что точка отсчёта переносится к моменту исходной речи.",
+    "expected_concepts": [["today", "сегодня"], ["that day", "тот день"], ["точка отсчёта", "момент речи", "перенос времени"]],
+    "student_answer": "that day тут употребляется потому что неизвестно, про какой день говорила Мая",
+    "min_score": 0.35,
+    "max_score": 0.70
+  },
+  {
+    "id": "reported_transfer_mostly_correct",
+    "rule_id": "eng_reported_speech",
+    "question": "Преобразуйте новый пример с today в косвенную речь и объясните замену.",
+    "expected_answer": "John said that he was working from home that day; today меняется из-за переноса точки отсчёта.",
+    "expected_concepts": [["today", "сегодня"], ["that day", "тот день"], ["was working", "past continuous"], ["точка отсчёта", "момент речи", "перенос времени"]],
+    "student_answer": "John said, 'I am working home today' — John said he was working home that day, потому что неизвестно, когда John это говорил",
+    "min_score": 0.60,
+    "max_score": 0.85
+  },
+  {
+    "id": "reported_request_tautology",
+    "rule_id": "eng_reported_speech",
+    "question": "Какой reporting verb и какую конструкцию нужно использовать, чтобы передать вежливую просьбу с please?",
+    "expected_answer": "Ask + адресат + to-infinitive: Ada asked Ben to send the file.",
+    "expected_concepts": [["ask", "asked", "попрос"], ["object + to-infinitive", "asked ben to", "адресат + to"]],
+    "student_answer": "потому что это косвенная речь",
+    "min_score": 0.00,
+    "max_score": 0.20
+  },
+  {
+    "id": "reported_request_correct",
+    "rule_id": "eng_reported_speech",
+    "question": "Какой reporting verb и какую конструкцию нужно использовать, чтобы передать вежливую просьбу с please?",
+    "expected_answer": "Ask + адресат + to-infinitive: Ada asked Ben to send the file.",
+    "expected_concepts": [["ask", "asked", "попрос"], ["object + to-infinitive", "asked ben to", "адресат + to"]],
+    "student_answer": "Нужно использовать ask, затем адресата и to-infinitive: Ada asked Ben to send her the file.",
+    "min_score": 0.80,
+    "max_score": 1.00
+  },
+  {
+    "id": "gerund_stop_to_correct",
+    "rule_id": "eng_gerund_infinitive",
+    "question": "Почему в предложении He stopped to buy water используется to buy?",
+    "expected_answer": "Stop + to-infinitive означает прервать другое действие ради цели.",
+    "expected_concepts": [["stop + to-infinitive", "stopped to", "stop to do"], ["цель", "ради другого действия", "in order to"]],
+    "student_answer": "Он остановился, чтобы купить воду: stop to do показывает цель остановки.",
+    "min_score": 0.80,
+    "max_score": 1.00
+  },
+  {
+    "id": "gerund_stop_random",
+    "rule_id": "eng_gerund_infinitive",
+    "question": "Почему в предложении He stopped to buy water используется to buy?",
+    "expected_answer": "Stop + to-infinitive означает прервать другое действие ради цели.",
+    "expected_concepts": [["stop + to-infinitive", "stopped to", "stop to do"], ["цель", "ради другого действия", "in order to"]],
+    "student_answer": "не знаю, так звучит лучше",
+    "min_score": 0.00,
+    "max_score": 0.15
+  },
+  {
+    "id": "modal_past_correct",
+    "rule_id": "eng_modals_deduction",
+    "question": "Как выразить сильный вывод о прошлом с must?",
+    "expected_answer": "Must have + V3, например She must have left.",
+    "expected_concepts": [["must have"], ["V3", "past participle", "третья форма"]],
+    "student_answer": "Используем must have и третью форму глагола: She must have left early.",
+    "min_score": 0.85,
+    "max_score": 1.00
+  },
+  {
+    "id": "modal_present_confused",
+    "rule_id": "eng_modals_deduction",
+    "question": "Как выразить сильный вывод о прошлом с must?",
+    "expected_answer": "Must have + V3, например She must have left.",
+    "expected_concepts": [["must have"], ["V3", "past participle", "третья форма"]],
+    "student_answer": "She must be at home now.",
+    "min_score": 0.10,
+    "max_score": 0.35
+  },
+  {
+    "id": "articles_valid_alternative",
+    "rule_id": "eng_articles",
+    "question": "Приведите любое предложение, где абстрактное понятие используется с нулевым артиклем.",
+    "expected_answer": "Travel broadens the mind.",
+    "expected_concepts": [["нулевой артикль", "без артикля", "zero article"], ["общее понятие", "абстрактное понятие", "general concept"]],
+    "student_answer": "Home is a place where I feel comfortable: home здесь общее понятие и используется без артикля.",
+    "min_score": 0.85,
+    "max_score": 1.00
+  },
+  {
+    "id": "articles_no_knowledge",
+    "rule_id": "eng_articles",
+    "question": "Почему перед повторно упомянутым train используется the?",
+    "expected_answer": "The показывает, что речь идёт об уже упомянутом конкретном поезде.",
+    "expected_concepts": [["the"], ["повторно упомянут", "уже упомянут", "second mention"], ["конкретный", "определенный"]],
+    "student_answer": "вся информация",
+    "min_score": 0.00,
+    "max_score": 0.10
+  }
+]

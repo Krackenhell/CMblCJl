@@ -1,0 +1,58 @@
+{
+  "experiment": "knowledge_tracing_calibration_v1",
+  "dataset": {
+    "type": "synthetic_pilot",
+    "warning": "Проверяет экспериментальный пайплайн; для продуктовых выводов нужны реальные последовательности студентов.",
+    "seed": 42,
+    "students": 180,
+    "train_students": 125,
+    "fit_students": 100,
+    "calibration_students": 25,
+    "test_students": 55,
+    "test_events": 660
+  },
+  "selection_metric": "Brier score on train",
+  "fitted": {
+    "ema_alpha": 0.3,
+    "bkt": {
+      "prior": 0.45,
+      "learn": 0.07,
+      "slip": 0.2,
+      "guess": 0.32
+    }
+  },
+  "test_metrics": {
+    "global_mean": {
+      "brier": 0.240201,
+      "log_loss": 0.673427,
+      "ece_10": 0.014167,
+      "accuracy_0_5": 0.6
+    },
+    "latest_evidence": {
+      "brier": 0.235437,
+      "log_loss": 0.735847,
+      "ece_10": 0.094361,
+      "accuracy_0_5": 0.622727
+    },
+    "ema": {
+      "brier": 0.220779,
+      "log_loss": 0.632279,
+      "ece_10": 0.059798,
+      "accuracy_0_5": 0.64697
+    },
+    "bkt": {
+      "brier": 0.229756,
+      "log_loss": 0.703041,
+      "ece_10": 0.125076,
+      "accuracy_0_5": 0.651515
+    },
+    "bkt_isotonic": {
+      "brier": 0.227762,
+      "log_loss": 0.733154,
+      "ece_10": 0.087202,
+      "accuracy_0_5": 0.65303
+    }
+  },
+  "best_by_brier": "ema",
+  "best_by_calibration": "global_mean"
+}

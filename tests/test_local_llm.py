@@ -11,6 +11,9 @@ from vivatrace.local_llm import (
     LocalLLMError,
     check_article_cloze,
     generated_question_is_valid,
+    grounded_transfer_example,
+    calibrated_viva_score,
+    semantic_concept_coverage,
     sanitize_mixed_modal_negation,
 )
 from vivatrace.models import ProbeQuestion
@@ -294,10 +297,111 @@ def test_broken_or_off_topic_generated_questions_are_rejected():
     )
 
 
+def test_reported_speech_question_uses_verified_atomic_diagnostic(monkeypatch):
+    assignments = json.loads(
+        (Path(__file__).parents[1] / "data" / "english_b2_assignments.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assignment = next(
+        item
+        for item in assignments
+        if item["topic_key"] == "eng_reported_speech" and item["variant"] == 1
+    )
+    llm = LocalLLM()
+    trace = LLMTrace(
+        trace_id="reported-diagnostic",
+        backend="llama.cpp",
+        model="Qwen2.5-3B-Instruct-Q4_K_M",
+        model_sha256="abc123",
+        stage="формирование двух вопросов",
+        duration_ms=10,
+        created_at="2026-01-01T00:00:00+00:00",
+    )
+    monkeypatch.setattr(
+        llm,
+        "_call_json",
+        lambda *args, **kwargs: (
+            {
+                "first_question": {
+                    "skill_id": "eng_reported_speech",
+                    "text": "Почему это косвенная речь?",
+                    "expected_answer": "Потому что это косвенная речь.",
+                },
+                "transfer_question": {
+                    "skill_id": "eng_reported_speech",
+                    "rule_focus": "общее правило",
+                    "expected_answer": "She said something.",
+                },
+            },
+            trace,
+        ),
+    )
+
+    result, _ = llm.assess_submission(
+        assignment,
+        (
+            "1) Maya said she was working from home yesterday\n"
+            "2) Leo said he finished the task the day before yesterday\n"
+            "3) Nina asked if I have seen this document"
+        ),
+        {"eng_reported_speech": "Косвенная речь"},
+    )
+
+    first, transfer = result["questions"]
+    assert "На какую форму меняется today" in first.text
+    assert first.expected_concepts
+    assert "today" in transfer.text and "that day" in transfer.text
+
+
 def test_mixed_russian_negation_is_never_shown_inside_english_modal():
     assert sanitize_mixed_modal_negation("Нужно написать must не, а другую форму.") == (
         "Нужно написать must not, а другую форму."
     )
+
+
+def test_semantic_concepts_credit_valid_paraphrase_instead_of_exact_wording():
+    concepts = (
+        ("today", "сегодня"),
+        ("that day", "тот день"),
+        ("точка отсчёта", "момент речи", "перенос времени"),
+    )
+
+    coverage = semantic_concept_coverage(
+        concepts,
+        "Today меняется на that day, потому что переносится момент речи.",
+    )
+
+    assert coverage["coverage"] == 1
+    assert calibrated_viva_score(0.1, coverage["coverage"]) == 0.85
+
+    inflected = semantic_concept_coverage(
+        (("must have",), ("третья форма", "V3")),
+        "Используем must have и третью форму глагола.",
+    )
+    assert inflected["coverage"] == 1
+
+
+def test_semantic_concepts_give_partial_credit_for_partial_understanding():
+    coverage = semantic_concept_coverage(
+        (("today", "сегодня"), ("that day", "тот день"), ("точка отсчёта",)),
+        "that day употребляется, потому что неизвестно, про какой день говорили",
+    )
+
+    assert coverage["coverage"] == pytest.approx(1 / 3)
+    assert calibrated_viva_score(0.1, coverage["coverage"]) == 0.35
+
+
+def test_reported_request_transfer_example_stays_on_the_verified_subrule():
+    example = grounded_transfer_example(
+        "'Please send me the file,' Ada said to Ben",
+        "Ada asked Ben to send her the file",
+        "Вежливая просьба передаётся через ask + object + to-infinitive.",
+        ["She said that she was working that day."],
+    )
+
+    assert "asked the team to send" in example
+    assert "working that day" not in example
 
 
 def test_missing_local_model_blocks_assessment(tmp_path, monkeypatch):

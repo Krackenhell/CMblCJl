@@ -39,7 +39,7 @@ from vivatrace.rulebook import load_rulebook
 ROOT = Path(__file__).resolve().parent
 CURRICULUM = load_curriculum(DATA_DIR / "curriculum.json")
 LLM = LocalLLM()
-ASSESSMENT_VERSION = 5
+ASSESSMENT_VERSION = 6
 RULEBOOK = load_rulebook()
 DIFFICULTY_LABELS = {1: "Базовый", 2: "Средний", 3: "Продвинутый"}
 COLORS = {
@@ -150,11 +150,7 @@ def difficulty_label(assignment: dict) -> str:
 
 def regrade_legacy_attempt(attempt: dict, assignment: dict) -> dict:
     stored_assessment = attempt.get("assessment") or {}
-    stored_check = stored_assessment.get("objective_check") or {}
-    if (
-        stored_check.get("source") == "deterministic_answer_key"
-        and int(stored_assessment.get("grader_version") or 0) >= 2
-    ):
+    if int(stored_assessment.get("grader_version") or 0) >= 3:
         return upgrade_mastery_model(attempt, assignment)
     check = grade_structured_answer(assignment, str(attempt.get("artifact") or ""))
     if not check:
@@ -173,6 +169,7 @@ def regrade_legacy_attempt(attempt: dict, assignment: dict) -> dict:
     result["submission_correct"] = bool(check["correct"])
     result["assessment_mode"] = "viva" if check["correct"] else "diagnostic"
     result["assessment"] = {
+        "grader_version": 3,
         "submission_score": float(check["score"]),
         "is_correct": bool(check["correct"]),
         "feedback": feedback,
@@ -180,8 +177,15 @@ def regrade_legacy_attempt(attempt: dict, assignment: dict) -> dict:
         "objective_check": check,
         "criterion_results": [
             {
-                "criterion": f'Пункт {slot["position"]} · {slot["expected_phrase"]}',
-                "status": "correct" if slot["correct"] else "incorrect",
+                "criterion": f'Пункт {slot["position"]}',
+                "status": (
+                    "correct"
+                    if slot["correct"]
+                    else "partial"
+                    if float(slot.get("score", 0)) >= 0.4
+                    else "incorrect"
+                ),
+                "score": float(slot.get("score", int(slot["correct"]))),
                 "student_evidence": slot["student_evidence"],
                 "issue": slot["issue"],
                 "correction": slot["expected_phrase"],
@@ -240,13 +244,15 @@ def render_criterion_results(assessment: dict) -> None:
     with st.expander("Разбор исходного решения", expanded=not assessment["is_correct"]):
         if assessment.get("objective_check"):
             st.caption(
-                "Правильность и балл определены скриптом по предметному ключу. Локальная LLM "
-                "получает только найденные ошибки и использует их для объяснения и Viva."
+                "Баллы определены предметным grader по атомарным компонентам правила. Локальная LLM "
+                "не меняет этот результат: она получает только проверенные пробелы и использует их для Viva."
             )
         for item in items:
             status = item["status"]
             css = "ok" if status == "correct" else "partial" if status == "partial" else "bad"
             label = "Верно" if status == "correct" else "Частично" if status == "partial" else "Нужно исправить"
+            if item.get("score") is not None:
+                label += f' · {float(item["score"]):.0%} пункта'
             evidence = escape(str(item.get("student_evidence") or "—"))
             if status == "correct":
                 details = '<p><b>Критерий выполнен.</b> Исправления не требуются.</p>'
@@ -313,7 +319,7 @@ def render_sidebar() -> tuple[str, dict | None]:
 def start_assessment(student: dict, assignment: dict, artifact: str) -> None:
     skill_names = {skill_id: CURRICULUM.skill_by_id[skill_id].name for skill_id in assignment["skill_ids"]}
     assessment, traces = LLM.assess_submission(assignment, artifact, skill_names)
-    assessment["grader_version"] = 2
+    assessment["grader_version"] = 3
     assessment["mastery_model_version"] = 2
     findings = [
         ArtifactFinding(

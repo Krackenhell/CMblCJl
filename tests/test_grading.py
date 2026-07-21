@@ -99,6 +99,45 @@ def test_legacy_starter_suffix_does_not_corrupt_last_answer():
     assert result["slots"][3]["prompt"] == "He stopped ___ (buy) some water"
 
 
+def test_reported_speech_near_misses_receive_component_scores():
+    assignment = get_assignment(5)
+    answer = (
+        "1) Maya said she was working from home yesterday\n"
+        "2) Leo said he finished the task the day before yesterday\n"
+        "3) Nina asked if I have seen this document"
+    )
+
+    result = grade_structured_answer(assignment, answer)
+
+    assert result is not None
+    assert 0.55 <= result["score"] <= 0.70
+    assert [slot["diagnostic"]["code"] for slot in result["slots"]] == [
+        "reference_shift",
+        "backshift",
+        "backshift",
+    ]
+
+
+def test_reported_request_diagnoses_reporting_construction_not_generic_backshift():
+    assignments = list_assignments()
+    assignment = next(
+        item
+        for item in assignments
+        if item.get("topic_key") == "eng_reported_speech" and item.get("variant") == 2
+    )
+
+    result = grade_structured_answer(
+        assignment,
+        "1) Ada said to Ben to send her that file\n2)\n3)",
+    )
+
+    assert result is not None
+    first = result["slots"][0]
+    assert 0.60 <= first["score"] <= 0.75
+    assert first["diagnostic"]["code"] == "request_reporting_verb"
+    assert "ask + object + to-infinitive" in first["diagnostic"]["rule_focus"]
+
+
 def test_reference_slashes_expand_to_real_answers():
     assert accepted_variants("might/could have") == ["might have", "could have"]
     assert set(accepted_variants("She asked whether/if I knew.")) >= {
