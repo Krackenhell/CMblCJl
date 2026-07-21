@@ -1,10 +1,10 @@
 {
-  "cases": 10,
+  "cases": 14,
   "within_band_accuracy": 1.0,
   "mean_distance_to_band": 0.0,
   "false_accepts": 0,
   "false_rejects": 0,
-  "mean_latency_ms": 14716.3,
+  "mean_latency_ms": 18383.714285714286,
   "results": [
     {
       "id": "reported_time_reference_partial",
@@ -14,17 +14,17 @@
       "within_band": true,
       "distance_to_band": 0.0,
       "verdict": "partial",
-      "duration_ms": 16903
+      "duration_ms": 17977
     },
     {
       "id": "reported_transfer_mostly_correct",
-      "score": 0.85,
+      "score": 0.7,
       "min_score": 0.6,
       "max_score": 0.85,
       "within_band": true,
       "distance_to_band": 0.0,
-      "verdict": "correct",
-      "duration_ms": 17593
+      "verdict": "partial",
+      "duration_ms": 21373
     },
     {
       "id": "reported_request_tautology",
@@ -34,7 +34,7 @@
       "within_band": true,
       "distance_to_band": 0.0,
       "verdict": "incorrect",
-      "duration_ms": 12557
+      "duration_ms": 14959
     },
     {
       "id": "reported_request_correct",
@@ -44,7 +44,7 @@
       "within_band": true,
       "distance_to_band": 0.0,
       "verdict": "correct",
-      "duration_ms": 14238
+      "duration_ms": 18106
     },
     {
       "id": "gerund_stop_to_correct",
@@ -54,7 +54,7 @@
       "within_band": true,
       "distance_to_band": 0.0,
       "verdict": "correct",
-      "duration_ms": 14626
+      "duration_ms": 15795
     },
     {
       "id": "gerund_stop_random",
@@ -64,7 +64,7 @@
       "within_band": true,
       "distance_to_band": 0.0,
       "verdict": "incorrect",
-      "duration_ms": 12321
+      "duration_ms": 13786
     },
     {
       "id": "modal_past_correct",
@@ -74,7 +74,7 @@
       "within_band": true,
       "distance_to_band": 0.0,
       "verdict": "correct",
-      "duration_ms": 15428
+      "duration_ms": 17537
     },
     {
       "id": "modal_present_confused",
@@ -84,7 +84,7 @@
       "within_band": true,
       "distance_to_band": 0.0,
       "verdict": "incorrect",
-      "duration_ms": 11308
+      "duration_ms": 15298
     },
     {
       "id": "articles_valid_alternative",
@@ -94,7 +94,7 @@
       "within_band": true,
       "distance_to_band": 0.0,
       "verdict": "correct",
-      "duration_ms": 17340
+      "duration_ms": 23076
     },
     {
       "id": "articles_no_knowledge",
@@ -104,7 +104,47 @@
       "within_band": true,
       "distance_to_band": 0.0,
       "verdict": "incorrect",
-      "duration_ms": 14849
+      "duration_ms": 21607
+    },
+    {
+      "id": "relative_where_correct_paraphrase",
+      "score": 0.85,
+      "min_score": 0.85,
+      "max_score": 1.0,
+      "within_band": true,
+      "distance_to_band": 0.0,
+      "verdict": "correct",
+      "duration_ms": 19045
+    },
+    {
+      "id": "relative_who_with_terminology_error",
+      "score": 0.45,
+      "min_score": 0.45,
+      "max_score": 0.7,
+      "within_band": true,
+      "distance_to_band": 0.0,
+      "verdict": "partial",
+      "duration_ms": 20441
+    },
+    {
+      "id": "relative_who_valid_example_without_explanation",
+      "score": 0.7,
+      "min_score": 0.45,
+      "max_score": 0.7,
+      "within_band": true,
+      "distance_to_band": 0.0,
+      "verdict": "partial",
+      "duration_ms": 14239
+    },
+    {
+      "id": "relative_non_defining_complete",
+      "score": 0.85,
+      "min_score": 0.85,
+      "max_score": 1.0,
+      "within_band": true,
+      "distance_to_band": 0.0,
+      "verdict": "correct",
+      "duration_ms": 24133
     }
   ]
 }

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 from difflib import SequenceMatcher
 from itertools import product
 from typing import Any
@@ -17,9 +18,23 @@ CONTENT_STOP_WORDS = {
     "said", "asked", "told", "if", "whether", "was", "were", "had", "has", "have",
 }
 
+RELATIVE_WORDS = {"who", "whom", "whose", "which", "that", "where"}
+CONTENT_IRREGULARS = {
+    "met": "meet",
+    "won": "win",
+    "was": "be",
+    "were": "be",
+    "is": "be",
+    "are": "be",
+    "has": "have",
+    "had": "have",
+}
+
 
 def normalize_answer(value: str) -> str:
-    normalized = value.lower().replace("’", "'").replace("`", "'")
+    normalized = unicodedata.normalize("NFKD", value.lower())
+    normalized = "".join(char for char in normalized if not unicodedata.combining(char))
+    normalized = normalized.replace("’", "'").replace("`", "'")
     contractions = {
         "can't": "cannot",
         "couldn't": "could not",
@@ -113,6 +128,47 @@ def _contains_tokens(value: str, phrase: str) -> bool:
     haystack = f" {' '.join(_tokens(value))} "
     needle = f" {' '.join(_tokens(phrase))} "
     return bool(needle.strip()) and needle in haystack
+
+
+def _content_lemma(token: str) -> str:
+    token = CONTENT_IRREGULARS.get(token, token)
+    if token.endswith("ies") and len(token) > 4:
+        return token[:-3] + "y"
+    if token.endswith("ing") and len(token) > 5:
+        token = token[:-3]
+        if len(token) > 2 and token[-1] == token[-2]:
+            token = token[:-1]
+        return token
+    if token.endswith("ed") and len(token) > 4:
+        stem = token[:-2]
+        return stem + "e" if stem + "e" in {"create"} else stem
+    if token.endswith("es") and len(token) > 4:
+        return token[:-2]
+    if token.endswith("s") and len(token) > 3:
+        return token[:-1]
+    return token
+
+
+def _content_lemmas(value: str) -> set[str]:
+    stop_words = CONTENT_STOP_WORDS | RELATIVE_WORDS | {
+        "is", "are", "be", "been", "being", "do", "does", "did",
+        "still", "perfectly", "there", "only", "once", "many", "our", "my",
+    }
+    return {
+        _content_lemma(token)
+        for token in _tokens(value)
+        if token not in stop_words and len(token) > 1
+    }
+
+
+def _relative_marker_and_antecedent(value: str) -> tuple[str, str]:
+    tokens = _tokens(value)
+    for index, token in enumerate(tokens):
+        if token in {"which", "whom"} and index and tokens[index - 1] in {"in", "at", "for", "to"}:
+            return f"{tokens[index - 1]} {token}", tokens[index - 2] if index >= 2 else ""
+        if token in RELATIVE_WORDS:
+            return token, tokens[index - 1] if index else ""
+    return "", ""
 
 
 def _component(
@@ -366,8 +422,209 @@ def grade_reported_speech_slot(prompt: str, actual: str, expected: str) -> dict[
     return {"score": round(score, 4), "components": components, "primary_error": primary_error}
 
 
+def grade_relative_clause_slot(prompt: str, actual: str, expected: str) -> dict[str, Any]:
+    """Score a relative-clause answer by meaning and grammar, not one exact sentence."""
+    if not _tokens(actual):
+        return {
+            "score": 0.0,
+            "components": [],
+            "primary_error": None,
+            "probe": None,
+            "accepted": False,
+        }
+
+    expected_marker, expected_antecedent = _relative_marker_and_antecedent(expected)
+    actual_marker, actual_antecedent = _relative_marker_and_antecedent(actual)
+    expected_marker_core = expected_marker.split()[-1]
+    actual_marker_core = actual_marker.split()[-1] if actual_marker else ""
+    expected_non_defining = bool(
+        re.search(r",\s*(?:who|whom|whose|which)\b", expected, re.IGNORECASE)
+    )
+    actual_non_defining = bool(
+        re.search(r",\s*(?:who|whom|whose|which)\b", actual, re.IGNORECASE)
+    )
+
+    expected_content = _content_lemmas(expected)
+    actual_content = _content_lemmas(actual)
+    content_score = (
+        len(expected_content & actual_content) / len(expected_content)
+        if expected_content
+        else 1.0
+    )
+    content_component = _component(
+        "meaning_preservation",
+        "сохранение фактов из двух исходных предложений",
+        0.25,
+        content_score,
+        "При объединении предложений нельзя терять факт или менять того, кто совершает действие.",
+        f"Какие два исходных факта из «{prompt}» должны сохраниться в одном предложении?",
+        f"Нужно сохранить оба факта без изменения смысла: {expected}.",
+        [[token] for token in sorted(expected_content)[:5]],
+    )
+
+    allowed_markers: set[str]
+    if expected_marker_core in {"who", "whom"}:
+        allowed_markers = {expected_marker_core} if expected_non_defining else {"who", "whom", "that"}
+        marker_rule = "who/whom относится к людям; that возможно только в defining clause"
+        marker_concepts = [
+            ["who", "whom", "that"],
+            ["человек", "люди", "person", "people"],
+            ["определительное придаточное", "relative clause"],
+            ["потому что", "так как", "refers to", "относится к"],
+        ]
+    elif expected_marker_core == "whose":
+        allowed_markers = {"whose"}
+        marker_rule = "whose показывает принадлежность"
+        marker_concepts = [
+            ["whose"],
+            ["принадлежность", "possessive", "чей"],
+            ["определительное придаточное", "relative clause"],
+        ]
+    elif expected_marker_core == "where":
+        allowed_markers = {"where", "which", "that"}
+        marker_rule = "where заменяет обстоятельство места; также возможна равнозначная перестройка с in which/that"
+        marker_concepts = [
+            ["where", "in which", "that", "which"],
+            ["место", "place", "там", "there"],
+            ["определительное придаточное", "relative clause"],
+            ["потому что", "так как", "refers to", "относится к"],
+        ]
+    else:
+        allowed_markers = {"which"} if expected_non_defining else {"which", "that"}
+        marker_rule = "which относится к предметам; that возможно только в defining clause"
+        marker_concepts = [
+            ["which", "that"],
+            ["предмет", "вещь", "thing", "object"],
+            ["определительное придаточное", "relative clause"],
+            ["потому что", "так как", "refers to", "относится к"],
+        ]
+
+    place_rewrite = False
+    if expected_marker_core == "where" and actual_marker_core in {"which", "that"}:
+        antecedent_pattern = re.escape(actual_antecedent)
+        place_rewrite = bool(
+            re.search(
+                rf"\b(?:in|at)\s+(?:the\s+|a\s+|this\s+|that\s+)?{antecedent_pattern}\b",
+                normalize_answer(actual),
+            )
+        ) or actual_marker.startswith("in ")
+    marker_valid = actual_marker_core in allowed_markers
+    if expected_marker_core == "where" and actual_marker_core in {"which", "that"}:
+        marker_valid = marker_valid and place_rewrite
+    marker_score = 1.0 if marker_valid else (0.5 if actual_marker_core in RELATIVE_WORDS else 0.0)
+    marker_component = _component(
+        "relative_marker",
+        "выбор относительного слова по роли существительного",
+        0.15,
+        marker_score,
+        marker_rule + ".",
+        f"Какую роль выполняет «{expected_antecedent}» и какое относительное слово передаёт эту роль?",
+        f"Ориентир: {marker_rule}. В данном пункте: {expected}.",
+        marker_concepts,
+    )
+
+    antecedent_score = 1.0 if (
+        _content_lemma(actual_antecedent) == _content_lemma(expected_antecedent)
+    ) else 0.0
+    antecedent_component = _component(
+        "antecedent",
+        "правильная связь придаточного с определяемым словом",
+        0.25,
+        antecedent_score,
+        "Относительное придаточное относится к существительному прямо перед связкой; неверная связь меняет участника действия.",
+        f"В вашем варианте относительная часть присоединена к «{actual_antecedent or '—'}». К какому слову она должна относиться, чтобы сохранить смысл «{prompt}»?",
+        f"Она должна относиться к «{expected_antecedent}»: {expected}.",
+        [
+            [expected_antecedent],
+            ["относится к", "определяет", "refers to", "describes"],
+            ["смысл", "meaning", "кто выполняет действие"],
+        ],
+    )
+
+    if expected_non_defining:
+        clause_type_score = 1.0 if actual_non_defining and actual_marker_core != "that" else 0.0
+        clause_rule = (
+            "Уже определённое существительное получает дополнительную non-defining информацию; "
+            "она выделяется запятыми, и that здесь не используется"
+        )
+        clause_concepts = [
+            ["дополнительная информация", "необязательная информация", "non-defining"],
+            ["запятая", "запятые", "comma", "commas"],
+            ["which", "who"],
+            [
+                "that не используется",
+                "нельзя that",
+                "that здесь нельзя",
+                "that is not allowed",
+                "not that",
+            ],
+        ]
+    else:
+        clause_type_score = 1.0 if not actual_non_defining else 0.6
+        clause_rule = "Defining relative clause уточняет, о каком человеке, предмете или месте идёт речь"
+        clause_concepts = [
+            ["уточняет", "определяет", "defining"],
+            ["без запятых", "no commas"],
+            [expected_marker_core],
+        ]
+    clause_component = _component(
+        "clause_type",
+        "defining/non-defining смысл и пунктуация",
+        0.25,
+        clause_type_score,
+        clause_rule + ".",
+        f"Является ли относительная часть в «{expected}» необходимым уточнением или дополнительной информацией, и нужны ли запятые?",
+        clause_rule + f" Правильная форма: {expected}.",
+        clause_concepts,
+    )
+
+    structure_score = 1.0 if actual_marker and len(_tokens(actual)) >= 5 else 0.0
+    structure_component = _component(
+        "complete_clause",
+        "полное предложение с относительным придаточным",
+        0.10,
+        structure_score,
+        "Ответ должен быть одним полным предложением с относительным придаточным.",
+        "Как объединить обе исходные части в одно полное предложение с relative clause?",
+        expected,
+        [[expected]],
+    )
+    components = [
+        content_component,
+        marker_component,
+        antecedent_component,
+        clause_component,
+        structure_component,
+    ]
+    score = sum(float(item["weight"]) * float(item["score"]) for item in components)
+    errors = [item for item in components if float(item["score"]) < 0.99]
+    primary_error = max(
+        errors,
+        key=lambda item: float(item["weight"]) * (1 - float(item["score"])),
+        default=None,
+    )
+    probe = clause_component if expected_non_defining else marker_component
+    accepted = all(
+        (
+            content_score >= 0.90,
+            marker_valid,
+            antecedent_score >= 0.99,
+            clause_type_score >= 0.99,
+            structure_score >= 0.99,
+        )
+    )
+    return {
+        "score": round(score, 4),
+        "components": components,
+        "primary_error": primary_error,
+        "probe": probe,
+        "accepted": accepted,
+    }
+
+
 SLOT_COMPONENT_GRADERS = {
     "eng_reported_speech": grade_reported_speech_slot,
+    "eng_relative_clauses": grade_relative_clause_slot,
 }
 
 
@@ -383,7 +640,7 @@ def grade_numbered_answer(assignment: dict[str, Any], answer: str) -> dict[str, 
     for index, expected in enumerate(reference_items, start=1):
         actual = answer_items[index - 1] if index <= len(answer_items) else ""
         variants = accepted_variants(expected)
-        correct = answer_matches(actual, variants)
+        exact_match = answer_matches(actual, variants)
         component_grader = SLOT_COMPONENT_GRADERS.get(skill_id)
         component_result = (
             component_grader(
@@ -391,11 +648,23 @@ def grade_numbered_answer(assignment: dict[str, Any], answer: str) -> dict[str, 
                 actual,
                 variants[0],
             )
-            if component_grader and not correct
+            if component_grader
             else None
         )
+        accepted_equivalent = bool((component_result or {}).get("accepted"))
+        correct = exact_match or accepted_equivalent
         slot_score = 1.0 if correct else float((component_result or {}).get("score", 0.0))
         primary_error = (component_result or {}).get("primary_error")
+        probe = (component_result or {}).get("probe")
+        if not probe:
+            probe = next(
+                (
+                    item
+                    for item in (component_result or {}).get("components", [])
+                    if item.get("code") not in {"content", "sentence_similarity"}
+                ),
+                None,
+            )
         if correct:
             issue = ""
         elif not actual:
@@ -417,6 +686,8 @@ def grade_numbered_answer(assignment: dict[str, Any], answer: str) -> dict[str, 
                 "score": round(slot_score, 4),
                 "components": (component_result or {}).get("components", []),
                 "diagnostic": primary_error,
+                "probe": probe,
+                "accepted_equivalent": accepted_equivalent and not exact_match,
                 "student_evidence": actual or "Ответ отсутствует",
                 "expected_phrase": " / ".join(variants[:3]),
                 "issue": issue,

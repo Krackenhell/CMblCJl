@@ -161,6 +161,32 @@ def grounded_transfer_example(
             "Mia asked whether I needed help. Общий косвенный вопрос вводится whether "
             "и использует прямой порядок слов."
         )
+    if "non-defining" in lowered_principle or (
+        "дополнительн" in lowered_principle and "запят" in lowered_principle
+    ):
+        return (
+            "My phone, which is only a year old, still works well. Возраст — "
+            "дополнительная информация об уже определённом my phone, поэтому нужны "
+            "запятые и which, а не that."
+        )
+    if "where" in lowered_principle or "обстоятельство места" in lowered_principle:
+        return (
+            "The library where we usually study closes at nine. Where относится к "
+            "месту и заменяет there в исходной мысли."
+        )
+    if "whose" in lowered_principle or "принадлежност" in lowered_principle:
+        return (
+            "I met a designer whose portfolio won an award. Whose показывает, что "
+            "портфолио принадлежит дизайнеру."
+        )
+    if "относится к людям" in lowered_principle or "who/whom" in lowered_principle:
+        return (
+            "The teacher who helped me was very patient. Who относится к человеку — teacher."
+        )
+    if "относится к предмет" in lowered_principle or "which относится" in lowered_principle:
+        return (
+            "The book which I borrowed was useful. Which относится к предмету — book."
+        )
     if "stop" in stems and normalized_form.startswith("to "):
         return (
             "The driver stopped to buy some water. Здесь stop + to-infinitive означает, "
@@ -242,6 +268,10 @@ def calibrated_viva_score(raw_score: float, concept_coverage: float | None) -> f
     score = min(max(raw_score, 0.0), 1.0)
     if concept_coverage is None:
         return score
+    # A prompt that explicitly asks for an explanation is not fully answered
+    # when one of its required concepts is absent, even if the example is valid.
+    if concept_coverage < 0.99:
+        score = min(score, 0.70)
     ceilings = ((0.01, 0.30), (0.30, 0.50), (0.66, 0.70))
     for threshold, ceiling in ceilings:
         if concept_coverage < threshold:
@@ -667,7 +697,8 @@ class LocalLLM:
         grounded_focus = required_form
         rule = self.rulebook.get(assignment["skill_ids"][0], {})
         diagnostic = dict(focused_slot.get("diagnostic") or {})
-        principle = str(diagnostic.get("rule_focus") or select_relevant_principle(
+        verified_focus = diagnostic or dict(focused_slot.get("probe") or {})
+        principle = str(verified_focus.get("rule_focus") or select_relevant_principle(
             rule, f"{source_prompt} {grounded_focus}"
         ))
         question_payload = {
@@ -679,7 +710,7 @@ class LocalLLM:
             "source_prompt": source_prompt,
             "required_form": required_form,
             "grounded_rule_focus": principle,
-            "verified_diagnostic": diagnostic,
+            "verified_diagnostic": verified_focus,
             "instructions": (
                 "Если mode=diagnostic, первый вопрос просит объяснить исправление именно source_prompt. "
                 "Если mode=viva, он просит объяснить уже правильную форму. Второй вопрос просит придумать "
@@ -698,7 +729,15 @@ class LocalLLM:
         first_item = dict(question_pair.get("first_question") or {})
         second_item = dict(question_pair.get("transfer_question") or {})
         examples = [str(item) for item in rule.get("examples") or []]
-        if not generated_question_is_valid(
+        if verified_focus:
+            # The local model may paraphrase, but it may not change what is being tested.
+            # The verified subject contract therefore owns the concrete question and answer.
+            first_item = {
+                "skill_id": assignment["skill_ids"][0],
+                "text": str(verified_focus["question"]),
+                "expected_answer": str(verified_focus["expected_answer"]),
+            }
+        elif not generated_question_is_valid(
             first_item, required_form, source_prompt=source_prompt
         ):
             if diagnostic:
@@ -718,7 +757,7 @@ class LocalLLM:
                 "skill_id": assignment["skill_ids"][0],
                 "text": question_text,
                 "expected_answer": str(
-                    diagnostic.get("expected_answer") or f"{grounded_focus}: {principle}"
+                    verified_focus.get("expected_answer") or f"{grounded_focus}: {principle}"
                 ),
             }
         if not generated_question_is_valid(
@@ -757,7 +796,7 @@ class LocalLLM:
                 ),
                 expected_concepts=tuple(
                     tuple(str(term) for term in group)
-                    for group in diagnostic.get("expected_concepts", [])
+                    for group in verified_focus.get("expected_concepts", [])
                 ),
                 rule_id=item["skill_id"],
                 expected_answer=item["expected_answer"],

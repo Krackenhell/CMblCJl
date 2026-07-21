@@ -39,7 +39,7 @@ from vivatrace.rulebook import load_rulebook
 ROOT = Path(__file__).resolve().parent
 CURRICULUM = load_curriculum(DATA_DIR / "curriculum.json")
 LLM = LocalLLM()
-ASSESSMENT_VERSION = 6
+ASSESSMENT_VERSION = 7
 RULEBOOK = load_rulebook()
 DIFFICULTY_LABELS = {1: "Базовый", 2: "Средний", 3: "Продвинутый"}
 COLORS = {
@@ -150,7 +150,7 @@ def difficulty_label(assignment: dict) -> str:
 
 def regrade_legacy_attempt(attempt: dict, assignment: dict) -> dict:
     stored_assessment = attempt.get("assessment") or {}
-    if int(stored_assessment.get("grader_version") or 0) >= 3:
+    if int(stored_assessment.get("grader_version") or 0) >= 4:
         return upgrade_mastery_model(attempt, assignment)
     check = grade_structured_answer(assignment, str(attempt.get("artifact") or ""))
     if not check:
@@ -169,7 +169,7 @@ def regrade_legacy_attempt(attempt: dict, assignment: dict) -> dict:
     result["submission_correct"] = bool(check["correct"])
     result["assessment_mode"] = "viva" if check["correct"] else "diagnostic"
     result["assessment"] = {
-        "grader_version": 3,
+        "grader_version": 4,
         "submission_score": float(check["score"]),
         "is_correct": bool(check["correct"]),
         "feedback": feedback,
@@ -319,7 +319,7 @@ def render_sidebar() -> tuple[str, dict | None]:
 def start_assessment(student: dict, assignment: dict, artifact: str) -> None:
     skill_names = {skill_id: CURRICULUM.skill_by_id[skill_id].name for skill_id in assignment["skill_ids"]}
     assessment, traces = LLM.assess_submission(assignment, artifact, skill_names)
-    assessment["grader_version"] = 3
+    assessment["grader_version"] = 4
     assessment["mastery_model_version"] = 2
     findings = [
         ArtifactFinding(
@@ -587,10 +587,10 @@ def render_student_dashboard(student: dict, assignments: list[dict]) -> None:
                         "Задание": item.get("assignment_title", "—"),
                         "Тема": item.get("topic", "—"),
                         "Задание, %": round(float(item.get("submission_score") or 0) * 100),
-                        "Viva, %": (
+                        "Viva": (
                             "пересдать"
                             if item.get("regraded_legacy")
-                            else round(float(item.get("overall_score") or 0) * 100)
+                            else f'{round(float(item.get("overall_score") or 0) * 100)}%'
                         ),
                     }
                     for item in latest_by_assignment.values()

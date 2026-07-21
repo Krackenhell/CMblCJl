@@ -98,5 +98,45 @@
     "student_answer": "вся информация",
     "min_score": 0.00,
     "max_score": 0.10
+  },
+  {
+    "id": "relative_where_correct_paraphrase",
+    "rule_id": "eng_relative_clauses",
+    "question": "Какую роль выполняет café и какое относительное слово передаёт эту роль?",
+    "expected_answer": "Café обозначает место, поэтому используется where: The café where we met serves vegan food.",
+    "expected_concepts": [["where"], ["место", "place"], ["потому что", "так как", "refers to", "относится к"]],
+    "student_answer": "Потому что речь идёт о кафе: это место, поэтому употребляется where.",
+    "min_score": 0.85,
+    "max_score": 1.00
+  },
+  {
+    "id": "relative_who_with_terminology_error",
+    "rule_id": "eng_relative_clauses",
+    "question": "Почему после woman используется who и какую конструкцию оно вводит?",
+    "expected_answer": "Who относится к человеку woman и вводит определительное придаточное.",
+    "expected_concepts": [["who"], ["человек", "люди", "person", "people"], ["определительное придаточное", "relative clause"], ["потому что", "так как", "refers to", "относится к"]],
+    "student_answer": "Потому что речь о девушке, но who designed the app — это деепричастный оборот.",
+    "min_score": 0.45,
+    "max_score": 0.70
+  },
+  {
+    "id": "relative_who_valid_example_without_explanation",
+    "rule_id": "eng_relative_clauses",
+    "question": "Составьте пример с who для человека и кратко объясните выбор.",
+    "expected_answer": "People who help others are kind: who относится к people.",
+    "expected_concepts": [["who"], ["человек", "люди", "person", "people"], ["потому что", "так как", "refers to", "относится к"]],
+    "student_answer": "People who like me are awesome.",
+    "min_score": 0.45,
+    "max_score": 0.70
+  },
+  {
+    "id": "relative_non_defining_complete",
+    "rule_id": "eng_relative_clauses",
+    "question": "Почему в My laptop, which is five years old, ... нужны which и запятые?",
+    "expected_answer": "Возраст — дополнительная non-defining информация об уже определённом laptop; она выделяется запятыми, а that не используется.",
+    "expected_concepts": [["дополнительная информация", "необязательная информация", "non-defining"], ["запятая", "запятые", "comma", "commas"], ["which"], ["that не используется", "нельзя that", "that здесь нельзя", "that is not allowed", "not that"]],
+    "student_answer": "My laptop уже определён как мой; возраст — дополнительная информация, поэтому ставим which с запятыми, а that здесь нельзя.",
+    "min_score": 0.85,
+    "max_score": 1.00
   }
 ]

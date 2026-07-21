@@ -36,7 +36,7 @@ Adversarial benchmark содержит правильные, частичные,
 .venv\Scripts\python.exe scripts\evaluate_grader.py
 ```
 
-Текущий результат на 24 сценариях: `exact score accuracy = 100%`, `false accepts = 0`, `false rejects = 0`. Benchmark выполняется и внутри pytest.
+Текущий результат на 26 сценариях: `exact score accuracy = 100%`, `false accepts = 0`, `false rejects = 0`. В набор входят допустимые перестройки Relative Clauses и частичная компонентная оценка; benchmark выполняется и внутри pytest.
 
 Отдельный benchmark семантической Viva хранит экспертные интервалы для правильных,
 частичных и adversarial-ответов. Knowledge-tracing эксперимент сравнивает BKT с тремя baseline

@@ -354,6 +354,72 @@ def test_reported_speech_question_uses_verified_atomic_diagnostic(monkeypatch):
     assert "today" in transfer.text and "that day" in transfer.text
 
 
+def test_relative_clause_questions_follow_each_students_actual_gap(monkeypatch):
+    assignments = json.loads(
+        (Path(__file__).parents[1] / "data" / "english_b2_assignments.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assignment = next(
+        item
+        for item in assignments
+        if item["topic_key"] == "eng_relative_clauses" and item["variant"] == 1
+    )
+    llm = LocalLLM()
+    trace = LLMTrace(
+        trace_id="relative-contract",
+        backend="llama.cpp",
+        model="Qwen2.5-3B-Instruct-Q4_K_M",
+        model_sha256="abc123",
+        stage="формирование двух вопросов",
+        duration_ms=10,
+        created_at="2026-01-01T00:00:00+00:00",
+    )
+    monkeypatch.setattr(
+        llm,
+        "_call_json",
+        lambda *args, **kwargs: (
+            {
+                "first_question": {
+                    "skill_id": "eng_relative_clauses",
+                    "text": "Почему это relative clause?",
+                    "expected_answer": "Потому что это relative clause.",
+                },
+                "transfer_question": {
+                    "skill_id": "eng_relative_clauses",
+                    "rule_focus": "who относится к людям",
+                    "expected_answer": "The teacher who helped me was patient.",
+                },
+            },
+            trace,
+        ),
+    )
+
+    semantic_error, _ = llm.assess_submission(
+        assignment,
+        "1) The woman designed the app that won her an award\n"
+        "2) My laptop that is five years old still works perfectly\n"
+        "3) We met in the cafe that serves vegan food",
+        {"eng_relative_clauses": "Определительные придаточные"},
+    )
+    correct_alternative, _ = llm.assess_submission(
+        assignment,
+        "1) The woman who designed the app won an award\n"
+        "2) My laptop, which is five years old, still works perfectly\n"
+        "3) We met in the cafe which serves vegan food",
+        {"eng_relative_clauses": "Определительные придаточные"},
+    )
+
+    first_error_question = semantic_error["questions"][0]
+    first_correct_question = correct_alternative["questions"][0]
+    assert "присоединена к «app»" in first_error_question.text
+    assert "woman" in first_error_question.text
+    assert first_error_question.expected_concepts
+    assert first_correct_question.text != first_error_question.text
+    assert "woman" in first_correct_question.text
+    assert "who" in first_correct_question.expected_answer
+
+
 def test_mixed_russian_negation_is_never_shown_inside_english_modal():
     assert sanitize_mixed_modal_negation("Нужно написать must не, а другую форму.") == (
         "Нужно написать must not, а другую форму."
@@ -390,6 +456,7 @@ def test_semantic_concepts_give_partial_credit_for_partial_understanding():
 
     assert coverage["coverage"] == pytest.approx(1 / 3)
     assert calibrated_viva_score(0.1, coverage["coverage"]) == 0.35
+    assert calibrated_viva_score(0.95, 2 / 3) == 0.70
 
 
 def test_reported_request_transfer_example_stays_on_the_verified_subrule():

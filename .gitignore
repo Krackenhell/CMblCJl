@@ -25,3 +25,4 @@ tools/llama-vulkan/*.zip
 logs/
 .local-llm-download/
 local-llm-setup.*.log
+external/concordia/

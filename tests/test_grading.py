@@ -138,6 +138,40 @@ def test_reported_request_diagnoses_reporting_construction_not_generic_backshift
     assert "ask + object + to-infinitive" in first["diagnostic"]["rule_focus"]
 
 
+def test_relative_clauses_score_atomic_errors_instead_of_binary_string_match():
+    assignment = get_assignment(7)
+
+    result = grade_structured_answer(
+        assignment,
+        "1) the woman designed the app that won her an award\n"
+        "2) my laptop that is five years old still works perfectly\n"
+        "3) we met in the cafe that serves vegan food",
+    )
+
+    assert result is not None
+    assert result["source"] == "rule_component_grader"
+    assert result["score"] == pytest.approx(0.8083, abs=0.001)
+    assert result["slots"][0]["diagnostic"]["code"] == "antecedent"
+    assert result["slots"][1]["diagnostic"]["code"] == "clause_type"
+    assert result["slots"][2]["correct"] is True
+    assert result["slots"][2]["accepted_equivalent"] is True
+
+
+def test_relative_clauses_accept_fact_preserving_reordered_solution():
+    assignment = get_assignment(7)
+
+    result = grade_structured_answer(
+        assignment,
+        "1) The woman who designed the app won an award\n"
+        "2) My laptop, which is five years old, still works perfectly\n"
+        "3) We met in the cafe which serves vegan food",
+    )
+
+    assert result is not None
+    assert result["score"] == 1
+    assert result["correct"] is True
+
+
 def test_reference_slashes_expand_to_real_answers():
     assert accepted_variants("might/could have") == ["might have", "could have"]
     assert set(accepted_variants("She asked whether/if I knew.")) >= {

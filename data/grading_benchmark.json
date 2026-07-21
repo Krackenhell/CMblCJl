@@ -22,5 +22,7 @@
   {"name":"passive_mixed_one_blank","assignment_id":17,"answer":"1) has just been delivered\n2) was closed\n3) will be introduced\n4)","expected_score":0.75},
   {"name":"conditionals_correct","assignment_id":14,"answer":"1) approves, will publish\n2) had, would apply\n3) would, do","expected_score":1.0},
   {"name":"conditionals_mixed","assignment_id":14,"answer":"1) approves, will publish\n2) have, will apply\n3) would, do","expected_score":0.6666666667},
+  {"name":"relative_clauses_atomic_partial","assignment_id":7,"answer":"1) the woman designed the app that won her an award\n2) my laptop that is five years old still works perfectly\n3) we met in the cafe that serves vegan food","expected_score":0.8083333333},
+  {"name":"relative_clauses_valid_reordering","assignment_id":7,"answer":"1) The woman who designed the app won an award\n2) My laptop, which is five years old, still works perfectly\n3) We met in the cafe which serves vegan food","expected_score":1.0},
   {"name":"empty_numbered_answer","assignment_id":6,"answer":"1)\n2)\n3)\n4)","expected_score":0.0}
 ]
