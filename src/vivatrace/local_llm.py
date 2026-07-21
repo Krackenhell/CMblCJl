@@ -14,6 +14,7 @@ from typing import Any
 from uuid import uuid4
 
 from .grading import grade_article_cloze, grade_structured_answer
+from .missions import validate_mission_evaluation
 from .models import Evidence, ProbeQuestion
 from .rulebook import load_rulebook, rules_for_assignment
 
@@ -808,6 +809,113 @@ class LocalLLM:
         ]
         traces = ([grade_trace] if grade_trace is not None else []) + question_traces
         return result, traces
+
+    def advance_mission(
+        self,
+        mission: dict[str, Any],
+        messages: list[dict[str, Any]],
+        student_message: str,
+        signal: dict[str, Any],
+        turn_count: int,
+    ) -> tuple[dict[str, Any], LLMTrace]:
+        """Advance a short role-play while keeping scoring grounded and auditable."""
+        schema = {
+            "type": "object",
+            "additionalProperties": False,
+            "required": [
+                "npc_reply",
+                "communicative_score",
+                "grammar_score",
+                "positive_feedback",
+                "guidance",
+                "errors",
+                "state_summary",
+                "suggested_next_action",
+                "ready_to_finish",
+            ],
+            "properties": {
+                "npc_reply": {"type": "string", "maxLength": 420},
+                "communicative_score": {"type": "number", "minimum": 0, "maximum": 1},
+                "grammar_score": {"type": "number", "minimum": 0, "maximum": 1},
+                "positive_feedback": {"type": "string", "maxLength": 220},
+                "guidance": {"type": "string", "maxLength": 260},
+                "errors": {
+                    "type": "array",
+                    "maxItems": 3,
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": False,
+                        "required": ["fragment", "explanation", "correction"],
+                        "properties": {
+                            "fragment": {"type": "string", "maxLength": 100},
+                            "explanation": {"type": "string", "maxLength": 180},
+                            "correction": {"type": "string", "maxLength": 140},
+                        },
+                    },
+                },
+                "state_summary": {"type": "string", "maxLength": 220},
+                "suggested_next_action": {"type": "string", "maxLength": 180},
+                "ready_to_finish": {"type": "boolean"},
+            },
+        }
+        system = (
+            "Ты одновременно персонаж короткой учебной миссии и строгий преподаватель английского B2. "
+            "Продолжи ситуацию естественной репликой npc_reply на английском не длиннее 70 слов. "
+            "Остальные текстовые поля пиши по-русски, английский оставляй только в цитатах и исправлениях. "
+            "Оценивай ТОЛЬКО current_student_message и только целевые правила миссии. Не придумывай ошибку: "
+            "каждый errors.fragment обязан быть точной непрерывной цитатой из current_student_message с теми "
+            "же словами. Мелкие опечатки, регистр и пунктуация не считаются ошибкой, если смысл и целевая "
+            "конструкция ясны. deterministic_signal авторитетно сообщает только о наличии обязательных форм, "
+            "но не доказывает их грамматическую правильность. Если форма употреблена неверно, укажи точную "
+            "цитату и исправление. ready_to_finish=true только если коммуникативная цель достигнута, все "
+            "обязательные формы найдены и содержательных ошибок в них нет. Не обучай правилу длинной лекцией: "
+            "guidance — одна конкретная подсказка для следующего хода. Верни только JSON."
+        )
+        rule = self.rulebook.get(str(mission["skill_id"]), {})
+        compact_history = [
+            {
+                "role": item.get("role"),
+                "content": str(item.get("content") or "")[:500],
+            }
+            for item in messages[-6:]
+        ]
+        payload = {
+            "mission": {
+                key: mission.get(key)
+                for key in (
+                    "title",
+                    "setting",
+                    "npc_name",
+                    "npc_role",
+                    "objective",
+                    "required_features",
+                    "max_turns",
+                )
+            },
+            "verified_rule": {
+                key: rule.get(key)
+                for key in ("title", "summary", "principles", "examples")
+                if rule.get(key)
+            },
+            "dialogue_history": compact_history,
+            "current_student_message": student_message,
+            "deterministic_signal": signal,
+            "turn": turn_count,
+        }
+        raw, trace = self._call_json(
+            "ход практической миссии",
+            system,
+            payload,
+            schema,
+            620,
+            fast=True,
+        )
+        result = validate_mission_evaluation(
+            mission, raw, student_message, signal, turn_count
+        )
+        if not result["npc_reply"]:
+            raise LocalLLMError("Локальная LLM не сформировала реплику персонажа миссии.")
+        return result, trace
 
     def evaluate_answer(
         self,

@@ -20,20 +20,27 @@ from vivatrace.database import (
     get_mastery,
     init_database,
     latest_topic_attempts,
+    latest_mission_attempt,
     list_assignments,
     list_students,
+    mission_history,
     reset_learning_data,
     save_attempt,
+    save_mission_turn,
+    start_mission_attempt,
     student_attempts,
     student_history,
     student_progress,
     update_assignment,
+    update_mastery,
 )
 from vivatrace.demo import DATA_DIR
 from vivatrace.grading import grade_structured_answer, parse_numbered_items
 from vivatrace.local_llm import LLMTrace, LocalLLM, LocalLLMError
+from vivatrace.missions import detect_mission_features, load_missions, missions_by_topic
 from vivatrace.models import ArtifactFinding, Curriculum, Evidence, StudentState
 from vivatrace.rulebook import load_rulebook
+from vivatrace.review import build_review_plan
 
 
 ROOT = Path(__file__).resolve().parent
@@ -41,6 +48,8 @@ CURRICULUM = load_curriculum(DATA_DIR / "curriculum.json")
 LLM = LocalLLM()
 ASSESSMENT_VERSION = 7
 RULEBOOK = load_rulebook()
+MISSIONS = load_missions()
+MISSIONS_BY_TOPIC = missions_by_topic(MISSIONS)
 DIFFICULTY_LABELS = {1: "Базовый", 2: "Средний", 3: "Продвинутый"}
 COLORS = {
     "green": "#176B50",
@@ -103,6 +112,11 @@ h1, h2, h3 { color: #18231F; letter-spacing: -0.035em; }
 .gap-card { background:white; border:1px solid #E2E7E2; border-radius:16px; padding:16px 18px; margin:10px 0; box-shadow:0 6px 18px rgba(16,45,35,.05); }
 .gap-card .count { float:right; background:#FFF0EC; color:#9D382E; border-radius:999px; padding:4px 9px; font-weight:800; font-size:.72rem; }
 .rule-card { background:#F0F5FF; border:1px solid #D8E2F7; border-radius:14px; padding:14px 16px; margin:10px 0; color:#273A63; }
+.mission-hero { background:linear-gradient(130deg,#172A45,#244F66); color:white; border-radius:22px; padding:24px 26px; margin:14px 0 18px; box-shadow:0 14px 34px rgba(19,42,56,.14); }
+.mission-hero h2 { color:white; margin:.3rem 0; }.mission-hero p { color:#E5F1F5; margin:.35rem 0; }
+.mission-objective { color:#BFEA8C !important; font-weight:800; font-size:.78rem; letter-spacing:.07em; }
+.mission-signal { border:1px solid #D8E5DF; border-radius:14px; padding:12px 14px; background:#FBFCFA; margin:8px 0; }
+.mission-result { border:1px solid #B7DAC9; background:#EFF9F4; border-radius:18px; padding:18px 20px; margin:14px 0; }
 .stButton > button, .stFormSubmitButton > button { border-radius: 12px; font-weight: 750; border: 0; background: #176B50; color: white; }
 [data-testid="stExpander"] { background: white; border: 1px solid #E2E7E2; border-radius: 16px; }
 </style>
@@ -543,6 +557,10 @@ def render_student_dashboard(student: dict, assignments: list[dict]) -> None:
         else 0
     )
     valid_viva_count = sum(not item.get("regraded_legacy") for item in history)
+    mission_rows = mission_history(student_id=student["id"])
+    completed_missions = {
+        item["mission_id"]: item for item in mission_rows if item["status"] == "completed"
+    }
     error_counts: Counter[str] = Counter()
     for attempt in history:
         assessment = attempt.get("assessment") or {}
@@ -564,13 +582,15 @@ def render_student_dashboard(student: dict, assignments: list[dict]) -> None:
                 error_counts[str(evidence.get("rule_id") or evidence.get("skill_id"))] += 1
 
     with st.expander("Мой учебный кабинет", expanded=True):
-        columns = st.columns(3)
+        columns = st.columns(4)
         with columns[0]:
             metric_card("Выполнено заданий", f"{completed_count} из {len(assignments)}", "уникальные задания")
         with columns[1]:
             metric_card("Проверок знаний", str(valid_viva_count), "валидные завершённые циклы")
         with columns[2]:
             metric_card("Средний результат", f"{mean_submission:.0%}", "по последним попыткам")
+        with columns[3]:
+            metric_card("Практические миссии", str(len(completed_missions)), "завершено сценариев")
         st.markdown("#### Что повторить")
         if not error_counts:
             st.success("Пока устойчивых пробелов не зафиксировано.")
@@ -597,10 +617,244 @@ def render_student_dashboard(student: dict, assignments: list[dict]) -> None:
                 ]
                 st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch")
 
+        review_records = [
+            {
+                "topic_key": item.get("topic_key"),
+                "topic": item.get("topic"),
+                "score": (
+                    float(item.get("overall_score") or 0)
+                    if not item.get("regraded_legacy")
+                    else float(item.get("submission_score") or 0)
+                ),
+                "completed_at": item.get("completed_at"),
+            }
+            for item in latest_by_assignment.values()
+        ] + [
+            {
+                "topic_key": item["topic_key"],
+                "topic": item["title"],
+                "score": item["score"],
+                "completed_at": item["completed_at"],
+            }
+            for item in completed_missions.values()
+        ]
+        review_plan = build_review_plan(review_records)
+        if review_plan:
+            with st.expander("План интервального повторения"):
+                st.caption(
+                    "Дата следующего извлечения знания зависит от результата: слабые темы возвращаются раньше."
+                )
+                for item in review_plan[:4]:
+                    when = (
+                        "повторить сегодня"
+                        if item["days_left"] == 0
+                        else "повторить сейчас"
+                        if item["days_left"] < 0
+                        else f'через {item["days_left"]} дн.'
+                    )
+                    st.markdown(
+                        f'<div class="mission-signal"><b>{escape(item["title"])}</b>'
+                        f'<span style="float:right"><b>{when}</b></span><br>'
+                        f'<span class="muted">Последнее подтверждение: {item["score"]:.0%} · '
+                        f'интервал {item["interval_days"]} дн.</span></div>',
+                        unsafe_allow_html=True,
+                    )
+
+
+def render_mission_mode(student: dict, assignments: list[dict]) -> None:
+    topic_assignments: dict[str, dict] = {}
+    for assignment in assignments:
+        topic_key = assignment_topic_key(assignment)
+        if topic_key in MISSIONS_BY_TOPIC:
+            topic_assignments.setdefault(topic_key, assignment)
+    topic_keys = list(topic_assignments)
+    if not topic_keys:
+        st.info("Практические миссии появятся после добавления тем английского B2.")
+        return
+
+    def mission_label(topic_key: str) -> str:
+        assignment = topic_assignments[topic_key]
+        mission = MISSIONS_BY_TOPIC[topic_key]
+        return f'{assignment["topic"]} · {mission["title"]}'
+
+    topic_key = st.selectbox(
+        "Сценарий",
+        topic_keys,
+        format_func=mission_label,
+        key=f'mission-topic-{student["id"]}',
+    )
+    mission = MISSIONS_BY_TOPIC[topic_key]
+    attempt = latest_mission_attempt(student["id"], mission["id"])
+    st.markdown(
+        f'<div class="mission-hero"><div class="mission-objective">ПРАКТИКА В РЕАЛЬНОЙ СИТУАЦИИ</div>'
+        f'<h2>{escape(mission["title"])}</h2><p>{escape(mission["student_brief"])}</p>'
+        f'<p><b>Ваша цель:</b> {escape(mission["objective"])}</p></div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        "".join(
+            f'<span class="chip">{escape(item["label"])}</span>'
+            for item in mission["required_features"]
+        ),
+        unsafe_allow_html=True,
+    )
+    st.caption(
+        f'{mission["npc_name"]} · {mission["npc_role"]} · до {mission["max_turns"]} коротких реплик'
+    )
+
+    if attempt is None:
+        with st.expander("Можно начать так"):
+            for suggestion in mission.get("suggestions") or []:
+                st.markdown(f"- {suggestion}")
+        if st.button("Начать миссию", type="primary", width="stretch"):
+            start_mission_attempt(student["id"], mission)
+            st.rerun()
+        return
+
+    messages = list(attempt["messages"])
+    for message in messages:
+        role = "user" if message.get("role") == "student" else "assistant"
+        with st.chat_message(role):
+            st.write(message.get("content") or "")
+
+    state = dict(attempt.get("state") or {})
+    student_messages = [
+        str(message.get("content") or "")
+        for message in messages
+        if message.get("role") == "student"
+    ]
+    signal = state.get("signal") or detect_mission_features(mission, student_messages)
+    if signal.get("features"):
+        st.markdown("#### Прогресс цели")
+        columns = st.columns(len(signal["features"]))
+        for column, feature in zip(columns, signal["features"], strict=True):
+            with column:
+                mark = "✓ подтверждено" if feature["found"] else "○ ещё нужно"
+                metric_card(feature["label"], mark, " · ".join(feature.get("evidence") or []))
+
+    if attempt["turn_count"]:
+        feedback_columns = st.columns(3)
+        with feedback_columns[0]:
+            metric_card("Результат миссии", f'{attempt["score"]:.0%}', "гибридная оценка")
+        with feedback_columns[1]:
+            metric_card(
+                "Грамматическая точность",
+                f'{float(state.get("grammar_score") or 0):.0%}',
+                "по целевому правилу",
+            )
+        with feedback_columns[2]:
+            metric_card(
+                "Коммуникативная задача",
+                f'{float(state.get("communicative_score") or 0):.0%}',
+                f'{attempt["turn_count"]} из {mission["max_turns"]} реплик',
+            )
+        if float(signal.get("coverage") or 0) >= 0.99:
+            st.success("Все целевые конструкции найдены в ваших репликах.")
+        elif signal.get("found"):
+            st.success(f'Уже подтверждено: {", ".join(signal["found"])}.')
+        for error in state.get("errors") or []:
+            st.markdown(
+                f'<div class="finding"><b>Фрагмент:</b> «{escape(error["fragment"])}»<br>'
+                f'<b>Что изменить:</b> {escape(error["explanation"] if re.search(r"[а-яё]", error["explanation"], re.IGNORECASE) else "Форма требует исправления по правилу темы.")}<br>'
+                f'<b>Исправление:</b> {escape(error["correction"])}</div>',
+                unsafe_allow_html=True,
+            )
+        if attempt["status"] == "active":
+            if signal.get("missing"):
+                st.info(f'В следующей реплике добавьте: {", ".join(signal["missing"])}.')
+            else:
+                st.info("Продвиньте ситуацию к цели ещё одной короткой репликой.")
+
+    if attempt["status"] == "completed":
+        result_summary = str(state.get("state_summary") or "")
+        if not re.search(r"[а-яё]", result_summary, re.IGNORECASE):
+            result_summary = (
+                "Коммуникативная цель достигнута, обязательные конструкции использованы корректно."
+            )
+        st.markdown(
+            f'<div class="mission-result"><h3>Миссия выполнена</h3>'
+            f'<p>{escape(result_summary)}</p>'
+            f'<b>Подтверждённое освоение: {attempt["score"]:.0%}</b></div>',
+            unsafe_allow_html=True,
+        )
+    elif attempt["status"] == "needs_retry":
+        st.warning(
+            "Цель пока не подтверждена. Разбор сохранён: можно начать новую попытку с учётом подсказок."
+        )
+    else:
+        with st.form(f'mission-turn-{attempt["id"]}', clear_on_submit=True):
+            answer = st.text_area(
+                "Ваша реплика на английском",
+                height=120,
+                placeholder="Ответьте персонажу и продвиньте ситуацию к цели.",
+            )
+            submitted = st.form_submit_button("Отправить реплику", width="stretch")
+        if submitted:
+            if len(answer.strip().split()) < 3:
+                st.warning("Напишите содержательную реплику минимум из трёх слов.")
+            else:
+                try:
+                    with st.spinner("Персонаж отвечает и проверяет ход…"):
+                        new_student_messages = [*student_messages, answer.strip()]
+                        new_signal = detect_mission_features(mission, new_student_messages)
+                        next_turn = int(attempt["turn_count"]) + 1
+                        result, trace = LLM.advance_mission(
+                            mission, messages, answer.strip(), new_signal, next_turn
+                        )
+                        new_messages = [
+                            *messages,
+                            {"role": "student", "content": answer.strip()},
+                            {"role": "npc", "content": result["npc_reply"]},
+                        ]
+                        new_state = {
+                            **result,
+                            "mastery_applied": bool(state.get("mastery_applied")),
+                        }
+                        if result["status"] == "completed" and not new_state["mastery_applied"]:
+                            previous = get_mastery(
+                                student["id"], [mission["skill_id"]]
+                            )[mission["skill_id"]]
+                            mastery = combine_mastery_evidence(previous, result["score"], [])
+                            update_mastery(student["id"], {mission["skill_id"]: mastery})
+                            new_state["mastery_applied"] = True
+                            new_state["mastery_after"] = mastery
+                        save_mission_turn(
+                            attempt["id"],
+                            new_messages,
+                            new_state,
+                            result["score"],
+                            result["status"],
+                            [*attempt.get("traces", []), asdict(trace)],
+                        )
+                    st.rerun()
+                except LocalLLMError as error:
+                    st.error(str(error))
+
+    if attempt["status"] in {"completed", "needs_retry"}:
+        if st.button("Новая попытка этой миссии", width="stretch"):
+            start_mission_attempt(student["id"], mission)
+            st.rerun()
+    with st.expander("Технический аудит миссии"):
+        st.write(
+            "Наличие обязательных форм проверяет код; локальная LLM ведёт персонажа и оценивает "
+            "уместность. Замечание модели показывается только вместе с буквальной цитатой ответа."
+        )
+        for trace in attempt.get("traces", []):
+            trace_card(trace)
+
 
 def render_student(student: dict) -> None:
     assignments = list_assignments(active_only=True)
     render_student_dashboard(student, assignments)
+    mode = st.radio(
+        "Формат занятия",
+        ["Тренажер", "Практическая миссия"],
+        horizontal=True,
+        key=f'learning-mode-{student["id"]}',
+    )
+    if mode == "Практическая миссия":
+        render_mission_mode(student, assignments)
+        return
     progress = student_progress(student["id"])
     topics: dict[str, list[dict]] = {}
     for item in assignments:
@@ -818,6 +1072,10 @@ def render_student(student: dict) -> None:
             f'{review_details}</div>',
             unsafe_allow_html=True,
         )
+        if evidence.confidence < 0.6:
+            st.warning(
+                "Автопроверка не уверена в этом выводе. Ответ отмечен для просмотра преподавателем."
+            )
         rule = rule_for_evidence(evidence)
         if rule:
             with st.expander(f'Правило: {rule["title"]}'):
@@ -1157,6 +1415,75 @@ def render_quick_assignment_dialog(assignments: list[dict]) -> None:
     st.rerun()
 
 
+def render_teacher_missions(topic_key: str) -> None:
+    mission = MISSIONS_BY_TOPIC.get(topic_key)
+    if not mission:
+        return
+    history = mission_history(topic_key=topic_key)
+    latest_by_student: dict[str, dict] = {}
+    for attempt in history:
+        latest_by_student.setdefault(attempt["student_id"], attempt)
+    with st.expander("Практическая миссия группы", expanded=bool(latest_by_student)):
+        st.caption(
+            f'{mission["title"]}: короткий ролевой перенос правила в реальную коммуникативную задачу.'
+        )
+        if not latest_by_student:
+            st.info("Студенты ещё не запускали эту миссию.")
+            return
+        rows = list(latest_by_student.values())
+        completed = [item for item in rows if item["status"] == "completed"]
+        mean_score = sum(item["score"] for item in rows) / len(rows)
+        reviewed = sum(bool((item.get("state") or {}).get("requires_review")) for item in rows)
+        columns = st.columns(3)
+        with columns[0]:
+            metric_card("Участвовали", str(len(rows)), "уникальные студенты")
+        with columns[1]:
+            metric_card("Достигли цели", f"{len(completed)} из {len(rows)}", "по проверенному порогу")
+        with columns[2]:
+            metric_card(
+                "Средний результат",
+                f"{mean_score:.0%}",
+                f"требуют внимания: {reviewed}",
+            )
+        table_rows = []
+        for item in rows:
+            signal = (item.get("state") or {}).get("signal") or {}
+            table_rows.append(
+                {
+                    "Студент": item["student_name"],
+                    "Статус": (
+                        "цель достигнута"
+                        if item["status"] == "completed"
+                        else "нужна новая попытка"
+                        if item["status"] == "needs_retry"
+                        else "в процессе"
+                    ),
+                    "Реплик": item["turn_count"],
+                    "Результат": round(item["score"] * 100),
+                    "Обязательные формы": f'{len(signal.get("found") or [])}/{len(signal.get("features") or mission["required_features"])}',
+                }
+            )
+        st.dataframe(pd.DataFrame(table_rows), hide_index=True, width="stretch")
+        grounded_errors = [
+            {
+                "student": item["student_name"],
+                **error,
+            }
+            for item in rows
+            for error in (item.get("state") or {}).get("errors") or []
+        ]
+        if grounded_errors:
+            st.markdown("#### Подтверждённые фрагменты для разбора")
+            for error in grounded_errors[:6]:
+                st.markdown(
+                    f'<div class="gap-card"><h4>{escape(error["student"])}</h4>'
+                    f'<p><b>Фрагмент:</b> «{escape(error["fragment"])}»</p>'
+                    f'<p><b>Разбор:</b> {escape(error["explanation"])}</p>'
+                    f'<p><b>Исправление:</b> {escape(error["correction"])}</p></div>',
+                    unsafe_allow_html=True,
+                )
+
+
 def render_teacher() -> None:
     assignments = list_assignments(active_only=False)
     topics: dict[str, list[dict]] = {}
@@ -1192,6 +1519,7 @@ def render_teacher() -> None:
         "Результаты разных персональных вариантов объединены по общему навыку и показывают конкретные пробелы группы.",
         f'ПРЕПОДАВАТЕЛЬ · {assignment["subject"].upper()} · {assignment["topic"].upper()}',
     )
+    render_teacher_missions(topic_key)
     if not attempts:
         st.markdown(
             f'<div class="empty"><h2>Пока нет завершённых попыток</h2><p>Пульс пуст: предзаполненных результатов нет.</p><b>Пройдено: 0 из {len(students)}</b></div>',
@@ -1217,6 +1545,7 @@ def render_teacher() -> None:
         for item in attempts
         if not item.get("submission_correct")
         or (not item.get("regraded_legacy") and item["overall_score"] < 0.55)
+        or any(float(entry.get("confidence") or 0) < 0.6 for entry in item["evidence"])
     )
     columns = st.columns(4)
     with columns[0]:
@@ -1324,9 +1653,17 @@ def render_teacher() -> None:
                 "Viva": (
                     "нужна повторная проверка"
                     if item.get("regraded_legacy")
-                    else round(item["overall_score"] * 100)
+                    else f'{round(item["overall_score"] * 100)}%'
                 ),
                 "Маршрут": "Проверка понимания" if item.get("submission_correct") else "Диагностика пробела",
+                "Контроль": (
+                    "проверить"
+                    if any(
+                        float(entry.get("confidence") or 0) < 0.6
+                        for entry in item["evidence"]
+                    )
+                    else "не требуется"
+                ),
             }
             for item in attempts
         ]

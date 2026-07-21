@@ -1,0 +1,212 @@
+[
+  {
+    "id": "mission_articles_lost_luggage",
+    "topic_key": "eng_articles",
+    "skill_id": "eng_articles",
+    "title": "Пропавший чемодан",
+    "subtitle": "Объясните сотруднику аэропорта, какой багаж пропал",
+    "setting": "Стойка Lost & Found в аэропорту Лондона",
+    "npc_name": "Maya",
+    "npc_role": "сотрудник службы розыска багажа",
+    "opening": "Good evening. Please describe the missing bag and tell me where you last saw it.",
+    "objective": "Добиться регистрации заявления, корректно вводя новый предмет и затем ссылаясь на конкретный предмет.",
+    "student_brief": "Отвечайте по-английски. Сначала представьте чемодан как новый предмет, затем упомяните его как уже известный.",
+    "required_features": [
+      {"id": "indefinite_article", "label": "a/an при первом упоминании"},
+      {"id": "definite_article", "label": "the для конкретного предмета"}
+    ],
+    "max_turns": 3,
+    "success_threshold": 0.72,
+    "difficulty": 1,
+    "suggestions": ["I lost a black suitcase.", "The suitcase has a red tag."]
+  },
+  {
+    "id": "mission_present_perfect_interview",
+    "topic_key": "eng_present_perfect",
+    "skill_id": "eng_present_perfect",
+    "title": "Собеседование в международную команду",
+    "subtitle": "Расскажите об опыте и одном завершённом проекте",
+    "setting": "Короткое онлайн-собеседование на стажировку",
+    "npc_name": "Oliver",
+    "npc_role": "руководитель команды",
+    "opening": "Tell me about your experience and one project you completed at a specific time.",
+    "objective": "Разделить жизненный опыт без законченного времени и конкретное событие в прошлом.",
+    "student_brief": "Используйте Present Perfect для опыта и Past Simple с конкретным временем для завершённого события.",
+    "required_features": [
+      {"id": "present_perfect", "label": "Present Perfect для опыта"},
+      {"id": "finished_past_time", "label": "конкретное завершённое время в прошлом"}
+    ],
+    "max_turns": 3,
+    "success_threshold": 0.72,
+    "difficulty": 2,
+    "suggestions": ["I have worked on several team projects.", "Last year I built a small web app."]
+  },
+  {
+    "id": "mission_modals_office_mystery",
+    "topic_key": "eng_modals_deduction",
+    "skill_id": "eng_modals_deduction",
+    "title": "Офисная загадка",
+    "subtitle": "Сделайте уверенный и осторожный вывод по уликам",
+    "setting": "Офис перед важной презентацией",
+    "npc_name": "Noah",
+    "npc_role": "коллега, который ищет пропавший ноутбук",
+    "opening": "The meeting room is locked, Sam's coat is here, and the laptop is missing. What do you think happened?",
+    "objective": "Предложить минимум два вывода разной степени уверенности.",
+    "student_brief": "Отвечайте по-английски. Используйте must для сильного вывода и might/could для возможности.",
+    "required_features": [
+      {"id": "strong_deduction", "label": "must для сильного вывода"},
+      {"id": "uncertain_deduction", "label": "might/could для возможности"}
+    ],
+    "max_turns": 3,
+    "success_threshold": 0.72,
+    "difficulty": 1,
+    "suggestions": ["Sam must be nearby.", "He might have taken the laptop."]
+  },
+  {
+    "id": "mission_gerund_coaching",
+    "topic_key": "eng_gerund_infinitive",
+    "skill_id": "eng_gerund_infinitive",
+    "title": "Разговор с карьерным коучем",
+    "subtitle": "Опишите привычку и новую цель",
+    "setting": "Карьерная консультация перед началом семестра",
+    "npc_name": "Grace",
+    "npc_role": "карьерный коуч",
+    "opening": "Which habit would you like to stop, and what do you plan to do instead?",
+    "objective": "Корректно описать прекращение действия и намерение выполнить новое действие.",
+    "student_brief": "Используйте stop + -ing для прекращения привычки и plan/decide + to-infinitive для цели.",
+    "required_features": [
+      {"id": "stop_gerund", "label": "stop + -ing для прекращения действия"},
+      {"id": "plan_infinitive", "label": "plan/decide + to-infinitive для цели"}
+    ],
+    "max_turns": 3,
+    "success_threshold": 0.72,
+    "difficulty": 2,
+    "suggestions": ["I want to stop checking my phone.", "I plan to study every morning."]
+  },
+  {
+    "id": "mission_conditionals_project_crisis",
+    "topic_key": "eng_conditionals",
+    "skill_id": "eng_conditionals",
+    "title": "Кризис учебного проекта",
+    "subtitle": "Предложите реальный план и гипотетическое улучшение",
+    "setting": "Встреча команды за день до дедлайна",
+    "npc_name": "Ethan",
+    "npc_role": "координатор проекта",
+    "opening": "We are behind schedule. What will we do if the designer sends the files tonight, and what would you change if you led the team?",
+    "objective": "Использовать реальное условие о будущем и гипотетическую ситуацию.",
+    "student_brief": "Дайте по-английски один First Conditional и один Second Conditional.",
+    "required_features": [
+      {"id": "first_conditional", "label": "First Conditional для реального плана"},
+      {"id": "second_conditional", "label": "Second Conditional для гипотезы"}
+    ],
+    "max_turns": 3,
+    "success_threshold": 0.74,
+    "difficulty": 3,
+    "suggestions": ["If she sends the files, we will finish tonight.", "If I led the team, I would change the schedule."]
+  },
+  {
+    "id": "mission_passive_newsroom",
+    "topic_key": "eng_passive",
+    "skill_id": "eng_passive",
+    "title": "Выпуск университетских новостей",
+    "subtitle": "Сообщите о результате, когда исполнитель не важен",
+    "setting": "Редакция университетского новостного канала",
+    "npc_name": "Amelia",
+    "npc_role": "редактор выпуска",
+    "opening": "We need two short headlines: one about a completed renovation and one about a future announcement.",
+    "objective": "Сформулировать два сообщения в Passive Voice в разных временах.",
+    "student_brief": "Используйте пассив для завершённого результата и будущего объявления.",
+    "required_features": [
+      {"id": "past_passive", "label": "Past/Present Perfect Passive"},
+      {"id": "future_passive", "label": "Future Passive"}
+    ],
+    "max_turns": 3,
+    "success_threshold": 0.74,
+    "difficulty": 2,
+    "suggestions": ["The library has been renovated.", "The results will be announced tomorrow."]
+  },
+  {
+    "id": "mission_reported_message",
+    "topic_key": "eng_reported_speech",
+    "skill_id": "eng_reported_speech",
+    "title": "Передайте сообщение команде",
+    "subtitle": "Перескажите просьбу и изменение времени",
+    "setting": "Рабочий чат после пропущенной встречи",
+    "npc_name": "Lucas",
+    "npc_role": "участник команды, который отсутствовал",
+    "opening": "Mia said, 'Please send me the final file today.' Tell me what she asked us to do.",
+    "objective": "Передать просьбу без прямой цитаты и изменить временной указатель.",
+    "student_brief": "Используйте asked + object + to-infinitive и замените today с учётом точки отсчёта.",
+    "required_features": [
+      {"id": "reported_request", "label": "asked + object + to-infinitive"},
+      {"id": "reported_time_shift", "label": "today → that day"}
+    ],
+    "max_turns": 3,
+    "success_threshold": 0.74,
+    "difficulty": 3,
+    "suggestions": ["Mia asked us to send her the final file that day."]
+  },
+  {
+    "id": "mission_relative_city_guide",
+    "topic_key": "eng_relative_clauses",
+    "skill_id": "eng_relative_clauses",
+    "title": "Гид для нового студента",
+    "subtitle": "Порекомендуйте человека и место через relative clauses",
+    "setting": "Первый день иностранного студента в университете",
+    "npc_name": "Sofia",
+    "npc_role": "новая студентка по обмену",
+    "opening": "I need someone who can help with my timetable and a quiet place to study. What do you recommend?",
+    "objective": "Описать человека и место двумя определительными придаточными.",
+    "student_brief": "Используйте who для человека и where для места.",
+    "required_features": [
+      {"id": "relative_person", "label": "who для человека"},
+      {"id": "relative_place", "label": "where для места"}
+    ],
+    "max_turns": 3,
+    "success_threshold": 0.72,
+    "difficulty": 1,
+    "suggestions": ["Talk to the tutor who runs the programme.", "The library is a place where you can study quietly."]
+  },
+  {
+    "id": "mission_linking_debate",
+    "topic_key": "eng_linking",
+    "skill_id": "eng_linking",
+    "title": "Мини-дебаты об онлайн-лекциях",
+    "subtitle": "Свяжите контраргумент и вывод",
+    "setting": "Заседание студенческого совета",
+    "npc_name": "Henry",
+    "npc_role": "модератор дискуссии",
+    "opening": "Should recorded lectures replace some live classes? Give a balanced response and a clear result or conclusion.",
+    "objective": "Сформулировать связный аргумент с контрастом и следствием.",
+    "student_brief": "Используйте минимум один linker для контраста и один для результата или вывода.",
+    "required_features": [
+      {"id": "contrast_linker", "label": "linker для контраста"},
+      {"id": "result_linker", "label": "linker для результата/вывода"}
+    ],
+    "max_turns": 3,
+    "success_threshold": 0.72,
+    "difficulty": 2,
+    "suggestions": ["However, live discussion is still important.", "As a result, a mixed format may work best."]
+  },
+  {
+    "id": "mission_formal_reschedule",
+    "topic_key": "eng_formal_writing",
+    "skill_id": "eng_formal_writing",
+    "title": "Перенос собеседования",
+    "subtitle": "Договоритесь о новом времени в формальном стиле",
+    "setting": "Чат с координатором приёмной комиссии",
+    "npc_name": "Ms Taylor",
+    "npc_role": "координатор собеседований",
+    "opening": "Good afternoon. How can I help you with your scheduled interview?",
+    "objective": "Вежливо объяснить причину и попросить новое время без разговорного стиля.",
+    "student_brief": "Используйте формальную просьбу и вежливое объяснение причины.",
+    "required_features": [
+      {"id": "formal_request", "label": "формальная просьба"},
+      {"id": "formal_reason", "label": "вежливое объяснение причины"}
+    ],
+    "max_turns": 3,
+    "success_threshold": 0.74,
+    "difficulty": 2,
+    "suggestions": ["Would it be possible to reschedule the interview?", "I am unable to attend due to a medical appointment."]
+  }
+]

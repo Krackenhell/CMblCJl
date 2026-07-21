@@ -16,6 +16,7 @@ from vivatrace.local_llm import (
     semantic_concept_coverage,
     sanitize_mixed_modal_negation,
 )
+from vivatrace.missions import detect_mission_features, load_missions
 from vivatrace.models import ProbeQuestion
 from vivatrace.models import Evidence
 
@@ -614,3 +615,102 @@ def test_remediation_branch_and_rule_content_are_grounded(monkeypatch):
     assert "Нулевой артикль" in result["student_activity"]["explanation"]
     assert "Travel can teach us a lot." in result["student_activity"]["worked_example"]
     assert len(traces) == 2
+
+
+def test_mission_turn_uses_one_llm_call_and_hybrid_validator(monkeypatch):
+    llm = LocalLLM()
+    mission = load_missions()[0]
+    answer = "I found a suitcase. The suitcase has a blue tag."
+    signal = detect_mission_features(mission, [answer])
+    trace = LLMTrace(
+        trace_id="mission-local",
+        backend="llama.cpp",
+        model="Qwen2.5-3B-Instruct-Q4_K_M",
+        model_sha256="abc123",
+        stage="ход практической миссии",
+        duration_ms=120,
+        created_at="2026-01-01T00:00:00+00:00",
+    )
+    calls = []
+
+    def fake_call(stage, system, payload, schema, max_tokens, fast=False):
+        calls.append((stage, payload, fast))
+        return (
+            {
+                "npc_reply": "Perfect. I can identify your suitcase now.",
+                "communicative_score": 0.95,
+                "grammar_score": 0.95,
+                "positive_feedback": "Описание понятно и конкретно.",
+                "guidance": "Миссия завершена.",
+                "errors": [],
+                "state_summary": "Чемодан найден.",
+                "suggested_next_action": "Завершить диалог.",
+                "ready_to_finish": True,
+            },
+            trace,
+        )
+
+    monkeypatch.setattr(llm, "_call_json", fake_call)
+
+    result, returned_trace = llm.advance_mission(
+        mission,
+        [{"role": "npc", "content": mission["opening"]}],
+        answer,
+        signal,
+        1,
+    )
+
+    assert len(calls) == 1
+    assert calls[0][0] == "ход практической миссии"
+    assert calls[0][2] is True
+    assert calls[0][1]["deterministic_signal"]["coverage"] == 1
+    assert result["status"] == "completed"
+    assert result["success"] is True
+    assert returned_trace == trace
+
+
+def test_mission_hallucinated_error_is_filtered_without_penalizing_correct_work(monkeypatch):
+    llm = LocalLLM()
+    mission = load_missions()[0]
+    answer = "I found a suitcase. The suitcase has a blue tag."
+    signal = detect_mission_features(mission, [answer])
+    trace = LLMTrace(
+        trace_id="mission-guard",
+        backend="llama.cpp",
+        model="Qwen2.5-3B-Instruct-Q4_K_M",
+        model_sha256="abc123",
+        stage="ход практической миссии",
+        duration_ms=120,
+        created_at="2026-01-01T00:00:00+00:00",
+    )
+    monkeypatch.setattr(
+        llm,
+        "_call_json",
+        lambda *args, **kwargs: (
+            {
+                "npc_reply": "Thank you. Let me check that.",
+                "communicative_score": 1,
+                "grammar_score": 1,
+                "positive_feedback": "Сообщение понятно.",
+                "guidance": "Проверьте формулировку.",
+                "errors": [
+                    {
+                        "fragment": "a red suitcase",
+                        "explanation": "Выдуманная ошибка.",
+                        "correction": "the red suitcase",
+                    }
+                ],
+                "state_summary": "Проверка продолжается.",
+                "suggested_next_action": "Уточнить описание.",
+                "ready_to_finish": True,
+            },
+            trace,
+        ),
+    )
+
+    result, _ = llm.advance_mission(mission, [], answer, signal, 1)
+
+    assert result["errors"] == []
+    assert result["discarded_error_count"] == 1
+    assert result["requires_review"] is True
+    assert result["status"] == "completed"
