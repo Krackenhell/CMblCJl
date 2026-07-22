@@ -81,56 +81,134 @@ st.set_page_config(
 st.markdown(
     """
 <style>
-html, body, [class*="css"] { font-family: 'Segoe UI', Arial, sans-serif; }
-.stApp { background: #F5F6F1; color: #18231F; }
+:root {
+  --ink: #10251e;
+  --muted: #65766f;
+  --forest: #075844;
+  --forest-deep: #043d31;
+  --green: #11845d;
+  --lime: #baff22;
+  --sky: #60bdf5;
+  --cream: #fffaf0;
+  --line: #dfe8e2;
+  --coral: #ef796b;
+  --amber: #f5b950;
+}
+html, body, [class*="css"] { font-family: 'Segoe UI Variable', 'Segoe UI', Arial, sans-serif; }
+.stApp {
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 76% 4%, rgba(186,255,34,.14), transparent 22rem),
+    radial-gradient(circle at 98% 22%, rgba(96,189,245,.13), transparent 26rem),
+    linear-gradient(135deg, #fffaf0 0%, #f8fbf7 50%, #f5fbff 100%);
+}
 header[data-testid="stHeader"], [data-testid="stToolbar"], [data-testid="stDecoration"],
 #MainMenu, footer, [data-testid="stStatusWidget"], [data-testid="stSidebarCollapseButton"] {
   display: none !important;
 }
-.block-container { padding-top: 2rem; padding-bottom: 4rem; max-width: 1420px; }
-[data-testid="stSidebar"] { background: #102D23; border-right: 0; }
-[data-testid="stSidebar"] * { color: #F4F8F5 !important; }
-[data-testid="stSidebar"] input, [data-testid="stSidebar"] [data-baseweb="select"] * {
-  color: #18231F !important;
+.block-container { padding-top: 1.65rem; padding-bottom: 4rem; max-width: 1540px; }
+[data-testid="stSidebar"] {
+  background:
+    radial-gradient(circle at 0 0, rgba(186,255,34,.10), transparent 18rem),
+    linear-gradient(165deg, #075844 0%, #043d31 62%, #062f28 100%);
+  border-right: 0;
+  min-width: 270px;
 }
-h1, h2, h3 { color: #18231F; letter-spacing: -0.035em; }
-.brand { font-size: 1.35rem; font-weight: 800; letter-spacing: -.03em; margin: .3rem 0 .15rem; }
-.brand-sub { color: #AFC2BA; font-size: .78rem; margin-bottom: 1.6rem; }
-.hero { border-radius: 24px; padding: 28px 32px; color: white; margin-bottom: 22px;
-  background: radial-gradient(circle at 88% 18%, rgba(201,242,107,.32), transparent 25%),
-              linear-gradient(120deg, #123D2F, #1A7053); box-shadow: 0 14px 40px rgba(23,61,48,.13); }
-.hero .eyebrow { color: #C9F26B; font-weight: 800; font-size: .76rem; letter-spacing: .11em; }
-.hero h1 { color: white; margin: 7px 0; font-size: 2.2rem; }
-.hero p { color: #E7F1EC; max-width: 920px; margin: 0; line-height: 1.55; }
-.card, .metric-card { background: white; border: 1px solid #E2E7E2; border-radius: 18px; padding: 18px 20px; margin-bottom: 13px; }
-.metric-card { min-height: 118px; }
-.metric-card .label { color: #64726C; font-size: .73rem; font-weight: 800; text-transform: uppercase; letter-spacing: .055em; }
-.metric-card .value { color: #18231F; font-size: 1.9rem; font-weight: 800; margin-top: 8px; }
-.metric-card .hint, .muted { color: #64726C; font-size: .78rem; line-height: 1.45; }
+[data-testid="stSidebar"] * { color: #F4FBF7 !important; }
+[data-testid="stSidebar"] input, [data-testid="stSidebar"] [data-baseweb="select"] * {
+  color: var(--ink) !important;
+}
+h1, h2, h3 { color: var(--ink); letter-spacing: -0.035em; }
+h1 { font-size: clamp(2rem, 3vw, 3rem) !important; }
+p { line-height: 1.55; }
+.brand-line { display:flex; align-items:center; gap:11px; margin:.35rem 0 .25rem; }
+.brand-mark {
+  width:36px; height:36px; border-radius:11px 11px 17px 11px; display:grid; place-items:center;
+  color:#063b2f !important; font-size:1.05rem; font-weight:950; transform:rotate(-5deg);
+  background:linear-gradient(145deg,var(--lime),#76e95a); box-shadow:0 10px 24px rgba(0,0,0,.15);
+}
+.brand { font-size: 1.45rem; font-weight: 850; letter-spacing: -.045em; }
+.brand-sub { color: #B8CDC4 !important; font-size: .78rem; margin:0 0 1.35rem 47px; line-height:1.4; }
+.profile-card {
+  margin:1.05rem 0 .75rem; padding:13px; border:1px solid rgba(255,255,255,.15); border-radius:18px;
+  background:rgba(255,255,255,.075); box-shadow:inset 0 1px 0 rgba(255,255,255,.08);
+}
+.profile-row { display:flex; align-items:center; gap:10px; }
+.avatar { width:38px; height:38px; border-radius:13px; display:grid; place-items:center; color:#063b2f !important; background:var(--lime); font-weight:900; }
+.profile-name { font-weight:800; font-size:.88rem; }.profile-meta{font-size:.69rem;color:#bcd1c8!important;margin-top:2px}
+.side-xp{height:6px;background:rgba(255,255,255,.14);border-radius:99px;margin:11px 0 6px;overflow:hidden}.side-xp i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--lime),var(--sky))}
+.side-xp-meta{display:flex;justify-content:space-between;font-size:.66rem;color:#c5d8d0!important}
+.system-ready{display:flex;gap:9px;align-items:center;padding:11px 12px;border:1px solid rgba(186,255,34,.25);background:rgba(186,255,34,.08);border-radius:14px;margin-top:1rem}.system-ready i{width:9px;height:9px;background:var(--lime);border-radius:50%;box-shadow:0 0 0 5px rgba(186,255,34,.10)}.system-ready b{font-size:.73rem}.system-ready small{display:block;color:#bcd1c8!important;font-size:.62rem}
+.hero {
+  position:relative; overflow:hidden; border-radius:27px; padding:29px 34px; color:var(--ink); margin-bottom:18px;
+  border:1px solid rgba(7,88,68,.12);
+  background:
+    radial-gradient(circle at 87% 22%, rgba(96,189,245,.32), transparent 9rem),
+    radial-gradient(circle at 93% 94%, rgba(186,255,34,.32), transparent 12rem),
+    linear-gradient(120deg,#fffefa,#f7fff2 58%,#effaff);
+  box-shadow:0 17px 45px rgba(5,61,49,.09);
+}
+.hero:after{content:'↗';position:absolute;right:43px;top:19px;width:72px;height:72px;border-radius:23px;display:grid;place-items:center;font-size:2.25rem;font-weight:900;color:var(--forest);background:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.8);transform:rotate(-5deg)}
+.hero .eyebrow { color:var(--forest); font-weight:850; font-size:.73rem; letter-spacing:.1em; padding-right:95px; }
+.hero h1 { color:var(--ink); margin:8px 110px 7px 0; font-size:2.25rem !important; }
+.hero p { color:#50655c; max-width:850px; margin:0; line-height:1.5; padding-right:95px; }
+.card, .metric-card { background:rgba(255,255,255,.92); border:1px solid var(--line); border-radius:20px; padding:18px 20px; margin-bottom:13px; box-shadow:0 8px 24px rgba(5,61,49,.045); }
+.metric-card { min-height:112px; }
+.metric-card .label { color:var(--muted); font-size:.69rem; font-weight:850; text-transform:uppercase; letter-spacing:.055em; }
+.metric-card .value { color:var(--ink); font-size:1.75rem; font-weight:850; margin-top:8px; }
+.metric-card .hint, .muted { color:var(--muted); font-size:.78rem; line-height:1.45; }
+.student-overview{display:grid;grid-template-columns:1.5fr .9fr;gap:14px;padding:19px 21px;margin-bottom:13px;border:1px solid var(--line);border-radius:24px;background:rgba(255,255,255,.91);box-shadow:0 12px 32px rgba(5,61,49,.06)}
+.overview-heading{display:flex;gap:14px;align-items:center}.level-badge{min-width:58px;height:58px;border-radius:19px;display:grid;place-items:center;background:linear-gradient(145deg,var(--lime),#8fea54);color:#093c30;font-size:1.3rem;font-weight:950;box-shadow:0 9px 24px rgba(126,200,55,.25)}
+.overview-kicker{font-size:.68rem;font-weight:850;letter-spacing:.09em;color:var(--green);text-transform:uppercase}.overview-title{font-size:1.25rem;font-weight:850;letter-spacing:-.03em;margin:2px 0}.overview-sub{font-size:.76rem;color:var(--muted)}
+.overview-xp{margin-top:14px}.xp-copy{display:flex;justify-content:space-between;font-size:.72rem;font-weight:750;margin-bottom:6px}.xp-track{height:10px;border-radius:99px;background:#e9efeb;overflow:hidden}.xp-track i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--forest),var(--lime),var(--sky))}
+.quick-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.quick-stat{padding:12px;border-radius:17px;background:#f6f9f5;border:1px solid #e7ede8}.quick-stat strong{display:block;font-size:1.25rem;letter-spacing:-.03em}.quick-stat span{font-size:.66rem;color:var(--muted);line-height:1.3;display:block;margin-top:2px}.quick-stat.accent{background:linear-gradient(145deg,#0b6d52,#07513f);color:white;border:0}.quick-stat.accent span{color:#d9ebe4}
+.review-strip{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 16px;padding:0 2px}.review-label{font-size:.72rem;font-weight:850;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-right:3px}.review-pill{padding:8px 11px;border-radius:99px;background:#fff4de;border:1px solid #f4d59b;color:#745114;font-size:.72rem;font-weight:750}
+.mode-kicker{font-size:.7rem;font-weight:850;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin:10px 0 7px}
+.lesson-route{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:4px 0 16px}.route-step{position:relative;display:flex;gap:11px;align-items:center;padding:13px 14px;border:1px solid var(--line);border-radius:17px;background:rgba(255,255,255,.82)}.route-dot{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:#e9eeeb;color:#718078;font-weight:900;flex:0 0 auto}.route-step strong{display:block;font-size:.78rem}.route-step small{color:var(--muted);font-size:.64rem}.route-step.done{background:#f1faef;border-color:#cfe8c2}.route-step.done .route-dot{background:var(--forest);color:white}.route-step.active{border-color:#94d36f;background:linear-gradient(145deg,#fbfff4,#f0ffe6);box-shadow:0 7px 20px rgba(126,200,55,.12)}.route-step.active .route-dot{background:var(--lime);color:#123f31}.route-step.locked{opacity:.72}
+.lesson-status{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center;margin:-2px 0 16px;padding:13px 16px;border:1px solid var(--line);border-radius:18px;background:rgba(255,255,255,.76)}.lesson-status b{font-size:.76rem}.lesson-status span{font-size:.69rem;color:var(--muted)}.lesson-bar{height:8px;background:#e7eeea;border-radius:99px;overflow:hidden;margin-top:7px}.lesson-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--forest),var(--lime),var(--sky));border-radius:99px}.reward-chip{padding:8px 11px;border-radius:12px;background:#efffd2;color:#365d0d;font-weight:850;font-size:.72rem;border:1px solid #d2ed9b}
 .finding { border-left: 4px solid #EC7565; background: #FFF4F1; border-radius: 10px; padding: 12px 14px; margin: 9px 0; }
 .finding-ok { border-left: 4px solid #176B50; background: #EFF8F3; border-radius: 10px; padding: 12px 14px; margin: 9px 0; }
-.question { background: white; border: 1px solid #DDE5DF; border-radius: 20px; padding: 22px 24px; margin: 14px 0; }
+.question { background:linear-gradient(145deg,#ffffff,#f7fff3); border:1px solid #cfe4d8; border-radius:22px; padding:22px 24px; margin:14px 0; box-shadow:0 10px 25px rgba(5,61,49,.055); }
 .question-number { color: #176B50; font-size: .75rem; font-weight: 800; letter-spacing: .08em; }
 .evidence { border-left: 4px solid #176B50; background: white; border-radius: 12px; padding: 14px 16px; margin: 10px 0; border: 1px solid #E2E7E2; border-left-width: 4px; }
-.decision { background: #18362C; color: white; border-radius: 18px; padding: 20px 22px; }
+.decision { background:linear-gradient(135deg,#073f32,#0b6b50); color:white; border-radius:22px; padding:21px 23px; box-shadow:0 13px 30px rgba(4,61,49,.13); }
 .decision strong { color: #C9F26B; }.decision h3 { color: white; margin: .35rem 0; }.decision p { color: #E4EEE9; }
-.chip { display: inline-block; background: #DEF3E8; color: #16533E; border-radius: 999px; padding: 5px 10px; margin: 2px 4px 2px 0; font-size: .74rem; font-weight: 700; }
+.chip { display:inline-block; background:#e9f8f1; color:#0d5a43; border:1px solid #cde8dc; border-radius:999px; padding:6px 11px; margin:2px 4px 2px 0; font-size:.72rem; font-weight:750; }
 .trace { background:#EEF2FF; color:#33416A; border-radius:10px; padding:9px 12px; font-size:.72rem; margin:7px 0; word-break:break-all; }
 .llm-ok { background:#174E3B; border:1px solid #28785D; border-radius:12px; padding:11px; font-size:.74rem; }
 .llm-off { background:#5A302B; border:1px solid #A75B50; border-radius:12px; padding:11px; font-size:.74rem; }
-.empty { background: white; border: 1px dashed #BCC9C2; border-radius: 22px; padding: 42px; text-align: center; }
+.empty { background:white; border:1px dashed #BCC9C2; border-radius:22px; padding:42px; text-align:center; }
 .review-item { background:white; border:1px solid #E2E7E2; border-radius:14px; padding:14px 16px; margin:9px 0; }
 .review-item.ok { border-left:4px solid #176B50; }.review-item.partial { border-left:4px solid #F4B860; }.review-item.bad { border-left:4px solid #EC7565; }
 .gap-card { background:white; border:1px solid #E2E7E2; border-radius:16px; padding:16px 18px; margin:10px 0; box-shadow:0 6px 18px rgba(16,45,35,.05); }
 .gap-card .count { float:right; background:#FFF0EC; color:#9D382E; border-radius:999px; padding:4px 9px; font-weight:800; font-size:.72rem; }
 .rule-card { background:#F0F5FF; border:1px solid #D8E2F7; border-radius:14px; padding:14px 16px; margin:10px 0; color:#273A63; }
-.mission-hero { background:linear-gradient(130deg,#172A45,#244F66); color:white; border-radius:22px; padding:24px 26px; margin:14px 0 18px; box-shadow:0 14px 34px rgba(19,42,56,.14); }
+.mission-hero { position:relative;overflow:hidden;background:radial-gradient(circle at 87% 12%,rgba(186,255,34,.25),transparent 12rem),linear-gradient(130deg,#063f32,#08705a 62%,#145b75);color:white;border-radius:26px;padding:27px 29px;margin:14px 0 18px;box-shadow:0 16px 36px rgba(19,42,56,.14); }
+.mission-hero:after{content:'MISSION';position:absolute;right:24px;bottom:15px;font-size:2.8rem;font-weight:950;letter-spacing:.06em;color:rgba(255,255,255,.065)}
 .mission-hero h2 { color:white; margin:.3rem 0; }.mission-hero p { color:#E5F1F5; margin:.35rem 0; }
 .mission-objective { color:#BFEA8C !important; font-weight:800; font-size:.78rem; letter-spacing:.07em; }
 .mission-signal { border:1px solid #D8E5DF; border-radius:14px; padding:12px 14px; background:#FBFCFA; margin:8px 0; }
 .mission-result { border:1px solid #B7DAC9; background:#EFF9F4; border-radius:18px; padding:18px 20px; margin:14px 0; }
-.stButton > button, .stFormSubmitButton > button { border-radius: 12px; font-weight: 750; border: 0; background: #176B50; color: white; }
-[data-testid="stExpander"] { background: white; border: 1px solid #E2E7E2; border-radius: 16px; }
+.stButton > button, .stFormSubmitButton > button { min-height:44px;border-radius:14px;font-weight:800;border:0;background:linear-gradient(90deg,#aefa25,#c9ff38);color:#103d30;box-shadow:0 8px 20px rgba(142,206,46,.18);transition:transform .16s ease,box-shadow .16s ease; }
+.stButton > button:hover, .stFormSubmitButton > button:hover{transform:translateY(-1px);box-shadow:0 12px 24px rgba(116,184,38,.25);color:#082d24}
+.stButton > button[kind="secondary"]{background:white;border:1px solid #cfdcd4;color:var(--forest);box-shadow:none}
+[data-testid="stExpander"] { background:rgba(255,255,255,.86); border:1px solid var(--line); border-radius:18px; overflow:hidden; }
+[data-testid="stVerticalBlockBorderWrapper"]{border-color:var(--line)!important;border-radius:22px!important;background:rgba(255,255,255,.84);box-shadow:0 9px 26px rgba(5,61,49,.045)}
+[data-baseweb="select"]>div,[data-testid="stTextInput"] input,[data-testid="stTextArea"] textarea{border-radius:13px!important;border-color:#d4e0d9!important;background:rgba(255,255,255,.92)!important}
+[data-testid="stRadio"]>div{display:flex;gap:8px;background:rgba(255,255,255,.72);border:1px solid var(--line);padding:6px;border-radius:17px;width:fit-content;box-shadow:0 5px 18px rgba(5,61,49,.035)}
+[data-testid="stRadio"] label{padding:9px 14px!important;border-radius:12px;transition:.15s;background:transparent}
+[data-testid="stRadio"] label>div:first-child{display:none!important}
+[data-testid="stRadio"] label>div:has(input[type="radio"]){display:none!important}
+[data-testid="stRadio"] [data-testid="stRadioOption"]>div>div>div:first-child{display:none!important}
+[data-testid="stRadio"] label:has(input:checked){background:var(--forest)!important;box-shadow:0 7px 16px rgba(5,88,68,.18)}
+[data-testid="stRadio"] label:has(input:checked) p{color:white!important;font-weight:800}
+[data-testid="stRadio"] [data-testid="stMarkdownContainer"] p{font-size:.78rem}
+[data-testid="stMetric"]{padding:16px;border-radius:18px;border:1px solid var(--line);background:white}
+[data-testid="stDataFrame"]{border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.stProgress>div>div{background:linear-gradient(90deg,var(--forest),var(--lime),var(--sky))!important}
+[data-testid="stSidebar"] [data-testid="stExpander"]{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.13)}
+[data-testid="stSidebar"] [data-testid="stExpander"] summary:hover{background:rgba(255,255,255,.05)}
+@media(max-width:900px){.student-overview{grid-template-columns:1fr}.lesson-route{grid-template-columns:1fr}.quick-stats{grid-template-columns:repeat(3,1fr)}.hero:after{display:none}.hero h1,.hero p{margin-right:0;padding-right:0}.block-container{padding:1rem}.review-strip{margin-bottom:12px}}
 </style>
 """,
     unsafe_allow_html=True,
@@ -147,6 +225,94 @@ def hero(title: str, subtitle: str, eyebrow: str) -> None:
 def metric_card(label: str, value: str, hint: str) -> None:
     st.markdown(
         f'<div class="metric-card"><div class="label">{label}</div><div class="value">{value}</div><div class="hint">{hint}</div></div>',
+        unsafe_allow_html=True,
+    )
+
+
+def student_game_state(student_id: str, total_assignments: int = 0) -> dict:
+    """Derive lightweight game progress from persisted learning evidence only."""
+    history = student_history(student_id)
+    latest_assignment_ids = {int(item["assignment_id"]) for item in history}
+    valid_viva = sum(
+        1
+        for item in history
+        if item.get("evidence") and not bool(item.get("regraded_legacy"))
+    )
+    completed_missions = [
+        item
+        for item in mission_history(student_id=student_id)
+        if item.get("status") == "completed"
+    ]
+    voice_sessions = [
+        item
+        for item in student_voice_sessions(student_id)
+        if int(item.get("turn_count") or 0) > 0
+    ]
+    xp = (
+        len(latest_assignment_ids) * 120
+        + valid_viva * 70
+        + len(completed_missions) * 240
+        + len(voice_sessions) * 90
+    )
+    level_size = 600
+    level = xp // level_size + 1
+    level_xp = xp % level_size
+
+    timestamps = [item.get("completed_at") for item in history]
+    timestamps.extend(item.get("completed_at") for item in completed_missions)
+    timestamps.extend(item.get("completed_at") for item in voice_sessions)
+    dates = sorted(
+        {
+            parsed.date()
+            for value in timestamps
+            if value and not pd.isna(parsed := pd.to_datetime(value, errors="coerce"))
+        },
+        reverse=True,
+    )
+    streak = 0
+    if dates:
+        streak = 1
+        for previous, current in zip(dates, dates[1:], strict=False):
+            if (previous - current).days == 1:
+                streak += 1
+            else:
+                break
+    return {
+        "xp": xp,
+        "level": level,
+        "level_xp": level_xp,
+        "level_size": level_size,
+        "level_progress": level_xp / level_size,
+        "streak": streak,
+        "completed": len(latest_assignment_ids),
+        "total": total_assignments,
+        "valid_viva": valid_viva,
+        "missions": len(completed_missions),
+        "voice_sessions": len(voice_sessions),
+    }
+
+
+def render_learning_route(stage: int, completed: int, total: int, mastery: float) -> None:
+    steps = [
+        (1, "Решить", "Предметная проверка"),
+        (2, "Подтвердить", "Viva понимания"),
+        (3, "Применить", "Новый контекст"),
+    ]
+    route = []
+    for number, title, hint in steps:
+        css = "done" if number < stage or stage > 3 else "active" if number == stage else "locked"
+        marker = "✓" if css == "done" else str(number) if css == "active" else "○"
+        route.append(
+            f'<div class="route-step {css}"><span class="route-dot">{marker}</span>'
+            f'<div><strong>{title}</strong><small>{hint}</small></div></div>'
+        )
+    progress = completed / max(total, 1)
+    st.markdown(
+        '<div class="lesson-route">' + "".join(route) + "</div>"
+        f'<div class="lesson-status"><div><b>Освоение темы: {mastery:.0%}</b>'
+        f'<span style="float:right">{completed} из {total} заданий</span>'
+        f'<div class="lesson-bar"><i style="width:{progress:.1%}"></i></div></div>'
+        '<div class="reward-chip">+120 XP за цикл</div></div>',
         unsafe_allow_html=True,
     )
 
@@ -342,8 +508,7 @@ def reset_flow() -> None:
 
 def render_llm_status() -> None:
     identity = LLM.identity()
-    css_class = "llm-ok" if identity["ready"] else "llm-off"
-    status = "готова" if identity["ready"] else "не установлена"
+    status = "Проверка знаний готова" if identity["ready"] else "Проверка недоступна"
     active_model = identity["model"] if identity["quality_mode"] else identity["fast_model"]
     active_hash = (
         identity["model_sha256"]
@@ -351,32 +516,52 @@ def render_llm_status() -> None:
         else identity["fast_model_sha256"]
     )
     st.markdown(
-        f'<div class="{css_class}"><b>Локальная LLM: {status}</b><br>{active_model}<br>'
-        f'llama.cpp · без API и облака</div>',
+        f'<div class="system-ready"><i></i><div><b>{status}</b>'
+        f'<small>{"Локально · данные не покидают устройство" if identity["ready"] else "Нужна локальная модель"}</small></div></div>',
         unsafe_allow_html=True,
     )
-    if identity["ready"]:
-        short_hash = str(active_hash)[:16]
-        st.caption(f"SHA-256: {short_hash}…")
-    else:
-        st.caption(r"Установка: scripts\setup_local_llm.ps1")
+    with st.expander("Технический контур"):
+        if identity["ready"]:
+            st.caption(f"{active_model} · llama.cpp · SHA-256: {str(active_hash)[:16]}…")
+        else:
+            st.caption(r"Установка: scripts\setup_local_llm.ps1")
 
 
 def render_sidebar() -> tuple[str, dict | None]:
     students = list_students()
     with st.sidebar:
-        st.markdown('<div class="brand">◉ VivaTrace</div>', unsafe_allow_html=True)
-        st.markdown('<div class="brand-sub">Адаптивная обратная связь для учебной группы</div>', unsafe_allow_html=True)
-        role = st.selectbox("Роль", ["Студент", "Преподаватель"])
+        st.markdown(
+            '<div class="brand-line"><span class="brand-mark">V</span>'
+            '<span class="brand">VivaTrace</span></div>',
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            '<div class="brand-sub">Учебный маршрут, который меняется вместе с вами</div>',
+            unsafe_allow_html=True,
+        )
+        role = st.selectbox("Режим", ["Студент", "Преподаватель"])
         selected_student = None
         if role == "Студент":
             by_name = {item["name"]: item for item in students}
-            selected_student = by_name[st.selectbox("Аккаунт студента", list(by_name))]
-            st.caption("Демонстрационное переключение аккаунтов без авторизации")
+            selected_student = by_name[st.selectbox("Профиль", list(by_name))]
+            state = student_game_state(selected_student["id"], len(list_assignments(active_only=True)))
+            initials = "".join(part[0] for part in selected_student["name"].split()[:2]).upper()
+            st.markdown(
+                f'<div class="profile-card"><div class="profile-row"><div class="avatar">{escape(initials)}</div>'
+                f'<div><div class="profile-name">{escape(selected_student["name"])}</div>'
+                f'<div class="profile-meta">Уровень {state["level"]} · {state["xp"]} XP</div></div></div>'
+                f'<div class="side-xp"><i style="width:{state["level_progress"]:.1%}"></i></div>'
+                f'<div class="side-xp-meta"><span>до уровня {state["level"] + 1}</span>'
+                f'<span>{state["level_xp"]}/{state["level_size"]} XP</span></div></div>',
+                unsafe_allow_html=True,
+            )
         else:
-            st.markdown("**Кабинет преподавателя**")
-            st.caption("Только результаты реальных попыток")
-        st.markdown("---")
+            st.markdown(
+                '<div class="profile-card"><div class="profile-row"><div class="avatar">П</div>'
+                '<div><div class="profile-name">Кабинет преподавателя</div>'
+                '<div class="profile-meta">Пульс группы · реальные попытки</div></div></div></div>',
+                unsafe_allow_html=True,
+            )
         render_llm_status()
     return role, selected_student
 
@@ -635,27 +820,68 @@ def render_student_dashboard(student: dict, assignments: list[dict]) -> None:
             if float(evidence.get("score", 0)) < 0.75:
                 error_counts[str(evidence.get("rule_id") or evidence.get("skill_id"))] += 1
 
-    with st.expander("Мой учебный кабинет", expanded=True):
-        columns = st.columns(4)
-        with columns[0]:
-            metric_card("Выполнено заданий", f"{completed_count} из {len(assignments)}", "уникальные задания")
-        with columns[1]:
-            metric_card("Проверок знаний", str(valid_viva_count), "валидные завершённые циклы")
-        with columns[2]:
-            metric_card("Средний результат", f"{mean_submission:.0%}", "по последним попыткам")
-        with columns[3]:
-            metric_card("Практические миссии", str(len(completed_missions)), "завершено сценариев")
-        st.markdown("#### Что повторить")
-        if not error_counts:
-            st.success("Пока устойчивых пробелов не зафиксировано.")
-        else:
-            for rule_id, count in error_counts.most_common(3):
-                rule = RULEBOOK.get(rule_id, {})
-                skill = CURRICULUM.skill_by_id.get(rule_id)
-                title = rule.get("title") or (skill.name if skill else rule_id)
-                st.markdown(f"- **{title}** · ошибок или слабых ответов: {count}")
-        if latest_by_assignment:
-            with st.expander("Выполненные задания"):
+    game = student_game_state(student["id"], len(assignments))
+    first_name = student["name"].split()[0]
+    st.markdown(
+        f'<div class="student-overview"><div><div class="overview-heading">'
+        f'<div class="level-badge">{game["level"]}</div><div>'
+        f'<div class="overview-kicker">Личный учебный маршрут</div>'
+        f'<div class="overview-title">{escape(first_name)}, продолжайте в своём темпе</div>'
+        f'<div class="overview-sub">Следующий уровень откроет новый знак прогресса</div></div></div>'
+        f'<div class="overview-xp"><div class="xp-copy"><span>{game["xp"]} XP всего</span>'
+        f'<span>{game["level_xp"]} / {game["level_size"]} XP до уровня {game["level"] + 1}</span></div>'
+        f'<div class="xp-track"><i style="width:{game["level_progress"]:.1%}"></i></div></div></div>'
+        f'<div class="quick-stats"><div class="quick-stat accent"><strong>{game["streak"]} дн.</strong>'
+        f'<span>учебная серия</span></div><div class="quick-stat"><strong>{completed_count}</strong>'
+        f'<span>заданий завершено</span></div><div class="quick-stat"><strong>{mean_submission:.0%}</strong>'
+        f'<span>средний результат</span></div><div class="quick-stat"><strong>{valid_viva_count}</strong>'
+        f'<span>проверок понимания</span></div><div class="quick-stat"><strong>{len(completed_missions)}</strong>'
+        f'<span>миссий пройдено</span></div><div class="quick-stat"><strong>{game["voice_sessions"]}</strong>'
+        f'<span>голосовых сессий</span></div></div></div>',
+        unsafe_allow_html=True,
+    )
+
+    review_items = []
+    for rule_id, count in error_counts.most_common(3):
+        rule = RULEBOOK.get(rule_id, {})
+        skill = CURRICULUM.skill_by_id.get(rule_id)
+        title = rule.get("title") or (skill.name if skill else rule_id)
+        review_items.append(
+            f'<span class="review-pill">{escape(title)} · {count} сигналов</span>'
+        )
+    if review_items:
+        st.markdown(
+            '<div class="review-strip"><span class="review-label">Фокус повторения</span>'
+            + "".join(review_items)
+            + "</div>",
+            unsafe_allow_html=True,
+        )
+
+    review_records = [
+        {
+            "topic_key": item.get("topic_key"),
+            "topic": item.get("topic"),
+            "score": (
+                float(item.get("overall_score") or 0)
+                if not item.get("regraded_legacy")
+                else float(item.get("submission_score") or 0)
+            ),
+            "completed_at": item.get("completed_at"),
+        }
+        for item in latest_by_assignment.values()
+    ] + [
+        {
+            "topic_key": item["topic_key"],
+            "topic": item["title"],
+            "score": item["score"],
+            "completed_at": item["completed_at"],
+        }
+        for item in completed_missions.values()
+    ]
+    review_plan = build_review_plan(review_records)
+    if latest_by_assignment or review_plan:
+        with st.expander("История и план повторения"):
+            if latest_by_assignment:
                 rows = [
                     {
                         "Задание": item.get("assignment_title", "—"),
@@ -670,39 +896,13 @@ def render_student_dashboard(student: dict, assignments: list[dict]) -> None:
                     for item in latest_by_assignment.values()
                 ]
                 st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch")
-
-        review_records = [
-            {
-                "topic_key": item.get("topic_key"),
-                "topic": item.get("topic"),
-                "score": (
-                    float(item.get("overall_score") or 0)
-                    if not item.get("regraded_legacy")
-                    else float(item.get("submission_score") or 0)
-                ),
-                "completed_at": item.get("completed_at"),
-            }
-            for item in latest_by_assignment.values()
-        ] + [
-            {
-                "topic_key": item["topic_key"],
-                "topic": item["title"],
-                "score": item["score"],
-                "completed_at": item["completed_at"],
-            }
-            for item in completed_missions.values()
-        ]
-        review_plan = build_review_plan(review_records)
-        if review_plan:
-            with st.expander("План интервального повторения"):
-                st.caption(
-                    "Дата следующего извлечения знания зависит от результата: слабые темы возвращаются раньше."
-                )
+            if review_plan:
+                st.markdown("**Ближайшее интервальное повторение**")
                 for item in review_plan[:4]:
                     when = (
-                        "повторить сегодня"
+                        "сегодня"
                         if item["days_left"] == 0
-                        else "повторить сейчас"
+                        else "сейчас"
                         if item["days_left"] < 0
                         else f'через {item["days_left"]} дн.'
                     )
@@ -908,50 +1108,50 @@ def render_voice_mode(student: dict, assignments: list[dict]) -> None:
         st.info("Для голосовой практики пока нет заданий по английскому языку.")
         return
 
-    topic_key = st.selectbox(
-        "Тема голосовой практики",
-        list(topics),
-        format_func=lambda key: f'{topics[key][0]["subject"]} · {topics[key][0]["topic"]}',
-        key=f'voice-topic-{student["id"]}',
-    )
+    voice_selector_left, voice_selector_right = st.columns([1, 1], gap="medium")
+    with voice_selector_left:
+        topic_key = st.selectbox(
+            "Тема разговора",
+            list(topics),
+            format_func=lambda key: f'{topics[key][0]["subject"]} · {topics[key][0]["topic"]}',
+            key=f'voice-topic-{student["id"]}',
+        )
     topic_assignments = sorted(
         topics[topic_key], key=lambda item: (int(item.get("variant") or 1), item["id"])
     )
     assignment_ids = [item["id"] for item in topic_assignments]
     assignment_by_id = {item["id"]: item for item in topic_assignments}
-    assignment_id = st.selectbox(
-        "Опора для разговора",
-        assignment_ids,
-        format_func=lambda item_id: (
-            f'{difficulty_label(assignment_by_id[item_id])} · '
-            f'{assignment_by_id[item_id]["title"]}'
-        ),
-        key=f'voice-assignment-{student["id"]}-{topic_key}',
-    )
+    with voice_selector_right:
+        assignment_id = st.selectbox(
+            "Коммуникативная цель",
+            assignment_ids,
+            format_func=lambda item_id: (
+                f'{difficulty_label(assignment_by_id[item_id])} · '
+                f'{assignment_by_id[item_id]["title"]}'
+            ),
+            key=f'voice-assignment-{student["id"]}-{topic_key}',
+        )
     assignment = assignment_by_id[assignment_id]
+    st.markdown('<div class="mode-kicker">Режим соединения</div>', unsafe_allow_html=True)
     engine = st.radio(
         "Движок голосового диалога",
-        ["OpenAI Realtime · рекомендуется", "Локальный · резервный"],
+        ["Локальный · без API", "OpenAI Realtime · облачный"],
         horizontal=True,
         key=f'voice-engine-{student["id"]}',
+        label_visibility="collapsed",
     )
     use_realtime = engine.startswith("OpenAI")
     hero(
         "Голосовая Viva",
         (
-            "Живой speech-to-speech разговор по изученной теме с сохранением доказательств speaking."
+            "Живой разговор по изученной теме: субтитры, мягкие исправления и прогресс цели в одной сессии."
             if use_realtime
-            else "Резервный полностью локальный разговор с сохранением доказательств speaking."
+            else "Приватная локальная практика: разговор, точечные исправления и доказательства speaking."
         ),
         f'СТУДЕНТ · {student["name"].upper()} · {assignment["topic"].upper()}',
     )
     if use_realtime:
-        st.markdown(
-            '<span class="chip">настоящий full-duplex WebRTC</span>'
-            '<span class="chip">пауза до 5 секунд</span>'
-            '<span class="chip">можно перебить собеседника</span>',
-            unsafe_allow_html=True,
-        )
+        st.markdown('<span class="chip">живой диалог</span><span class="chip">пауза до 5 секунд</span><span class="chip">можно перебить</span>', unsafe_allow_html=True)
         api_key = os.getenv("OPENAI_API_KEY", "").strip()
         key_source = "переменная окружения OPENAI_API_KEY"
         if not api_key:
@@ -983,12 +1183,7 @@ def render_voice_mode(student: dict, assignments: list[dict]) -> None:
             st.error(str(runtime.get("error") or "Не удалось запустить OpenAI Realtime-шлюз."))
             return
     else:
-        st.markdown(
-            '<span class="chip">микрофон всегда активен</span>'
-            '<span class="chip">можно перебить бота</span>'
-            '<span class="chip">без API и облака</span>',
-            unsafe_allow_html=True,
-        )
+        st.markdown('<span class="chip">данные остаются на устройстве</span><span class="chip">пауза до 5 секунд</span><span class="chip">точечная обратная связь</span>', unsafe_allow_html=True)
         runtime = ensure_voice_server()
         if not runtime.get("ready"):
             missing = ", ".join(runtime.get("missing") or [])
@@ -1009,18 +1204,7 @@ def render_voice_mode(student: dict, assignments: list[dict]) -> None:
         st.session_state[session_key] = str(uuid4())
     control_left, control_right = st.columns([4, 1])
     with control_left:
-        if use_realtime:
-            st.caption(
-                f'Диалог: {runtime["model"]} · субтитры: {runtime["transcription_model"]} · '
-                f'оценка: {runtime["assessment_model"]} · ключ: {key_source}. '
-                "Постоянный ключ остаётся на сервере; браузер получает только WebRTC-канал."
-            )
-        else:
-            st.caption(
-                f'ASR: {runtime["asr"]} · VAD: {runtime["vad"]} · '
-                f'грамматика: {runtime["grammar"]} · TTS: {runtime["tts"]} · '
-                'Qwen работает через локальный llama.cpp.'
-            )
+        st.caption("Начните разговор, ответьте своими словами и следите за прогрессом цели справа.")
     with control_right:
         if st.button("Новая сессия", key=f'new-{session_key}', width="stretch"):
             st.session_state[session_key] = str(uuid4())
@@ -1038,7 +1222,7 @@ def render_voice_mode(student: dict, assignments: list[dict]) -> None:
                 "bridge_token": runtime["bridge_token"],
             }
         )
-        components.html(realtime_voice_component_html(config), height=690, scrolling=False)
+        components.html(realtime_voice_component_html(config), height=735, scrolling=False)
     else:
         config.update(
             {
@@ -1046,7 +1230,7 @@ def render_voice_mode(student: dict, assignments: list[dict]) -> None:
                 "websocket_url": f'ws://127.0.0.1:{int(runtime["port"])}',
             }
         )
-        components.html(voice_component_html(config), height=690, scrolling=False)
+        components.html(voice_component_html(config), height=735, scrolling=False)
 
     sessions = student_voice_sessions(student["id"])
     topic_sessions = [item for item in sessions if item.get("topic_key") == topic_key]
@@ -1059,6 +1243,10 @@ def render_voice_mode(student: dict, assignments: list[dict]) -> None:
         )
     with st.expander("Как устроена проверка и что именно она оценивает"):
         if use_realtime:
+            st.caption(
+                f'Диалог: {runtime["model"]} · субтитры: {runtime["transcription_model"]} · '
+                f'оценка: {runtime["assessment_model"]} · ключ: {key_source}.'
+            )
             st.markdown(
                 "Браузер отправляет микрофон напрямую в speech-to-speech модель по WebRTC. Server VAD "
                 "сохраняет паузы до пяти секунд внутри одной мысли, а `interrupt_response` обеспечивает настоящее "
@@ -1068,6 +1256,10 @@ def render_voice_mode(student: dict, assignments: list[dict]) -> None:
                 "базе правил. Эта фоновая оценка не блокирует разговор. Акцент не штрафуется."
             )
         else:
+            st.caption(
+                f'ASR: {runtime["asr"]} · VAD: {runtime["vad"]} · '
+                f'грамматика: {runtime["grammar"]} · TTS: {runtime["tts"]}.'
+            )
             st.markdown(
                 "Микрофон передаёт PCM-аудио по постоянному WebSocket. Энергетический streaming-gate "
                 "быстро определяет начало реплики и barge-in, затем Silero VAD и Whisper локально получают "
@@ -1080,11 +1272,18 @@ def render_voice_mode(student: dict, assignments: list[dict]) -> None:
 def render_student(student: dict) -> None:
     assignments = list_assignments(active_only=True)
     render_student_dashboard(student, assignments)
+    st.markdown('<div class="mode-kicker">Выберите формат занятия</div>', unsafe_allow_html=True)
     mode = st.radio(
         "Формат занятия",
         ["Тренажер", "Практическая миссия", "Голосовая Viva"],
         horizontal=True,
         key=f'learning-mode-{student["id"]}',
+        format_func={
+            "Тренажер": "▦  Тренажёр",
+            "Практическая миссия": "◆  Практическая миссия",
+            "Голосовая Viva": "●  Голосовая Viva",
+        }.get,
+        label_visibility="collapsed",
     )
     if mode == "Практическая миссия":
         render_mission_mode(student, assignments)
@@ -1101,12 +1300,14 @@ def render_student(student: dict) -> None:
         completed = sum(item["id"] in progress for item in items)
         return f'{items[0]["subject"]} · {items[0]["topic"]} · {completed}/{len(items)}'
 
-    topic_key = st.selectbox(
-        "Тема",
-        list(topics),
-        format_func=topic_label,
-        key=f'student-topic-{student["id"]}',
-    )
+    selector_left, selector_right = st.columns([1, 1], gap="medium")
+    with selector_left:
+        topic_key = st.selectbox(
+            "Тема курса",
+            list(topics),
+            format_func=topic_label,
+            key=f'student-topic-{student["id"]}',
+        )
     topic_assignments = sorted(
         topics[topic_key], key=lambda item: (int(item.get("variant") or 1), item["id"])
     )
@@ -1123,13 +1324,14 @@ def render_student(student: dict) -> None:
     first_unfinished = next(
         (index for index, item in enumerate(personal_order) if item["id"] not in progress), 0
     )
-    assignment_id = st.selectbox(
-        "Вариант задания",
-        list(assignments_by_id),
-        index=first_unfinished,
-        format_func=task_label,
-        key=f'student-assignment-{student["id"]}-{topic_key}',
-    )
+    with selector_right:
+        assignment_id = st.selectbox(
+            "Задание в теме",
+            list(assignments_by_id),
+            index=first_unfinished,
+            format_func=task_label,
+            key=f'student-assignment-{student["id"]}-{topic_key}',
+        )
     assignment = assignments_by_id[assignment_id]
     context = (student["id"], assignment["id"])
     if st.session_state.get("learning_context") != context:
@@ -1167,21 +1369,51 @@ def render_student(student: dict) -> None:
         flow = completed_flow_from_attempt(student, assignment, history[0])
         st.session_state.learning_flow = flow
     if flow is None:
-        st.subheader("1. Выполните задание")
-        artifact = render_assignment_answer(student, assignment)
-        if not LLM.identity()["ready"]:
-            st.error(r"Сервис проверки сейчас недоступен. Запустите scripts\setup_local_llm.ps1 один раз.")
-        if st.button("Отправить на проверку", width="stretch", disabled=not LLM.identity()["ready"]):
-            numbered_answers = parse_numbered_items(artifact)
-            if not artifact.strip() or (numbered_answers and not any(numbered_answers)):
-                st.warning("Введите ответ перед проверкой.")
-            else:
-                try:
-                    with st.spinner("Проверяем решение и готовим следующий этап…"):
-                        start_assessment(student, assignment, artifact)
-                    st.rerun()
-                except LocalLLMError as error:
-                    st.error(str(error))
+        route_stage = 1
+        mastery_values = get_mastery(student["id"], assignment["skill_ids"])
+    elif flow["completed"]:
+        route_stage = 4
+        mastery_values = flow.get("mastery") or {}
+    else:
+        route_stage = 2
+        mastery_values = flow.get("mastery") or {}
+    current_mastery = sum(mastery_values.values()) / max(len(mastery_values), 1)
+    render_learning_route(
+        route_stage,
+        completed_in_topic,
+        len(topic_assignments),
+        current_mastery,
+    )
+    if flow is None:
+        exercise_col, guide_col = st.columns([2.05, 1], gap="large")
+        with exercise_col:
+            with st.container(border=True):
+                st.subheader("Выполните задание")
+                artifact = render_assignment_answer(student, assignment)
+                if not LLM.identity()["ready"]:
+                    st.error(r"Сервис проверки сейчас недоступен. Запустите scripts\setup_local_llm.ps1 один раз.")
+                if st.button("Проверить ответы", width="stretch", disabled=not LLM.identity()["ready"]):
+                    numbered_answers = parse_numbered_items(artifact)
+                    if not artifact.strip() or (numbered_answers and not any(numbered_answers)):
+                        st.warning("Введите ответ перед проверкой.")
+                    else:
+                        try:
+                            with st.spinner("Проверяем решение и готовим следующий этап…"):
+                                start_assessment(student, assignment, artifact)
+                            st.rerun()
+                        except LocalLLMError as error:
+                            st.error(str(error))
+        with guide_col:
+            st.markdown(
+                '<div class="card"><div class="overview-kicker">Цель занятия</div>'
+                f'<h3 style="margin:.35rem 0 .5rem">{escape(assignment["topic"])}</h3>'
+                f'<p class="muted">{escape(assignment["instructions"])}</p>'
+                '<hr style="border:0;border-top:1px solid #e3ebe6;margin:15px 0">'
+                '<b style="font-size:.8rem">Маршрут после проверки</b>'
+                '<p class="muted">Сначала короткая Viva, затем задание на перенос знания в новый контекст.</p>'
+                '<div class="reward-chip" style="display:inline-block">Награда: 120 XP</div></div>',
+                unsafe_allow_html=True,
+            )
         return
 
     if flow["student_id"] != student["id"] or flow["assignment_id"] != assignment["id"]:
@@ -1719,7 +1951,7 @@ def render_teacher_missions(topic_key: str) -> None:
     latest_by_student: dict[str, dict] = {}
     for attempt in history:
         latest_by_student.setdefault(attempt["student_id"], attempt)
-    with st.expander("Практическая миссия группы", expanded=bool(latest_by_student)):
+    with st.expander("Практическая миссия группы", expanded=False):
         st.caption(
             f'{mission["title"]}: короткий ролевой перенос правила в реальную коммуникативную задачу.'
         )
@@ -1782,7 +2014,7 @@ def render_teacher_missions(topic_key: str) -> None:
 
 def render_teacher_voice_sessions(topic_key: str) -> None:
     rows = latest_voice_topic_sessions(topic_key)
-    with st.expander("Голосовая Viva группы", expanded=bool(rows)):
+    with st.expander("Голосовая Viva группы", expanded=False):
         if not rows:
             st.caption(
                 "После первой голосовой сессии здесь появятся транскрипты и проверяемые speaking-метрики."
