@@ -26,6 +26,8 @@ def test_acoustic_fluency_metrics_use_audio_and_transcript() -> None:
     )
 
     assert metrics["duration_seconds"] == pytest.approx(1.5, abs=0.01)
+    assert metrics["signal_peak"] == pytest.approx(0.18, abs=0.01)
+    assert metrics["signal_rms"] > 0.09
     assert metrics["word_count"] == 10
     assert metrics["words_per_minute"] == pytest.approx(400, abs=1)
     assert 0.25 <= metrics["pause_ratio"] <= 0.45
@@ -155,9 +157,10 @@ def test_voice_component_escapes_dynamic_content_and_contains_barge_in() -> None
     assert "window.location.hostname" not in rendered
     assert 'id="manual"' in rendered
     assert "Начать реплику вручную" in rendered
-    assert "manualBtn.onclick=()=>speech?endSpeech('manual'):beginSpeech()" in rendered
-    assert "noiseFloor*2.4" in rendered
+    assert "manualBtn.onclick=()=>speech?endSpeech('manual'):beginSpeech(true)" in rendered
+    assert "noiseFloor*1.8" in rendered
     assert "MAX_UTTERANCE_MS=15000" in rendered
     assert "awaitingResponse=true" in rendered
     assert "if(awaitingResponse)return" in rendered
     assert "manualBtn.textContent='Реплика отправлена'" in rendered
+    assert "if(manualCapture){if(now-speechStartedAt>30000)" in rendered

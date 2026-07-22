@@ -176,17 +176,28 @@ async def _process_utterance(
         transcript = await asyncio.to_thread(transcribe_pcm, pcm16)
         if generation != state.generation:
             return
+        metrics = acoustic_fluency_metrics(pcm16, transcript)
         if len(re.findall(r"[A-Za-z]+", transcript)) < 2:
+            if float(metrics.get("signal_peak") or 0) < 0.01:
+                message = (
+                    "Микрофон почти не передал звук. Проверьте выбранное устройство: "
+                    "зелёная полоска должна двигаться во время речи."
+                )
+            else:
+                message = (
+                    "Звук получен, но локальный Whisper не распознал минимум два "
+                    "английских слова. Произнесите полное английское предложение."
+                )
             await _send_json(
                 connection,
                 state,
                 {
                     "type": "error",
-                    "message": "Реплика слишком короткая или не распознана. Скажите полное предложение.",
+                    "message": message,
+                    "diagnostics": metrics,
                 },
             )
             return
-        metrics = acoustic_fluency_metrics(pcm16, transcript)
         grammar_findings = await asyncio.to_thread(
             offline_grammar_findings, transcript, state.rule_id
         )
