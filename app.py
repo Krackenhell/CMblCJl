@@ -966,6 +966,7 @@ def render_voice_mode(student: dict, assignments: list[dict]) -> None:
         "assignment_id": assignment_id,
         "topic": assignment["topic"],
         "port": int(runtime["port"]),
+        "websocket_url": f'ws://127.0.0.1:{int(runtime["port"])}',
     }
     components.html(voice_component_html(config), height=690, scrolling=False)
 

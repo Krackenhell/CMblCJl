@@ -150,3 +150,6 @@ def test_voice_component_escapes_dynamic_content_and_contains_barge_in() -> None
     assert "getUserMedia" in rendered
     assert "sendJson({type:'interrupt'})" in rendered
     assert "botSpeaking" in rendered
+    assert "new WebSocket(CONFIG.websocket_url)" in rendered
+    assert '"websocket_url": "ws://127.0.0.1:8765"' in rendered
+    assert "window.location.hostname" not in rendered
