@@ -32,3 +32,14 @@ logs/
 .local-llm-download/
 local-llm-setup.*.log
 external/concordia/
+
+# Documents, presentations, generated submission artifacts (not project code)
+*.pdf
+*.pptx
+*.docx
+docs/CV_IVAN_SOROKOVYH_DRAFT.md
+docs/MOTIVATION_LETTER_AI_TALENT_HUB.md
+docs/PROJECT_BRIEF_JMLC_2026.md
+docs/PROJECT_COVER_PROMPT.md
+output/
+tmp/
