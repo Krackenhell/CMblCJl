@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 from collections import Counter
 from dataclasses import asdict, replace
@@ -45,7 +46,12 @@ from vivatrace.missions import detect_mission_features, load_missions, missions_
 from vivatrace.models import ArtifactFinding, Curriculum, Evidence, StudentState
 from vivatrace.rulebook import load_rulebook
 from vivatrace.review import build_review_plan
-from vivatrace.voice import ensure_voice_server, voice_component_html
+from vivatrace.realtime import ensure_realtime_server
+from vivatrace.voice import (
+    ensure_voice_server,
+    realtime_voice_component_html,
+    voice_component_html,
+)
 
 
 ROOT = Path(__file__).resolve().parent
@@ -923,39 +929,98 @@ def render_voice_mode(student: dict, assignments: list[dict]) -> None:
         key=f'voice-assignment-{student["id"]}-{topic_key}',
     )
     assignment = assignment_by_id[assignment_id]
+    engine = st.radio(
+        "Движок голосового диалога",
+        ["OpenAI Realtime · рекомендуется", "Локальный · резервный"],
+        horizontal=True,
+        key=f'voice-engine-{student["id"]}',
+    )
+    use_realtime = engine.startswith("OpenAI")
     hero(
         "Голосовая Viva",
-        "Короткий разговор по изученной теме: локальный бот слушает, отвечает голосом и сохраняет доказательства speaking.",
+        (
+            "Живой speech-to-speech разговор по изученной теме с сохранением доказательств speaking."
+            if use_realtime
+            else "Резервный полностью локальный разговор с сохранением доказательств speaking."
+        ),
         f'СТУДЕНТ · {student["name"].upper()} · {assignment["topic"].upper()}',
     )
-    st.markdown(
-        '<span class="chip">микрофон всегда активен</span>'
-        '<span class="chip">можно перебить бота</span>'
-        '<span class="chip">без API и облака</span>',
-        unsafe_allow_html=True,
-    )
-    runtime = ensure_voice_server()
-    if not runtime.get("ready"):
-        missing = ", ".join(runtime.get("missing") or [])
-        st.error(
-            "Голосовые модели не установлены. Запустите scripts\\setup_local_voice.ps1. "
-            f"Не найдено: {missing}"
+    if use_realtime:
+        st.markdown(
+            '<span class="chip">настоящий full-duplex WebRTC</span>'
+            '<span class="chip">пауза до 5 секунд</span>'
+            '<span class="chip">можно перебить собеседника</span>',
+            unsafe_allow_html=True,
         )
-        return
-    if not runtime.get("server_ready"):
-        st.error("Локальный голосовой сервер не запустился. Проверьте logs/voice-server.stderr.log.")
-        return
+        api_key = os.getenv("OPENAI_API_KEY", "").strip()
+        key_source = "переменная окружения OPENAI_API_KEY"
+        if not api_key:
+            try:
+                api_key = str(st.secrets.get("OPENAI_API_KEY", "")).strip()
+                key_source = ".streamlit/secrets.toml"
+            except Exception:  # Streamlit raises when no secrets file exists.
+                api_key = ""
+        if not api_key:
+            with st.container(border=True):
+                st.markdown("**Подключение OpenAI API**")
+                api_key = st.text_input(
+                    "API-ключ проекта",
+                    type="password",
+                    placeholder="sk-…",
+                    key=f'openai-api-key-{student["id"]}',
+                    help="Ключ хранится только в памяти текущего процесса и не попадает в браузер или базу.",
+                ).strip()
+                st.caption(
+                    "Нужен ключ OpenAI API с доступной квотой. Подписка ChatGPT сама по себе "
+                    "не является API-ключом. Для постоянного запуска задайте OPENAI_API_KEY."
+                )
+            if not api_key:
+                st.info("Введите API-ключ или выберите локальный резервный режим.")
+                return
+            key_source = "память текущей сессии"
+        runtime = ensure_realtime_server(api_key)
+        if not runtime.get("ready"):
+            st.error(str(runtime.get("error") or "Не удалось запустить OpenAI Realtime-шлюз."))
+            return
+    else:
+        st.markdown(
+            '<span class="chip">микрофон всегда активен</span>'
+            '<span class="chip">можно перебить бота</span>'
+            '<span class="chip">без API и облака</span>',
+            unsafe_allow_html=True,
+        )
+        runtime = ensure_voice_server()
+        if not runtime.get("ready"):
+            missing = ", ".join(runtime.get("missing") or [])
+            st.error(
+                "Голосовые модели не установлены. Запустите scripts\\setup_local_voice.ps1. "
+                f"Не найдено: {missing}"
+            )
+            return
+        if not runtime.get("server_ready"):
+            st.error(
+                "Локальный голосовой сервер не запустился. Проверьте logs/voice-server.stderr.log."
+            )
+            return
 
-    session_key = f'voice-session-{student["id"]}-{assignment_id}'
+    engine_key = "realtime" if use_realtime else "local"
+    session_key = f'voice-session-{engine_key}-{student["id"]}-{assignment_id}'
     if session_key not in st.session_state:
         st.session_state[session_key] = str(uuid4())
     control_left, control_right = st.columns([4, 1])
     with control_left:
-        st.caption(
-            f'ASR: {runtime["asr"]} · VAD: {runtime["vad"]} · '
-            f'грамматика: {runtime["grammar"]} · TTS: {runtime["tts"]} · '
-            'Qwen работает через локальный llama.cpp.'
-        )
+        if use_realtime:
+            st.caption(
+                f'Диалог: {runtime["model"]} · субтитры: {runtime["transcription_model"]} · '
+                f'оценка: {runtime["assessment_model"]} · ключ: {key_source}. '
+                "Постоянный ключ остаётся на сервере; браузер получает только WebRTC-канал."
+            )
+        else:
+            st.caption(
+                f'ASR: {runtime["asr"]} · VAD: {runtime["vad"]} · '
+                f'грамматика: {runtime["grammar"]} · TTS: {runtime["tts"]} · '
+                'Qwen работает через локальный llama.cpp.'
+            )
     with control_right:
         if st.button("Новая сессия", key=f'new-{session_key}', width="stretch"):
             st.session_state[session_key] = str(uuid4())
@@ -965,10 +1030,23 @@ def render_voice_mode(student: dict, assignments: list[dict]) -> None:
         "student_id": student["id"],
         "assignment_id": assignment_id,
         "topic": assignment["topic"],
-        "port": int(runtime["port"]),
-        "websocket_url": f'ws://127.0.0.1:{int(runtime["port"])}',
     }
-    components.html(voice_component_html(config), height=690, scrolling=False)
+    if use_realtime:
+        config.update(
+            {
+                "backend_url": f'http://127.0.0.1:{int(runtime["port"])}',
+                "bridge_token": runtime["bridge_token"],
+            }
+        )
+        components.html(realtime_voice_component_html(config), height=690, scrolling=False)
+    else:
+        config.update(
+            {
+                "port": int(runtime["port"]),
+                "websocket_url": f'ws://127.0.0.1:{int(runtime["port"])}',
+            }
+        )
+        components.html(voice_component_html(config), height=690, scrolling=False)
 
     sessions = student_voice_sessions(student["id"])
     topic_sessions = [item for item in sessions if item.get("topic_key") == topic_key]
@@ -980,13 +1058,23 @@ def render_voice_mode(student: dict, assignments: list[dict]) -> None:
             f'беглость {latest["average_fluency"]:.0%}.'
         )
     with st.expander("Как устроена проверка и что именно она оценивает"):
-        st.markdown(
-            "Микрофон передаёт PCM-аудио по постоянному WebSocket. Энергетический streaming-gate "
-            "быстро определяет начало реплики и barge-in, затем Silero VAD и Whisper локально получают "
-            "транскрипт. LanguageTool и предметные правила независимо проверяют структуру; Qwen оценивает "
-            "смысл, формирует диалог и перепроверяет спорные случаи. Код считает темп, паузы и "
-            "слова-паразиты. Произношение и акцент намеренно не оцениваются без фонемного alignment."
-        )
+        if use_realtime:
+            st.markdown(
+                "Браузер отправляет микрофон напрямую в speech-to-speech модель по WebRTC. Server VAD "
+                "сохраняет паузы до пяти секунд внутри одной мысли, а `interrupt_response` обеспечивает настоящее "
+                "перебивание. Входное аудио проходит far-field noise reduction; отдельная транскрипция "
+                "нужна только для субтитров и evidence. После каждой пары реплик отдельная модель со "
+                "структурированным JSON оценивает грамматику, словарь и соответствие теме по проверенной "
+                "базе правил. Эта фоновая оценка не блокирует разговор. Акцент не штрафуется."
+            )
+        else:
+            st.markdown(
+                "Микрофон передаёт PCM-аудио по постоянному WebSocket. Энергетический streaming-gate "
+                "быстро определяет начало реплики и barge-in, затем Silero VAD и Whisper локально получают "
+                "транскрипт. LanguageTool и предметные правила независимо проверяют структуру; Qwen оценивает "
+                "смысл, формирует диалог и перепроверяет спорные случаи. Код считает темп, паузы и "
+                "слова-паразиты. Произношение и акцент намеренно не оцениваются без фонемного alignment."
+            )
 
 
 def render_student(student: dict) -> None:
@@ -1700,32 +1788,62 @@ def render_teacher_voice_sessions(topic_key: str) -> None:
                 "После первой голосовой сессии здесь появятся транскрипты и проверяемые speaking-метрики."
             )
             return
-        mean_score = sum(float(item["average_score"]) for item in rows) / len(rows)
+        scored_rows = [
+            item
+            for item in rows
+            if (item.get("latest_assessment") or {}).get("scoring_available") is not False
+        ]
+        mean_score = (
+            sum(float(item["average_score"]) for item in scored_rows) / len(scored_rows)
+            if scored_rows
+            else None
+        )
         mean_fluency = sum(float(item["average_fluency"]) for item in rows) / len(rows)
         columns = st.columns(3)
         with columns[0]:
             metric_card("Участвовали", str(len(rows)), "уникальные студенты")
         with columns[1]:
-            metric_card("Speaking", f"{mean_score:.0%}", "грамматика + словарь + смысл + беглость")
+            metric_card(
+                "Speaking",
+                f"{mean_score:.0%}" if mean_score is not None else "—",
+                "грамматика + словарь + смысл + беглость",
+            )
         with columns[2]:
-            metric_card("Беглость", f"{mean_fluency:.0%}", "темп, паузы и fillers")
+            metric_card("Беглость", f"{mean_fluency:.0%}", "темп речи; локально также паузы и fillers")
         table = []
         for item in rows:
             metrics = item.get("latest_metrics") or {}
             assessment = item.get("latest_assessment") or {}
+            scoring_available = assessment.get("scoring_available") is not False
             table.append(
                 {
                     "Студент": item["student_name"],
                     "Реплик": int(item["turn_count"]),
-                    "Speaking, %": round(float(item["average_score"]) * 100),
+                    "Speaking, %": (
+                        round(float(item["average_score"]) * 100)
+                        if scoring_available
+                        else "ожидает оценки"
+                    ),
                     "Слов/мин": round(float(metrics.get("words_per_minute") or 0)),
-                    "Паузы, %": round(float(metrics.get("pause_ratio") or 0) * 100),
-                    "Грамматика, %": round(float(assessment.get("grammar_score") or 0) * 100),
-                    "Словарь, %": round(float(assessment.get("vocabulary_score") or 0) * 100),
+                    "Паузы, %": (
+                        round(float(metrics.get("pause_ratio")) * 100)
+                        if metrics.get("pause_ratio") is not None
+                        else "—"
+                    ),
+                    "Грамматика, %": (
+                        round(float(assessment.get("grammar_score") or 0) * 100)
+                        if scoring_available
+                        else "—"
+                    ),
+                    "Словарь, %": (
+                        round(float(assessment.get("vocabulary_score") or 0) * 100)
+                        if scoring_available
+                        else "—"
+                    ),
                 }
             )
         st.dataframe(pd.DataFrame(table), hide_index=True, width="stretch")
-        weakest = min(rows, key=lambda item: float(item["average_score"]))
+        weakest = min(scored_rows or rows, key=lambda item: float(item["average_score"]))
         assessment = weakest.get("latest_assessment") or {}
         st.markdown(
             f'<div class="gap-card"><h4>{escape(weakest["student_name"])}</h4>'

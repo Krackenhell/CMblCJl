@@ -52,8 +52,8 @@
     "id": "eng_relative_clauses",
     "title": "Relative Clauses",
     "summary": "Defining clause идентифицирует предмет и не отделяется запятыми. Non-defining clause добавляет необязательную информацию и отделяется запятыми.",
-    "principles": ["who — люди, which — вещи, where — места.", "That возможно в defining clause, но не в non-defining clause.", "Запятые меняют статус информации и иногда смысл."],
-    "examples": ["The woman who designed the app won an award.", "My laptop, which is five years old, still works."],
+    "principles": ["Who/whom относится к людям. Which относится к предметам и местам, когда antecedent является подлежащим или дополнением relative clause.", "Where означает in/at which: после where у придаточной части должно быть собственное подлежащее, например the café where we met. Если кафе само serves food, нужен which.", "That возможно в defining clause, но не в non-defining clause.", "Defining clause идентифицирует antecedent без запятых; non-defining clause добавляет информацию об уже определённом antecedent и отделяется запятыми."],
+    "examples": ["The woman who designed the app won an award.", "My laptop, which is five years old, still works.", "The café which serves vegan food is popular. The café where we met serves vegan food."],
     "source_title": "British Council: Relative clauses",
     "source_url": "https://learnenglish.britishcouncil.org/free-resources/grammar/b1-b2/relative-clauses-defining-relative-clauses"
   },

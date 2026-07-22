@@ -16,23 +16,35 @@ from websockets.asyncio.server import ServerConnection, serve
 from websockets.exceptions import ConnectionClosed
 
 from .database import finish_voice_session, get_assignment, init_database, save_voice_turn
-from .grammar import ensure_grammar_server, offline_grammar_findings
+from .grammar import (
+    ensure_grammar_server,
+    offline_grammar_findings,
+    relative_clause_evidence,
+)
 from .local_llm import LocalLLM, LocalLLMError
 from .voice import (
     VAD_MODEL,
     WHISPER_CLI,
     WHISPER_MODEL,
     acoustic_fluency_metrics,
+    is_assessable_spoken_turn,
     overall_speaking_score,
 )
 
 
 SAMPLE_RATE = 16_000
-MAX_AUDIO_BYTES = SAMPLE_RATE * 2 * 25
+MAX_AUDIO_BYTES = SAMPLE_RATE * 2 * 50
 INTRO = (
-    "Hi! Let’s have a short B2 speaking practice. Explain one idea from today’s "
-    "topic and give an English example."
+    "Hi! Let’s have a short B2 speaking practice. Give one original English "
+    "example from today’s topic."
 )
+
+
+def _service_reply(transcript: str) -> str:
+    lowered = transcript.lower()
+    if "listen" in lowered or "hear" in lowered:
+        return "Yes, I’m listening. Go ahead; I’ll wait until you finish."
+    return "Of course. Go ahead when you’re ready."
 
 
 @dataclass
@@ -198,10 +210,39 @@ async def _process_utterance(
                 },
             )
             return
-        grammar_findings = await asyncio.to_thread(
-            offline_grammar_findings, transcript, state.rule_id
-        )
         await _send_json(connection, state, {"type": "transcript", "text": transcript})
+        assessable = is_assessable_spoken_turn(transcript)
+        if not assessable and re.search(
+            r"\b(?:are you (?:listening|there)|can you hear me)\b",
+            transcript,
+            flags=re.IGNORECASE,
+        ):
+            reply = _service_reply(transcript)
+            state.history.extend(
+                [
+                    {"role": "student", "content": transcript},
+                    {"role": "assistant", "content": reply},
+                ]
+            )
+            await _send_json(
+                connection,
+                state,
+                {
+                    "type": "reply",
+                    "text": reply,
+                    "assessment": {"scoring_available": False, "reason": "service_turn"},
+                },
+            )
+            audio = await asyncio.to_thread(synthesize_sapi, reply)
+            if generation == state.generation:
+                await _send_audio(connection, state, audio)
+            return
+        grammar_findings = (
+            await asyncio.to_thread(offline_grammar_findings, transcript, state.rule_id)
+            if assessable
+            else []
+        )
+        structural_evidence = relative_clause_evidence(transcript, state.rule_id)
         await _send_json(
             connection,
             state,
@@ -216,6 +257,8 @@ async def _process_utterance(
             transcript=transcript,
             acoustic_metrics=metrics,
             grammar_findings=grammar_findings,
+            structural_evidence=structural_evidence,
+            service_turn=not assessable,
         )
         if generation != state.generation:
             return
@@ -229,6 +272,8 @@ async def _process_utterance(
             "pronunciation_scored": False,
             "grammar_checker": "LanguageTool + VivaTrace rules",
             "grammar_findings": grammar_findings,
+            "structural_evidence": structural_evidence,
+            "scoring_available": assessable,
         }
         state.history.extend(
             [
@@ -236,18 +281,19 @@ async def _process_utterance(
                 {"role": "assistant", "content": reply},
             ]
         )
-        await asyncio.to_thread(
-            save_voice_turn,
-            session_id=state.session_id,
-            student_id=state.student_id,
-            assignment_id=state.assignment_id,
-            student_text=transcript,
-            assistant_text=reply,
-            metrics=metrics,
-            assessment=assessment,
-            trace=_trace_dict(trace),
-            overall_score=overall,
-        )
+        if assessable:
+            await asyncio.to_thread(
+                save_voice_turn,
+                session_id=state.session_id,
+                student_id=state.student_id,
+                assignment_id=state.assignment_id,
+                student_text=transcript,
+                assistant_text=reply,
+                metrics=metrics,
+                assessment=assessment,
+                trace=_trace_dict(trace),
+                overall_score=overall,
+            )
         await _send_json(
             connection,
             state,

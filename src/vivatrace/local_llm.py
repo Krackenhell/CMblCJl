@@ -9,6 +9,7 @@ import urllib.error
 import urllib.request
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
+from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -100,12 +101,30 @@ def english_stems(value: str) -> set[str]:
     return stems
 
 
+def _personalized_voice_follow_up(antecedent: str) -> str:
+    noun = antecedent.lower().split()[-1] if antecedent.split() else ""
+    if noun == "project":
+        return "What problem does your project solve?"
+    if noun in {"university", "school", "course"}:
+        return "What would you most like to study there?"
+    if noun in {"laptop", "computer", "phone", "app"}:
+        return f"What do you mainly use {antecedent} for?"
+    if noun in {"cafe", "café", "restaurant", "hotel", "city", "place"}:
+        return f"What do you like most about {antecedent}?"
+    if noun in {"woman", "man", "person", "designer", "student", "teacher", "friend"}:
+        return f"What else can you tell me about {antecedent}?"
+    return f"Tell me one more real detail about {antecedent}."
+
+
 def normalize_voice_dialogue_result(
     result: dict[str, Any],
     *,
     transcript: str,
     grounded_rule: dict[str, Any],
     grammar_findings: list[dict[str, Any]] | None = None,
+    structural_evidence: list[dict[str, Any]] | None = None,
+    history: list[dict[str, str]] | None = None,
+    service_turn: bool = False,
 ) -> tuple[dict[str, Any], bool]:
     normalized = dict(result)
     invalid_range = False
@@ -117,6 +136,52 @@ def normalize_voice_dialogue_result(
         normalized[field] = min(max(raw_score, 0.0), 1.0)
     for field in ("reply_en", "feedback_ru", "correction_en", "next_goal_ru"):
         normalized[field] = str(normalized.get(field) or "").strip()
+    if service_turn:
+        structural_evidence = structural_evidence or []
+        history = history or []
+        prior_replies = [
+            str(item.get("content") or "")
+            for item in history
+            if item.get("role") == "assistant" and item.get("content")
+        ]
+        reply = normalized["reply_en"]
+        repeated_reply = any(
+            SequenceMatcher(None, reply.lower(), prior.lower()).ratio() >= 0.72
+            for prior in prior_replies
+        )
+        complaint_about_repetition = bool(
+            re.search(
+                r"\b(?:why do you (?:ask|repeat)|second time|already (?:gave|answered)|"
+                r"gave you the example)\b",
+                transcript,
+                flags=re.IGNORECASE,
+            )
+        )
+        exercise_reply = bool(
+            re.match(r"^(?:next[, ]+)?(?:provide|give|make|write|create)\b", reply, re.I)
+        )
+        if complaint_about_repetition or repeated_reply or exercise_reply:
+            normalized["reply_en"] = (
+                "You’re right—I repeated the task instead of responding to your sentence. "
+                "I won’t ask it again; let’s continue from your own example."
+            )
+            normalized["dialogue_guardrail_applied"] = True
+        elif structural_evidence:
+            primary = structural_evidence[0]
+            marker = str(primary.get("marker") or "relative word")
+            antecedent = str(primary.get("antecedent") or "the noun")
+            clause_type = str(
+                primary.get("clause_type_from_transcript") or "defining"
+            ).replace("_", "-")
+            normalized["reply_en"] = (
+                f"I’m checking the exact sentence: ‘{marker}’ refers to ‘{antecedent}’, "
+                f"so the transcript contains a {clause_type} relative clause."
+            )
+            normalized["dialogue_guardrail_applied"] = True
+        elif not reply:
+            normalized["reply_en"] = "I’m listening. Tell me what you want me to check."
+        normalized["correction_en"] = ""
+        return normalized, invalid_range
 
     rule_text = " ".join(
         [
@@ -129,50 +194,161 @@ def normalize_voice_dialogue_result(
         normalized["relevance_score"] = max(float(normalized["relevance_score"]), 0.8)
 
     grammar_findings = grammar_findings or []
+    structural_evidence = structural_evidence or []
+    history = history or []
     grammar_score = float(normalized["grammar_score"])
     relevance_score = float(normalized["relevance_score"])
     if grammar_findings:
         primary = grammar_findings[0]
-        normalized["grammar_score"] = min(grammar_score, 0.55)
+        finding_code = str(primary.get("code") or "")
+        if finding_code.startswith("RELATIVE_"):
+            normalized["grammar_score"] = 0.55
+        elif primary.get("source") == "VivaTrace usage rule":
+            normalized["grammar_score"] = 0.72
+        else:
+            normalized["grammar_score"] = min(max(grammar_score, 0.45), 0.65)
         suggestions = primary.get("suggestions") or []
         if suggestions:
             normalized["correction_en"] = str(suggestions[0])
-        normalized["feedback_ru"] = (
-            f'Независимая проверка правила обнаружила: {primary.get("message")} '
-            f'Фрагмент: «{primary.get("fragment") or transcript}».'
+        structural_success = next(
+            (
+                item
+                for item in structural_evidence
+                if item.get("marker_valid") is True
+            ),
+            None,
         )
-        normalized["next_goal_ru"] = "Исправить конкретную структуру и объяснить выбор формы."
-        if normalized["correction_en"]:
+        if structural_success:
+            marker = str(structural_success.get("marker") or "relative word")
+            antecedent = str(structural_success.get("antecedent") or "the noun")
+            clause_type = str(
+                structural_success.get("clause_type_from_transcript") or "defining"
+            ).replace("_", "-")
+            minimal = str(primary.get("minimal_correction") or "").strip()
+            normalized["feedback_ru"] = (
+                f"Целевая конструкция верна: {clause_type} clause с {marker} относится к "
+                f"«{antecedent}». Отдельная локальная ошибка: {primary.get('message')} "
+                f"Фрагмент: «{primary.get('fragment') or transcript}»."
+            )
             normalized["reply_en"] = (
-                f"Almost. Try: {normalized['correction_en']} "
-                "Why is this form needed here?"
+                f"Your {clause_type} clause with ‘{marker}’ is correct. One local fix: "
+                f"use ‘{minimal}’. Please say the corrected sentence once."
             )
         else:
+            normalized["feedback_ru"] = (
+                f'Независимая проверка правила обнаружила: {primary.get("message")} '
+                f'Фрагмент: «{primary.get("fragment") or transcript}».'
+            )
+        normalized["next_goal_ru"] = "Произнести исправленный вариант целиком."
+        if not structural_success and normalized["correction_en"]:
+            normalized["reply_en"] = (
+                f"Almost. Try: {normalized['correction_en']} "
+                "Please say the corrected sentence once."
+            )
+        elif not structural_success:
             normalized["reply_en"] = (
                 "There is one grammar issue in that sentence. "
-                "Can you reformulate it and explain your choice?"
+                "Please reformulate the sentence once."
             )
         normalized["dialogue_guardrail_applied"] = True
+    elif structural_evidence:
+        primary = structural_evidence[0]
+        marker = str(primary.get("marker") or "")
+        antecedent = str(primary.get("antecedent") or "the noun")
+        clause_type = str(primary.get("clause_type_from_transcript") or "defining")
+        previous_tutor_turn = next(
+            (
+                str(item.get("content") or "")
+                for item in reversed(history)
+                if item.get("role") == "assistant"
+            ),
+            "",
+        )
+        expected_non_defining = "non-defining" in previous_tutor_turn.lower()
+        expected_defining = (
+            "defining" in previous_tutor_turn.lower() and not expected_non_defining
+        )
+        task_mismatch = (
+            expected_non_defining and clause_type != "non_defining"
+        ) or (expected_defining and clause_type != "defining")
+        if task_mismatch:
+            normalized["relevance_score"] = min(relevance_score, 0.65)
+            normalized["correction_en"] = ""
+            normalized["feedback_ru"] = (
+                f"В транскрипте конструкция с {marker} выглядит как {clause_type.replace('_', '-')} "
+                f"clause, но предыдущий вопрос просил другой тип; пунктуация транскрипта является "
+                "только ASR-сигналом."
+            )
+            normalized["reply_en"] = (
+                f"Your clause with ‘{marker}’ appears defining in the transcript because it identifies "
+                f"‘{antecedent}’. For a clear non-defining example, use a named person or an already "
+                "identified object and add a spoken pause."
+                if expected_non_defining
+                else f"Your clause with ‘{marker}’ adds extra information about ‘{antecedent}’. "
+                "Give a defining example that identifies exactly which person or object you mean."
+            )
+            normalized["next_goal_ru"] = "Дать требуемый тип relative clause в новом личном примере."
+            normalized["dialogue_guardrail_applied"] = True
+        else:
+            normalized["grammar_score"] = max(grammar_score, 0.8)
+            normalized["correction_en"] = ""
+            normalized["feedback_ru"] = (
+                f"В транскрипте найден {clause_type.replace('_', '-')} relative clause: "
+                f"маркер {marker} относится к «{antecedent}»; предметных нарушений не найдено."
+            )
+            normalized["next_goal_ru"] = "Применить relative clause в новом личном контексте."
     elif grammar_score >= 0.75:
         normalized["correction_en"] = ""
-        normalized["feedback_ru"] = (
-            "Реплика грамматически корректна и связана с темой разговора."
-            if relevance_score >= 0.75
-            else "Реплика грамматически понятна, но следующую мысль нужно точнее связать с темой."
+        feedback_claims_error = bool(
+            re.search(
+                r"\b(?:ошиб|невер|исправ|нужн|wrong|incorrect|must be changed)\w*",
+                normalized["feedback_ru"],
+                flags=re.IGNORECASE,
+            )
         )
-        normalized["next_goal_ru"] = (
-            "В следующей реплике объяснить выбор формы, а не только привести пример."
-        )
+        if not normalized["feedback_ru"] or feedback_claims_error:
+            normalized["feedback_ru"] = (
+                "Реплика грамматически корректна: ясных ошибок в буквальном транскрипте не найдено."
+                if relevance_score >= 0.75
+                else "Реплика понятна, но в ней пока нет проверяемой конструкции текущей темы."
+            )
+        normalized["next_goal_ru"] = "Продолжить разговор новым примером по теме."
 
     reply = str(normalized["reply_en"])
-    if not reply.rstrip().endswith("?"):
+    prior_replies = [
+        str(item.get("content") or "")
+        for item in history
+        if item.get("role") == "assistant" and item.get("content")
+    ]
+    repeated_reply = any(
+        SequenceMatcher(None, reply.lower(), prior.lower()).ratio() >= 0.78
+        for prior in prior_replies
+    )
+    generic_question = (
+        "why did you choose that form" in reply.lower()
+        or "how would another form change the meaning" in reply.lower()
+        or reply.lower().startswith("your example is correct. next, provide")
+    )
+    if (not reply or generic_question or repeated_reply) and structural_evidence:
+        primary = structural_evidence[0]
+        marker = str(primary.get("marker") or "relative word")
+        antecedent = str(primary.get("antecedent") or "the noun")
+        clause_type = str(primary.get("clause_type_from_transcript") or "defining").replace(
+            "_", "-"
+        )
         normalized["reply_en"] = (
-            "That is a useful example for today’s topic. Why did you choose that form, "
-            "and how would another form change the meaning?"
+            f"I heard a {clause_type} clause: ‘{marker}’ refers to ‘{antecedent}’. "
+            f"{_personalized_voice_follow_up(antecedent)}"
+        )
+        normalized["dialogue_guardrail_applied"] = True
+    elif not reply or generic_question or repeated_reply:
+        normalized["reply_en"] = (
+            "I understood your point, but I still need one complete relative clause from your "
+            "own context using who, which, or where."
         )
         normalized["dialogue_guardrail_applied"] = True
     needs_quality_fallback = invalid_range or (
-        grammar_score < 0.65 and not grammar_findings
+        grammar_score < 0.65 and not grammar_findings and not structural_evidence
     )
     return normalized, needs_quality_fallback
 
@@ -1106,6 +1282,8 @@ class LocalLLM:
         transcript: str,
         acoustic_metrics: dict[str, Any],
         grammar_findings: list[dict[str, Any]] | None = None,
+        structural_evidence: list[dict[str, Any]] | None = None,
+        service_turn: bool = False,
     ) -> tuple[dict[str, Any], LLMTrace]:
         schema = {
             "type": "object",
@@ -1131,8 +1309,19 @@ class LocalLLM:
         }
         system = (
             "Ты локальный собеседник и оценщик устной практики английского B2. Ответь студенту "
-            "по-английски не более чем двумя короткими предложениями и закончи одним естественным "
-            "уточняющим вопросом. Не читай лекцию и не повторяй дословно реплику студента. "
+            "по-английски не более чем двумя короткими предложениями (до 32 слов). Не читай лекцию "
+            "и не повторяй дословно реплику студента. Вопрос задавай только если он собирает новое "
+            "доказательство по конкретной реплике; ответ может заканчиваться коротким заданием без вопроса. "
+            "Никогда не используй шаблон 'Why did you choose that form, and how would another form change "
+            "the meaning?'. Не спрашивай про альтернативную форму, если в буквальном предложении студента "
+            "нет содержательного контраста. При ясной ошибке попроси один раз произнести минимально "
+            "исправленный вариант, а при верном примере предложи конкретный следующий пример по теме. "
+            "Сначала сопоставь student_transcript именно с last_tutor_turn. Нельзя объявлять ответ "
+            "правильным, если он не выполнил запрошенный тип конструкции. Нельзя повторять ни один вопрос "
+            "из prior_tutor_turns и нельзя циклически перебирать заготовленные предложения из lesson_task. "
+            "Следующий ход должен опираться на буквальные слова студента и его личный контекст. Если "
+            "service_turn=true, ответь на просьбу или замечание студента напрямую, признай повтор вопроса, "
+            "если он был, и не выдавай новое упражнение в той же реплике. "
             "Отдельно оцени только то, что доказуемо: grammar_score — грамматику транскрипта, "
             "vocabulary_score — диапазон слов, relevance_score — связь с темой и предыдущей репликой. "
             "Акустические метрики можно использовать только для беглости; не заявляй, что оценил "
@@ -1144,9 +1333,12 @@ class LocalLLM:
             "заменяет обстоятельство места (Kyoto, where I studied). Если транскрипт грамматически "
             "корректен, grammar_score не ниже 0.8 и correction_en пуст. "
             "correction_en оставь пустым, если нет ясной ошибки; иначе покажи одну минимальную правку. "
-            "next_goal_ru — один наблюдаемый фокус следующей реплики. Верни только JSON."
+            "verified_structural_evidence вычислен кодом и авторитетен для найденного marker, antecedent "
+            "и defining/non-defining сигнала. Запятые ASR — лишь сигнал, поэтому не оценивай письменную "
+            "пунктуацию как произношение. next_goal_ru — один наблюдаемый фокус следующей реплики. "
+            "Верни только JSON. "
             "Если independent_grammar_findings не пуст, считай найденную структуру доказанной, используй "
-            "предложенную минимальную правку и задай вопрос именно о ней."
+            "предложенную минимальную правку и попроси один раз произнести исправленный вариант."
         )
         grounded_rule = {
             key: value
@@ -1158,9 +1350,24 @@ class LocalLLM:
             "lesson_task": instructions,
             "grounded_rule": grounded_rule,
             "dialogue_history": history[-6:],
+            "last_tutor_turn": next(
+                (
+                    str(item.get("content") or "")
+                    for item in reversed(history)
+                    if item.get("role") == "assistant"
+                ),
+                "",
+            ),
+            "prior_tutor_turns": [
+                str(item.get("content") or "")
+                for item in history[-10:]
+                if item.get("role") == "assistant"
+            ],
             "student_transcript": transcript,
+            "service_turn": service_turn,
             "acoustic_fluency_metrics": acoustic_metrics,
             "independent_grammar_findings": grammar_findings or [],
+            "verified_structural_evidence": structural_evidence or [],
         }
         result, trace = self._call_json(
             "голосовой диалог и оценка speaking",
@@ -1175,6 +1382,9 @@ class LocalLLM:
             transcript=transcript,
             grounded_rule=grounded_rule,
             grammar_findings=grammar_findings,
+            structural_evidence=structural_evidence,
+            history=history,
+            service_turn=service_turn,
         )
         if needs_quality_fallback:
             result, trace = self._call_json(
@@ -1190,6 +1400,9 @@ class LocalLLM:
                 transcript=transcript,
                 grounded_rule=grounded_rule,
                 grammar_findings=grammar_findings,
+                structural_evidence=structural_evidence,
+                history=history,
+                service_turn=service_turn,
             )
             result["quality_fallback"] = "local_qwen_7b"
         return result, trace
