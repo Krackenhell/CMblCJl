@@ -71,8 +71,8 @@
 Понадобятся Windows 10/11, Python 3.11 или новее и около 8 ГБ свободного места для основной и быстрой моделей.
 
 ```powershell
-git clone https://github.com/krackenhell/smysl.git
-cd smysl
+git clone https://github.com/Krackenhell/CMblCJl.git
+cd CMblCJl
 
 python -m venv .venv
 .venv\Scripts\python.exe -m pip install -r requirements.txt
