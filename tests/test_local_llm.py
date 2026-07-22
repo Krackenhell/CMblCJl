@@ -614,15 +614,18 @@ def test_answer_evidence_is_explicitly_traced_to_local_llm(monkeypatch):
 
 def test_identity_reports_local_files_without_api_key(tmp_path, monkeypatch):
     model = tmp_path / "model.gguf"
+    fast_model = tmp_path / "fast-model.gguf"
     server = tmp_path / "llama-server.exe"
     manifest = tmp_path / "manifest.json"
     model.write_bytes(b"model")
+    fast_model.write_bytes(b"fast-model")
     server.write_bytes(b"server")
     manifest.write_text(
         '{"model":"Local Test Model","model_sha256":"deadbeef"}', encoding="utf-8"
     )
     llm = LocalLLM()
     llm.model_path = model
+    llm.fast_model_path = fast_model
     llm.server_path = server
     llm.manifest_path = manifest
     monkeypatch.setattr(llm, "_is_running", lambda *_: False)
