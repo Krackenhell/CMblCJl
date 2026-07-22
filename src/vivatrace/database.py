@@ -142,6 +142,35 @@ def init_database() -> None:
 
             CREATE INDEX IF NOT EXISTS idx_mission_attempts_student
             ON mission_attempts(student_id, mission_id, id DESC);
+
+            CREATE TABLE IF NOT EXISTS voice_sessions (
+                session_id TEXT PRIMARY KEY,
+                student_id TEXT NOT NULL REFERENCES students(id),
+                assignment_id INTEGER NOT NULL REFERENCES assignments(id),
+                status TEXT NOT NULL DEFAULT 'active',
+                turn_count INTEGER NOT NULL DEFAULT 0,
+                average_score REAL NOT NULL DEFAULT 0,
+                average_fluency REAL NOT NULL DEFAULT 0,
+                started_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS voice_turns (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL REFERENCES voice_sessions(session_id),
+                turn_index INTEGER NOT NULL,
+                student_text TEXT NOT NULL,
+                assistant_text TEXT NOT NULL,
+                metrics_json TEXT NOT NULL DEFAULT '{}',
+                assessment_json TEXT NOT NULL DEFAULT '{}',
+                trace_json TEXT NOT NULL DEFAULT '{}',
+                overall_score REAL NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL,
+                UNIQUE(session_id, turn_index)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_voice_sessions_student
+            ON voice_sessions(student_id, assignment_id, updated_at DESC);
             """
         )
         _migrate_schema(connection)
@@ -659,6 +688,137 @@ def _attempt_from_row(row: sqlite3.Row) -> dict[str, Any]:
 
 def reset_learning_data() -> None:
     with connect() as connection:
+        connection.execute("DELETE FROM voice_turns")
+        connection.execute("DELETE FROM voice_sessions")
         connection.execute("DELETE FROM mission_attempts")
         connection.execute("DELETE FROM attempts")
         connection.execute("DELETE FROM mastery")
+
+
+def save_voice_turn(
+    *,
+    session_id: str,
+    student_id: str,
+    assignment_id: int,
+    student_text: str,
+    assistant_text: str,
+    metrics: dict[str, Any],
+    assessment: dict[str, Any],
+    trace: dict[str, Any],
+    overall_score: float,
+) -> int:
+    now = datetime.now(UTC).isoformat()
+    with connect() as connection:
+        connection.execute(
+            """
+            INSERT INTO voice_sessions(
+                session_id, student_id, assignment_id, status, started_at, updated_at
+            ) VALUES (?, ?, ?, 'active', ?, ?)
+            ON CONFLICT(session_id) DO UPDATE SET updated_at = excluded.updated_at
+            """,
+            (session_id, student_id, assignment_id, now, now),
+        )
+        turn_index = int(
+            connection.execute(
+                "SELECT COALESCE(MAX(turn_index), 0) + 1 FROM voice_turns WHERE session_id = ?",
+                (session_id,),
+            ).fetchone()[0]
+        )
+        cursor = connection.execute(
+            """
+            INSERT INTO voice_turns(
+                session_id, turn_index, student_text, assistant_text, metrics_json,
+                assessment_json, trace_json, overall_score, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                session_id,
+                turn_index,
+                student_text,
+                assistant_text,
+                json.dumps(metrics, ensure_ascii=False),
+                json.dumps(assessment, ensure_ascii=False),
+                json.dumps(trace, ensure_ascii=False),
+                float(overall_score),
+                now,
+            ),
+        )
+        connection.execute(
+            """
+            UPDATE voice_sessions
+            SET turn_count = (
+                    SELECT COUNT(*) FROM voice_turns WHERE session_id = ?
+                ),
+                average_score = (
+                    SELECT AVG(overall_score) FROM voice_turns WHERE session_id = ?
+                ),
+                average_fluency = (
+                    SELECT AVG(CAST(json_extract(metrics_json, '$.fluency_score') AS REAL))
+                    FROM voice_turns WHERE session_id = ?
+                ),
+                updated_at = ?
+            WHERE session_id = ?
+            """,
+            (session_id, session_id, session_id, now, session_id),
+        )
+        return int(cursor.lastrowid)
+
+
+def finish_voice_session(session_id: str) -> None:
+    with connect() as connection:
+        connection.execute(
+            "UPDATE voice_sessions SET status = 'completed', updated_at = ? WHERE session_id = ?",
+            (datetime.now(UTC).isoformat(), session_id),
+        )
+
+
+def latest_voice_topic_sessions(topic_key: str) -> list[dict[str, Any]]:
+    with connect() as connection:
+        rows = connection.execute(
+            """
+            SELECT vs.*, s.name AS student_name, a.title AS assignment_title,
+                   vt.student_text AS latest_student_text,
+                   vt.metrics_json AS latest_metrics_json,
+                   vt.assessment_json AS latest_assessment_json
+            FROM voice_sessions vs
+            JOIN students s ON s.id = vs.student_id
+            JOIN assignments a ON a.id = vs.assignment_id
+            LEFT JOIN voice_turns vt ON vt.session_id = vs.session_id
+                AND vt.turn_index = (
+                    SELECT MAX(vt2.turn_index) FROM voice_turns vt2
+                    WHERE vt2.session_id = vs.session_id
+                )
+            JOIN (
+                SELECT vs2.student_id, MAX(vs2.updated_at) AS latest_at
+                FROM voice_sessions vs2
+                JOIN assignments a2 ON a2.id = vs2.assignment_id
+                WHERE a2.topic_key = ? AND vs2.turn_count > 0
+                GROUP BY vs2.student_id
+            ) latest ON latest.student_id = vs.student_id
+                AND latest.latest_at = vs.updated_at
+            ORDER BY s.name
+            """,
+            (topic_key,),
+        ).fetchall()
+    result = []
+    for row in rows:
+        item = dict(row)
+        item["latest_metrics"] = json.loads(item.pop("latest_metrics_json") or "{}")
+        item["latest_assessment"] = json.loads(item.pop("latest_assessment_json") or "{}")
+        result.append(item)
+    return result
+
+
+def student_voice_sessions(student_id: str) -> list[dict[str, Any]]:
+    with connect() as connection:
+        rows = connection.execute(
+            """
+            SELECT vs.*, a.title AS assignment_title, a.topic, a.topic_key
+            FROM voice_sessions vs
+            JOIN assignments a ON a.id = vs.assignment_id
+            WHERE vs.student_id = ? AND vs.turn_count > 0
+            ORDER BY vs.updated_at DESC
+            """,
+            (student_id,),
+        ).fetchall()
+    return [dict(row) for row in rows]

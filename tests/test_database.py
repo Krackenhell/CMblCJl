@@ -1,17 +1,23 @@
 from __future__ import annotations
 
+import pytest
+
 from vivatrace.database import (
+    finish_voice_session,
     get_mastery,
     init_database,
-    latest_mission_attempt,
     latest_attempts,
+    latest_mission_attempt,
+    latest_voice_topic_sessions,
     list_assignments,
     list_students,
     mission_history,
     reset_learning_data,
     save_attempt,
     save_mission_turn,
+    save_voice_turn,
     start_mission_attempt,
+    student_voice_sessions,
     student_attempts,
     student_history,
     update_mastery,
@@ -110,3 +116,63 @@ def test_mission_attempt_is_isolated_persistent_and_resettable(tmp_path, monkeyp
 
     reset_learning_data()
     assert mission_history() == []
+
+
+def test_voice_session_persists_turns_and_group_metrics(tmp_path, monkeypatch):
+    monkeypatch.setenv("VIVATRACE_DB_PATH", str(tmp_path / "test.db"))
+    init_database()
+    assignment = next(
+        item for item in list_assignments() if item["subject"].startswith("Английский")
+    )
+    session_id = "voice-test-s01"
+    metrics = {
+        "duration_seconds": 4.0,
+        "word_count": 10,
+        "words_per_minute": 150.0,
+        "pause_ratio": 0.2,
+        "filler_count": 0,
+        "fluency_score": 0.8,
+    }
+    assessment = {
+        "grammar_score": 0.9,
+        "vocabulary_score": 0.8,
+        "relevance_score": 0.85,
+        "feedback_ru": "Реплика корректна.",
+        "next_goal_ru": "Объяснить выбор формы.",
+    }
+
+    save_voice_turn(
+        session_id=session_id,
+        student_id="s01",
+        assignment_id=assignment["id"],
+        student_text="Kyoto, which attracts visitors, is beautiful.",
+        assistant_text="Why did you choose which?",
+        metrics=metrics,
+        assessment=assessment,
+        trace={"trace_id": "local-voice-1"},
+        overall_score=0.8375,
+    )
+    save_voice_turn(
+        session_id=session_id,
+        student_id="s01",
+        assignment_id=assignment["id"],
+        student_text="Which is the subject of the relative clause.",
+        assistant_text="Can you give another example?",
+        metrics={**metrics, "fluency_score": 0.7},
+        assessment=assessment,
+        trace={"trace_id": "local-voice-2"},
+        overall_score=0.8125,
+    )
+    finish_voice_session(session_id)
+
+    student_rows = student_voice_sessions("s01")
+    assert student_rows[0]["session_id"] == session_id
+    assert student_rows[0]["turn_count"] == 2
+    assert student_rows[0]["average_score"] == pytest.approx(0.825)
+    topic_rows = latest_voice_topic_sessions(assignment["topic_key"])
+    assert len(topic_rows) == 1
+    assert topic_rows[0]["student_name"] == "Анна Морозова"
+    assert topic_rows[0]["latest_assessment"]["grammar_score"] == 0.9
+
+    reset_learning_data()
+    assert student_voice_sessions("s01") == []

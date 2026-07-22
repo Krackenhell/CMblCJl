@@ -100,6 +100,83 @@ def english_stems(value: str) -> set[str]:
     return stems
 
 
+def normalize_voice_dialogue_result(
+    result: dict[str, Any],
+    *,
+    transcript: str,
+    grounded_rule: dict[str, Any],
+    grammar_findings: list[dict[str, Any]] | None = None,
+) -> tuple[dict[str, Any], bool]:
+    normalized = dict(result)
+    invalid_range = False
+    for field in ("grammar_score", "vocabulary_score", "relevance_score"):
+        raw_score = float(normalized.get(field) or 0)
+        invalid_range = invalid_range or not 0 <= raw_score <= 1
+        if 1 < raw_score <= 10:
+            raw_score /= 10
+        normalized[field] = min(max(raw_score, 0.0), 1.0)
+    for field in ("reply_en", "feedback_ru", "correction_en", "next_goal_ru"):
+        normalized[field] = str(normalized.get(field) or "").strip()
+
+    rule_text = " ".join(
+        [
+            str(grounded_rule.get("summary") or ""),
+            *[str(item) for item in grounded_rule.get("principles") or []],
+            *[str(item) for item in grounded_rule.get("examples") or []],
+        ]
+    )
+    if english_stems(transcript) & english_stems(rule_text):
+        normalized["relevance_score"] = max(float(normalized["relevance_score"]), 0.8)
+
+    grammar_findings = grammar_findings or []
+    grammar_score = float(normalized["grammar_score"])
+    relevance_score = float(normalized["relevance_score"])
+    if grammar_findings:
+        primary = grammar_findings[0]
+        normalized["grammar_score"] = min(grammar_score, 0.55)
+        suggestions = primary.get("suggestions") or []
+        if suggestions:
+            normalized["correction_en"] = str(suggestions[0])
+        normalized["feedback_ru"] = (
+            f'Независимая проверка правила обнаружила: {primary.get("message")} '
+            f'Фрагмент: «{primary.get("fragment") or transcript}».'
+        )
+        normalized["next_goal_ru"] = "Исправить конкретную структуру и объяснить выбор формы."
+        if normalized["correction_en"]:
+            normalized["reply_en"] = (
+                f"Almost. Try: {normalized['correction_en']} "
+                "Why is this form needed here?"
+            )
+        else:
+            normalized["reply_en"] = (
+                "There is one grammar issue in that sentence. "
+                "Can you reformulate it and explain your choice?"
+            )
+        normalized["dialogue_guardrail_applied"] = True
+    elif grammar_score >= 0.75:
+        normalized["correction_en"] = ""
+        normalized["feedback_ru"] = (
+            "Реплика грамматически корректна и связана с темой разговора."
+            if relevance_score >= 0.75
+            else "Реплика грамматически понятна, но следующую мысль нужно точнее связать с темой."
+        )
+        normalized["next_goal_ru"] = (
+            "В следующей реплике объяснить выбор формы, а не только привести пример."
+        )
+
+    reply = str(normalized["reply_en"])
+    if not reply.rstrip().endswith("?"):
+        normalized["reply_en"] = (
+            "That is a useful example for today’s topic. Why did you choose that form, "
+            "and how would another form change the meaning?"
+        )
+        normalized["dialogue_guardrail_applied"] = True
+    needs_quality_fallback = invalid_range or (
+        grammar_score < 0.65 and not grammar_findings
+    )
+    return normalized, needs_quality_fallback
+
+
 def generated_question_is_valid(
     item: dict[str, Any],
     required_form: str = "",
@@ -1017,6 +1094,104 @@ class LocalLLM:
         )
         if not result["npc_reply"]:
             raise LocalLLMError("Локальная LLM не сформировала реплику персонажа миссии.")
+        return result, trace
+
+    def voice_dialogue_turn(
+        self,
+        *,
+        rule_id: str,
+        topic: str,
+        instructions: str,
+        history: list[dict[str, str]],
+        transcript: str,
+        acoustic_metrics: dict[str, Any],
+        grammar_findings: list[dict[str, Any]] | None = None,
+    ) -> tuple[dict[str, Any], LLMTrace]:
+        schema = {
+            "type": "object",
+            "additionalProperties": False,
+            "required": [
+                "reply_en",
+                "feedback_ru",
+                "grammar_score",
+                "vocabulary_score",
+                "relevance_score",
+                "correction_en",
+                "next_goal_ru",
+            ],
+            "properties": {
+                "reply_en": {"type": "string", "maxLength": 260},
+                "feedback_ru": {"type": "string", "maxLength": 240},
+                "grammar_score": {"type": "number", "minimum": 0, "maximum": 1},
+                "vocabulary_score": {"type": "number", "minimum": 0, "maximum": 1},
+                "relevance_score": {"type": "number", "minimum": 0, "maximum": 1},
+                "correction_en": {"type": "string", "maxLength": 180},
+                "next_goal_ru": {"type": "string", "maxLength": 180},
+            },
+        }
+        system = (
+            "Ты локальный собеседник и оценщик устной практики английского B2. Ответь студенту "
+            "по-английски не более чем двумя короткими предложениями и закончи одним естественным "
+            "уточняющим вопросом. Не читай лекцию и не повторяй дословно реплику студента. "
+            "Отдельно оцени только то, что доказуемо: grammar_score — грамматику транскрипта, "
+            "vocabulary_score — диапазон слов, relevance_score — связь с темой и предыдущей репликой. "
+            "Акустические метрики можно использовать только для беглости; не заявляй, что оценил "
+            "произношение или акцент. Незначительная ошибка ASR не должна превращаться в уверенный "
+            "грамматический диагноз. feedback_ru дай одним конкретным предложением по-русски. "
+            "Принимай грамматически корректные альтернативные формулировки, даже если они не совпадают "
+            "с примером из урока. Не заменяй which на where только потому, что antecedent обозначает "
+            "место: which может быть подлежащим придаточного (Kyoto, which attracts visitors), а where "
+            "заменяет обстоятельство места (Kyoto, where I studied). Если транскрипт грамматически "
+            "корректен, grammar_score не ниже 0.8 и correction_en пуст. "
+            "correction_en оставь пустым, если нет ясной ошибки; иначе покажи одну минимальную правку. "
+            "next_goal_ru — один наблюдаемый фокус следующей реплики. Верни только JSON."
+            "Если independent_grammar_findings не пуст, считай найденную структуру доказанной, используй "
+            "предложенную минимальную правку и задай вопрос именно о ней."
+        )
+        grounded_rule = {
+            key: value
+            for key, value in self.rulebook.get(rule_id, {}).items()
+            if key in {"title", "summary", "principles", "examples"}
+        }
+        payload = {
+            "topic": topic,
+            "lesson_task": instructions,
+            "grounded_rule": grounded_rule,
+            "dialogue_history": history[-6:],
+            "student_transcript": transcript,
+            "acoustic_fluency_metrics": acoustic_metrics,
+            "independent_grammar_findings": grammar_findings or [],
+        }
+        result, trace = self._call_json(
+            "голосовой диалог и оценка speaking",
+            system,
+            payload,
+            schema,
+            240,
+            fast=True,
+        )
+        result, needs_quality_fallback = normalize_voice_dialogue_result(
+            result,
+            transcript=transcript,
+            grounded_rule=grounded_rule,
+            grammar_findings=grammar_findings,
+        )
+        if needs_quality_fallback:
+            result, trace = self._call_json(
+                "перепроверка голосового ответа",
+                system,
+                payload,
+                schema,
+                240,
+                fast=False,
+            )
+            result, _ = normalize_voice_dialogue_result(
+                result,
+                transcript=transcript,
+                grounded_rule=grounded_rule,
+                grammar_findings=grammar_findings,
+            )
+            result["quality_fallback"] = "local_qwen_7b"
         return result, trace
 
     def evaluate_answer(

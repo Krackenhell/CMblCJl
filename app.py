@@ -7,10 +7,12 @@ from collections import Counter
 from dataclasses import asdict, replace
 from html import escape
 from pathlib import Path
+from uuid import uuid4
 
 import pandas as pd
 import plotly.express as px
 import streamlit as st
+import streamlit.components.v1 as components
 
 from vivatrace.bkt import combine_mastery_evidence
 from vivatrace.cohort import mastery_frame
@@ -21,6 +23,7 @@ from vivatrace.database import (
     init_database,
     latest_topic_attempts,
     latest_mission_attempt,
+    latest_voice_topic_sessions,
     list_assignments,
     list_students,
     mission_history,
@@ -31,6 +34,7 @@ from vivatrace.database import (
     student_attempts,
     student_history,
     student_progress,
+    student_voice_sessions,
     update_assignment,
     update_mastery,
 )
@@ -41,6 +45,7 @@ from vivatrace.missions import detect_mission_features, load_missions, missions_
 from vivatrace.models import ArtifactFinding, Curriculum, Evidence, StudentState
 from vivatrace.rulebook import load_rulebook
 from vivatrace.review import build_review_plan
+from vivatrace.voice import ensure_voice_server, voice_component_html
 
 
 ROOT = Path(__file__).resolve().parent
@@ -886,17 +891,117 @@ def render_mission_mode(student: dict, assignments: list[dict]) -> None:
             trace_card(trace)
 
 
+def render_voice_mode(student: dict, assignments: list[dict]) -> None:
+    english_assignments = [
+        item for item in assignments if str(item.get("subject") or "").startswith("Английский")
+    ]
+    topics: dict[str, list[dict]] = {}
+    for item in english_assignments:
+        topics.setdefault(assignment_topic_key(item), []).append(item)
+    if not topics:
+        st.info("Для голосовой практики пока нет заданий по английскому языку.")
+        return
+
+    topic_key = st.selectbox(
+        "Тема голосовой практики",
+        list(topics),
+        format_func=lambda key: f'{topics[key][0]["subject"]} · {topics[key][0]["topic"]}',
+        key=f'voice-topic-{student["id"]}',
+    )
+    topic_assignments = sorted(
+        topics[topic_key], key=lambda item: (int(item.get("variant") or 1), item["id"])
+    )
+    assignment_ids = [item["id"] for item in topic_assignments]
+    assignment_by_id = {item["id"]: item for item in topic_assignments}
+    assignment_id = st.selectbox(
+        "Опора для разговора",
+        assignment_ids,
+        format_func=lambda item_id: (
+            f'{difficulty_label(assignment_by_id[item_id])} · '
+            f'{assignment_by_id[item_id]["title"]}'
+        ),
+        key=f'voice-assignment-{student["id"]}-{topic_key}',
+    )
+    assignment = assignment_by_id[assignment_id]
+    hero(
+        "Голосовая Viva",
+        "Короткий разговор по изученной теме: локальный бот слушает, отвечает голосом и сохраняет доказательства speaking.",
+        f'СТУДЕНТ · {student["name"].upper()} · {assignment["topic"].upper()}',
+    )
+    st.markdown(
+        '<span class="chip">микрофон всегда активен</span>'
+        '<span class="chip">можно перебить бота</span>'
+        '<span class="chip">без API и облака</span>',
+        unsafe_allow_html=True,
+    )
+    runtime = ensure_voice_server()
+    if not runtime.get("ready"):
+        missing = ", ".join(runtime.get("missing") or [])
+        st.error(
+            "Голосовые модели не установлены. Запустите scripts\\setup_local_voice.ps1. "
+            f"Не найдено: {missing}"
+        )
+        return
+    if not runtime.get("server_ready"):
+        st.error("Локальный голосовой сервер не запустился. Проверьте logs/voice-server.stderr.log.")
+        return
+
+    session_key = f'voice-session-{student["id"]}-{assignment_id}'
+    if session_key not in st.session_state:
+        st.session_state[session_key] = str(uuid4())
+    control_left, control_right = st.columns([4, 1])
+    with control_left:
+        st.caption(
+            f'ASR: {runtime["asr"]} · VAD: {runtime["vad"]} · '
+            f'грамматика: {runtime["grammar"]} · TTS: {runtime["tts"]} · '
+            'Qwen работает через локальный llama.cpp.'
+        )
+    with control_right:
+        if st.button("Новая сессия", key=f'new-{session_key}', width="stretch"):
+            st.session_state[session_key] = str(uuid4())
+            st.rerun()
+    config = {
+        "session_id": st.session_state[session_key],
+        "student_id": student["id"],
+        "assignment_id": assignment_id,
+        "topic": assignment["topic"],
+        "port": int(runtime["port"]),
+    }
+    components.html(voice_component_html(config), height=690, scrolling=False)
+
+    sessions = student_voice_sessions(student["id"])
+    topic_sessions = [item for item in sessions if item.get("topic_key") == topic_key]
+    if topic_sessions:
+        latest = topic_sessions[0]
+        st.caption(
+            f'Последняя сохранённая голосовая сессия: {latest["turn_count"]} реплик · '
+            f'общая оценка {latest["average_score"]:.0%} · '
+            f'беглость {latest["average_fluency"]:.0%}.'
+        )
+    with st.expander("Как устроена проверка и что именно она оценивает"):
+        st.markdown(
+            "Микрофон передаёт PCM-аудио по постоянному WebSocket. Энергетический streaming-gate "
+            "быстро определяет начало реплики и barge-in, затем Silero VAD и Whisper локально получают "
+            "транскрипт. LanguageTool и предметные правила независимо проверяют структуру; Qwen оценивает "
+            "смысл, формирует диалог и перепроверяет спорные случаи. Код считает темп, паузы и "
+            "слова-паразиты. Произношение и акцент намеренно не оцениваются без фонемного alignment."
+        )
+
+
 def render_student(student: dict) -> None:
     assignments = list_assignments(active_only=True)
     render_student_dashboard(student, assignments)
     mode = st.radio(
         "Формат занятия",
-        ["Тренажер", "Практическая миссия"],
+        ["Тренажер", "Практическая миссия", "Голосовая Viva"],
         horizontal=True,
         key=f'learning-mode-{student["id"]}',
     )
     if mode == "Практическая миссия":
         render_mission_mode(student, assignments)
+        return
+    if mode == "Голосовая Viva":
+        render_voice_mode(student, assignments)
         return
     progress = student_progress(student["id"])
     topics: dict[str, list[dict]] = {}
@@ -1586,6 +1691,53 @@ def render_teacher_missions(topic_key: str) -> None:
                 )
 
 
+def render_teacher_voice_sessions(topic_key: str) -> None:
+    rows = latest_voice_topic_sessions(topic_key)
+    with st.expander("Голосовая Viva группы", expanded=bool(rows)):
+        if not rows:
+            st.caption(
+                "После первой голосовой сессии здесь появятся транскрипты и проверяемые speaking-метрики."
+            )
+            return
+        mean_score = sum(float(item["average_score"]) for item in rows) / len(rows)
+        mean_fluency = sum(float(item["average_fluency"]) for item in rows) / len(rows)
+        columns = st.columns(3)
+        with columns[0]:
+            metric_card("Участвовали", str(len(rows)), "уникальные студенты")
+        with columns[1]:
+            metric_card("Speaking", f"{mean_score:.0%}", "грамматика + словарь + смысл + беглость")
+        with columns[2]:
+            metric_card("Беглость", f"{mean_fluency:.0%}", "темп, паузы и fillers")
+        table = []
+        for item in rows:
+            metrics = item.get("latest_metrics") or {}
+            assessment = item.get("latest_assessment") or {}
+            table.append(
+                {
+                    "Студент": item["student_name"],
+                    "Реплик": int(item["turn_count"]),
+                    "Speaking, %": round(float(item["average_score"]) * 100),
+                    "Слов/мин": round(float(metrics.get("words_per_minute") or 0)),
+                    "Паузы, %": round(float(metrics.get("pause_ratio") or 0) * 100),
+                    "Грамматика, %": round(float(assessment.get("grammar_score") or 0) * 100),
+                    "Словарь, %": round(float(assessment.get("vocabulary_score") or 0) * 100),
+                }
+            )
+        st.dataframe(pd.DataFrame(table), hide_index=True, width="stretch")
+        weakest = min(rows, key=lambda item: float(item["average_score"]))
+        assessment = weakest.get("latest_assessment") or {}
+        st.markdown(
+            f'<div class="gap-card"><h4>{escape(weakest["student_name"])}</h4>'
+            f'<p><b>Последняя реплика:</b> «{escape(weakest.get("latest_student_text") or "—")}»</p>'
+            f'<p><b>Обратная связь:</b> {escape(str(assessment.get("feedback_ru") or "—"))}</p>'
+            f'<p><b>Следующий фокус:</b> {escape(str(assessment.get("next_goal_ru") or "—"))}</p></div>',
+            unsafe_allow_html=True,
+        )
+        st.caption(
+            "Произношение не включено в балл: для него потребуется отдельное выравнивание аудио по фонемам."
+        )
+
+
 def render_teacher() -> None:
     assignments = list_assignments(active_only=False)
     topics: dict[str, list[dict]] = {}
@@ -1621,6 +1773,7 @@ def render_teacher() -> None:
         "Результаты разных персональных вариантов объединены по общему навыку и показывают конкретные пробелы группы.",
         f'ПРЕПОДАВАТЕЛЬ · {assignment["subject"].upper()} · {assignment["topic"].upper()}',
     )
+    render_teacher_voice_sessions(topic_key)
     render_teacher_missions(topic_key)
     if not attempts:
         st.markdown(
