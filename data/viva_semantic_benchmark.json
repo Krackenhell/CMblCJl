@@ -138,5 +138,15 @@
     "student_answer": "My laptop уже определён как мой; возраст — дополнительная информация, поэтому ставим which с запятыми, а that здесь нельзя.",
     "min_score": 0.85,
     "max_score": 1.00
+  },
+  {
+    "id": "relative_defining_answer_uses_opposite_rule",
+    "rule_id": "eng_relative_clauses",
+    "question": "Составьте новое предложение с defining relative clause без запятых и объясните, какую информацию оно уточняет.",
+    "expected_answer": "The student who sits by the window speaks Japanese: who sits by the window уточняет, о каком студенте идёт речь, поэтому запятые не нужны.",
+    "expected_concepts": [["уточняет", "определяет", "defining"], ["без запятых", "no commas"], ["who"]],
+    "student_answer": "I met John, who is a professional basketball player: who используется для человека, а запятые нужны, потому что это дополнительная информация.",
+    "min_score": 0.30,
+    "max_score": 0.50
   }
 ]

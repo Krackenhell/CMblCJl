@@ -46,7 +46,8 @@ from vivatrace.review import build_review_plan
 ROOT = Path(__file__).resolve().parent
 CURRICULUM = load_curriculum(DATA_DIR / "curriculum.json")
 LLM = LocalLLM()
-ASSESSMENT_VERSION = 7
+ASSESSMENT_VERSION = 8
+RELATIVE_CLAUSE_GRADER_VERSION = 2
 RULEBOOK = load_rulebook()
 MISSIONS = load_missions()
 MISSIONS_BY_TOPIC = missions_by_topic(MISSIONS)
@@ -162,10 +163,65 @@ def difficulty_label(assignment: dict) -> str:
     return DIFFICULTY_LABELS.get(int(assignment.get("difficulty") or 1), "Базовый")
 
 
+def criterion_results_from_check(check: dict) -> list[dict]:
+    return [
+        {
+            "criterion": f'Пункт {slot["position"]}',
+            "status": (
+                "correct"
+                if slot["correct"]
+                else "partial"
+                if float(slot.get("score", 0)) >= 0.4
+                else "incorrect"
+            ),
+            "score": float(slot.get("score", int(slot["correct"]))),
+            "student_evidence": slot["student_evidence"],
+            "issue": slot["issue"],
+            "correction": slot.get("correction") or slot["expected_phrase"],
+        }
+        for slot in check["slots"]
+    ]
+
+
+def regrade_relative_clause_attempt(attempt: dict, assignment: dict) -> dict:
+    assessment = dict(attempt.get("assessment") or {})
+    if "eng_relative_clauses" not in assignment.get("skill_ids", []) or int(
+        assessment.get("relative_clause_grader_version") or 0
+    ) >= RELATIVE_CLAUSE_GRADER_VERSION:
+        return attempt
+    check = grade_structured_answer(assignment, str(attempt.get("artifact") or ""))
+    if not check:
+        return attempt
+    result = dict(attempt)
+    wrong_positions = [str(slot["position"]) for slot in check["slots"] if not slot["correct"]]
+    assessment.update(
+        {
+            "relative_clause_grader_version": RELATIVE_CLAUSE_GRADER_VERSION,
+            "submission_score": float(check["score"]),
+            "is_correct": bool(check["correct"]),
+            "feedback": (
+                "Все ответы грамматически корректны и сохраняют исходные факты."
+                if check["correct"]
+                else f'Нужно уточнить пункты: {", ".join(wrong_positions)}.'
+            ),
+            "mode": "viva" if check["correct"] else "diagnostic",
+            "objective_check": check,
+            "criterion_results": criterion_results_from_check(check),
+        }
+    )
+    result["submission_score"] = float(check["score"])
+    result["submission_correct"] = bool(check["correct"])
+    result["assessment_mode"] = str(assessment["mode"])
+    result["assessment"] = assessment
+    result["objective_regraded"] = True
+    return result
+
+
 def regrade_legacy_attempt(attempt: dict, assignment: dict) -> dict:
     stored_assessment = attempt.get("assessment") or {}
     if int(stored_assessment.get("grader_version") or 0) >= 4:
-        return upgrade_mastery_model(attempt, assignment)
+        upgraded = upgrade_mastery_model(attempt, assignment)
+        return regrade_relative_clause_attempt(upgraded, assignment)
     check = grade_structured_answer(assignment, str(attempt.get("artifact") or ""))
     if not check:
         return upgrade_mastery_model(attempt, assignment)
@@ -189,23 +245,7 @@ def regrade_legacy_attempt(attempt: dict, assignment: dict) -> dict:
         "feedback": feedback,
         "mode": result["assessment_mode"],
         "objective_check": check,
-        "criterion_results": [
-            {
-                "criterion": f'Пункт {slot["position"]}',
-                "status": (
-                    "correct"
-                    if slot["correct"]
-                    else "partial"
-                    if float(slot.get("score", 0)) >= 0.4
-                    else "incorrect"
-                ),
-                "score": float(slot.get("score", int(slot["correct"]))),
-                "student_evidence": slot["student_evidence"],
-                "issue": slot["issue"],
-                "correction": slot["expected_phrase"],
-            }
-            for slot in check["slots"]
-        ],
+        "criterion_results": criterion_results_from_check(check),
     }
     result["evidence"] = []
     result["next_activity"] = {}
@@ -335,6 +375,8 @@ def start_assessment(student: dict, assignment: dict, artifact: str) -> None:
     assessment, traces = LLM.assess_submission(assignment, artifact, skill_names)
     assessment["grader_version"] = 4
     assessment["mastery_model_version"] = 2
+    if "eng_relative_clauses" in assignment.get("skill_ids", []):
+        assessment["relative_clause_grader_version"] = RELATIVE_CLAUSE_GRADER_VERSION
     findings = [
         ArtifactFinding(
             skill_id=item["skill_id"],
@@ -410,7 +452,8 @@ def verified_error_facts(assessment: dict, evidence_items: list) -> list[dict]:
                     "source": "rubric_check",
                     "position": slot.get("position"),
                     "student_form": slot.get("student_evidence"),
-                    "expected_form": slot.get("expected_phrase"),
+                    "expected_form": slot.get("correction") or slot.get("expected_phrase"),
+                    "error_component": (slot.get("diagnostic") or {}).get("label"),
                 }
             )
     for item in evidence_items:
@@ -1143,6 +1186,7 @@ def attempts_to_states(attempts: list[dict]) -> list[StudentState]:
 def grounded_group_gaps(attempts: list[dict]) -> dict[str, dict]:
     gaps: dict[str, dict] = {}
     for attempt in attempts:
+        attempt_objective_gaps: dict[str, str] = {}
         assessment = attempt.get("assessment") or {}
         objective = assessment.get("objective_check") or {}
         objective_rule_id = next(
@@ -1156,24 +1200,36 @@ def grounded_group_gaps(attempts: list[dict]) -> dict[str, dict]:
         for slot in objective.get("slots", []):
             if slot.get("correct") or not objective_rule_id:
                 continue
+            diagnostic = dict(slot.get("diagnostic") or {})
+            component_code = str(diagnostic.get("code") or "objective_form")
+            gap_key = f"{objective_rule_id}:{component_code}"
+            attempt_objective_gaps.setdefault(objective_rule_id, gap_key)
             gap = gaps.setdefault(
-                objective_rule_id,
+                gap_key,
                 {
                     "students": set(),
                     "observations": [],
                     "expected_forms": [],
+                    "focus_counts": Counter(),
+                    "component_counts": Counter(),
                     "viva_failures": 0,
                     "rule": RULEBOOK.get(objective_rule_id, {}),
                 },
             )
             gap["students"].add(attempt["student_name"])
+            component_label = str(diagnostic.get("label") or "предметная форма")
+            gap["component_counts"][component_label] += 1
+            rule_focus = str(diagnostic.get("rule_focus") or "").strip()
+            if rule_focus:
+                gap["focus_counts"][rule_focus] += 1
             observation = (
-                f'позиция {slot.get("position")}: «{slot.get("student_evidence") or "пропуск"}» '
-                f'→ «{slot.get("expected_phrase") or "эталон"}»'
+                f'позиция {slot.get("position")} · {component_label}: '
+                f'«{slot.get("student_evidence") or "пропуск"}» '
+                f'→ «{slot.get("correction") or slot.get("expected_phrase") or "эталон"}»'
             )
             if observation not in gap["observations"]:
                 gap["observations"].append(observation)
-            expected_form = str(slot.get("expected_phrase") or "")
+            expected_form = str(slot.get("correction") or slot.get("expected_phrase") or "")
             if expected_form and expected_form not in gap["expected_forms"]:
                 gap["expected_forms"].append(expected_form)
         for entry in attempt.get("evidence", []):
@@ -1182,12 +1238,15 @@ def grounded_group_gaps(attempts: list[dict]) -> dict[str, dict]:
             rule_id = str(entry.get("rule_id") or entry.get("skill_id") or "")
             if not rule_id:
                 continue
+            gap_key = attempt_objective_gaps.get(rule_id, f"{rule_id}:viva")
             gap = gaps.setdefault(
-                rule_id,
+                gap_key,
                 {
                     "students": set(),
                     "observations": [],
                     "expected_forms": [],
+                    "focus_counts": Counter(),
+                    "component_counts": Counter(),
                     "viva_failures": 0,
                     "rule": RULEBOOK.get(rule_id, {}),
                 },
@@ -1197,13 +1256,59 @@ def grounded_group_gaps(attempts: list[dict]) -> dict[str, dict]:
     return gaps
 
 
+def grounded_gap_focus(gap: dict) -> str:
+    focus_counts = gap.get("focus_counts") or Counter()
+    if focus_counts:
+        return str(focus_counts.most_common(1)[0][0]).rstrip(".")
+    rule = gap.get("rule") or {}
+    principles = list(rule.get("principles") or [])
+    expected_focus = " ".join(gap.get("expected_forms") or [])
+    if principles and expected_focus:
+        focus_tokens = set(re.findall(r"[a-z]+(?:'[a-z]+)?", expected_focus.lower()))
+        return max(
+            principles,
+            key=lambda item: len(
+                focus_tokens & set(re.findall(r"[a-z]+(?:'[a-z]+)?", item.lower()))
+            ),
+        ).rstrip(".")
+    return str(
+        principles[0] if principles else rule.get("summary") or "проверяемый навык"
+    ).rstrip(".")
+
+
+def lesson_plan_matches_gap(candidate: str, gap: dict) -> bool:
+    focus = grounded_gap_focus(gap).lower()
+    stop_words = {
+        "relative",
+        "clause",
+        "правило",
+        "форма",
+        "формы",
+        "нужно",
+        "речь",
+        "идёт",
+        "каком",
+    }
+    focus_tokens = {
+        token
+        for token in re.findall(r"[a-zа-яё]+", focus)
+        if len(token) >= 5 and token not in stop_words
+    }
+    candidate_tokens = set(re.findall(r"[a-zа-яё]+", candidate.lower()))
+    return not focus_tokens or bool(focus_tokens & candidate_tokens)
+
+
 def grounded_teacher_summary(attempts: list[dict]) -> dict[str, str] | None:
     gaps = grounded_group_gaps(attempts)
     if not gaps:
         return None
     _, gap = max(
         gaps.items(),
-        key=lambda item: (len(item[1]["students"]), item[1]["viva_failures"]),
+        key=lambda item: (
+            len(item[1]["students"]),
+            bool(item[1]["observations"]),
+            item[1]["viva_failures"],
+        ),
     )
     rule = gap["rule"]
     title = str(rule.get("title") or "Проверяемый навык")
@@ -1235,23 +1340,20 @@ def grounded_teacher_summary(attempts: list[dict]) -> dict[str, str] | None:
         and candidate.endswith((".", "!", "?"))
         and all(marker in candidate for marker in ("1)", "2)", "3)"))
         and "правильно:" not in candidate.lower()
+        and lesson_plan_matches_gap(candidate, gap)
     )
-    principles = list(rule.get("principles") or [])
-    expected_focus = " ".join(gap.get("expected_forms") or [])
-    if principles and expected_focus:
-        focus_tokens = set(re.findall(r"[a-z]+(?:'[a-z]+)?", expected_focus.lower()))
-        focus = max(
-            principles,
-            key=lambda item: len(
-                focus_tokens & set(re.findall(r"[a-z]+(?:'[a-z]+)?", item.lower()))
-            ),
+    focus = grounded_gap_focus(gap)
+    if any(token in focus.lower() for token in ("defining", "запят", "relative clause")):
+        fallback_plan = (
+            f"1) Разберите контраст двух предложений по правилу: {focus}. "
+            "2) Попросите студентов изменить структуру и объяснить, как запятые меняют статус информации. "
+            "3) Завершите новым exit-ticket на тот же компонент."
         )
     else:
-        focus = principles[0] if principles else str(rule.get("summary") or title)
-    fallback_plan = (
-        f"1) Сопоставьте ошибочные и правильные формы по правилу: {focus} "
-        "2) Дайте два новых контрастных примера. 3) Завершите коротким exit-ticket."
-    )
+        fallback_plan = (
+            f"1) Сопоставьте ошибочную и правильную конструкцию по правилу: {focus}. "
+            "2) Дайте два новых контрастных примера. 3) Завершите exit-ticket на тот же компонент."
+        )
     return {
         "focus_topic": title,
         "reason": reason,
@@ -1618,24 +1720,7 @@ def render_teacher() -> None:
                 if gap["viva_failures"]:
                     viva_fact = f'ответов Viva ниже 75%: {gap["viva_failures"]}'
                     observations = f"{observations} · {viva_fact}" if observations else viva_fact
-                principles = list(rule.get("principles") or [])
-                expected_focus = " ".join(gap.get("expected_forms") or [])
-                if principles and expected_focus:
-                    focus_tokens = set(
-                        re.findall(r"[a-z]+(?:'[a-z]+)?", expected_focus.lower())
-                    )
-                    selected_principle = max(
-                        principles,
-                        key=lambda item: len(
-                            focus_tokens
-                            & set(re.findall(r"[a-z]+(?:'[a-z]+)?", item.lower()))
-                        ),
-                    )
-                    corrections = selected_principle
-                else:
-                    corrections = " · ".join(principles[:2]) or str(
-                        rule.get("summary") or "См. карточку проверяемого навыка."
-                    )
+                corrections = grounded_gap_focus(gap)
                 st.markdown(
                     f'<div class="gap-card"><span class="count">{len(gap["students"])} чел.</span>'
                     f'<h4>{escape(title)}</h4><p><b>У кого:</b> {escape(students_text)}</p>'

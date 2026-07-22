@@ -172,6 +172,60 @@ def test_relative_clauses_accept_fact_preserving_reordered_solution():
     assert result["correct"] is True
 
 
+def test_relative_clauses_accept_non_defining_where_reordered_with_which():
+    assignments = json.loads(
+        (Path(__file__).parents[1] / "data" / "english_b2_assignments.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assignment = next(
+        item
+        for item in assignments
+        if item["topic_key"] == "eng_relative_clauses" and item["variant"] == 2
+    )
+
+    result = grade_structured_answer(
+        assignment,
+        "1) I spoke to the designer who created the logo\n"
+        "2) I studied in Kyoto, which attracts many visitors\n"
+        "3) Our guide, whose name was Omar, was excellent",
+    )
+
+    assert result is not None
+    kyoto = result["slots"][1]
+    assert kyoto["score"] == 1
+    assert kyoto["correct"] is True
+    assert kyoto["accepted_equivalent"] is True
+    assert kyoto["diagnostic"] is None
+
+
+def test_relative_clause_feedback_changes_only_the_verified_component():
+    assignments = json.loads(
+        (Path(__file__).parents[1] / "data" / "english_b2_assignments.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assignment = next(
+        item
+        for item in assignments
+        if item["topic_key"] == "eng_relative_clauses" and item["variant"] == 2
+    )
+
+    result = grade_structured_answer(
+        assignment,
+        "1) I spoke to a designer, who created the logo\n"
+        "2) Kyoto, where I studied, attracts many visitors\n"
+        "3) Our guide, whose name was Omar, was excellent",
+    )
+
+    assert result is not None
+    first = result["slots"][0]
+    assert first["diagnostic"]["code"] == "clause_type"
+    assert first["correction"] == "I spoke to a designer who created the logo"
+    assert "a designer who" in first["diagnostic"]["expected_answer"]
+    assert "the designer" not in first["diagnostic"]["expected_answer"]
+
+
 def test_reference_slashes_expand_to_real_answers():
     assert accepted_variants("might/could have") == ["might have", "could have"]
     assert set(accepted_variants("She asked whether/if I knew.")) >= {

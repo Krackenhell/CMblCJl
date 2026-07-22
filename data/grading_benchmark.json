@@ -24,5 +24,6 @@
   {"name":"conditionals_mixed","assignment_id":14,"answer":"1) approves, will publish\n2) have, will apply\n3) would, do","expected_score":0.6666666667},
   {"name":"relative_clauses_atomic_partial","assignment_id":7,"answer":"1) the woman designed the app that won her an award\n2) my laptop that is five years old still works perfectly\n3) we met in the cafe that serves vegan food","expected_score":0.8083333333},
   {"name":"relative_clauses_valid_reordering","assignment_id":7,"answer":"1) The woman who designed the app won an award\n2) My laptop, which is five years old, still works perfectly\n3) We met in the cafe which serves vegan food","expected_score":1.0},
+  {"name":"relative_clauses_non_defining_place_reordering","assignment_id":22,"answer":"1) I spoke to the designer who created the logo\n2) I studied in Kyoto, which attracts many visitors\n3) Our guide, whose name was Omar, was excellent","expected_score":1.0},
   {"name":"empty_numbered_answer","assignment_id":6,"answer":"1)\n2)\n3)\n4)","expected_score":0.0}
 ]

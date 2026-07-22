@@ -170,6 +170,14 @@ def grounded_transfer_example(
             "дополнительная информация об уже определённом my phone, поэтому нужны "
             "запятые и which, а не that."
         )
+    if "defining relative clause" in lowered_principle or (
+        "уточняет" in lowered_principle and "без запят" in lowered_principle
+    ):
+        return (
+            "The student who sits by the window speaks Japanese. Придаточная часть "
+            "who sits by the window уточняет, о каком студенте идёт речь, поэтому "
+            "запятые не нужны."
+        )
     if "where" in lowered_principle or "обстоятельство места" in lowered_principle:
         return (
             "The library where we usually study closes at nine. Where относится к "
@@ -212,6 +220,32 @@ def grounded_transfer_example(
     return f"{example} Это новый пример правила: {principle}"
 
 
+def transfer_example_matches_focus(expected_answer: str, principle: str) -> bool:
+    """Reject a fluent-looking example that demonstrates the opposite subrule."""
+    answer = expected_answer.lower()
+    focus = principle.lower()
+    relative_marker = r"\b(?:who|whom|whose|which|where|that)\b"
+    non_defining_marker = r",\s*(?:who|whom|whose|which|where)\b"
+    targets_non_defining = "non-defining" in focus or (
+        "дополнительн" in focus and "запят" in focus
+    )
+    targets_defining = not targets_non_defining and (
+        "defining relative clause" in focus
+        or ("уточняет" in focus and "без запят" in focus)
+    )
+    if targets_non_defining:
+        return bool(re.search(non_defining_marker, answer))
+    if targets_defining:
+        return bool(re.search(relative_marker, answer)) and not bool(
+            re.search(non_defining_marker, answer)
+        )
+    if "whose" in focus or "принадлежност" in focus:
+        return "whose" in answer
+    if "where" in focus or "обстоятельство места" in focus:
+        return "where" in answer or "in which" in answer
+    return True
+
+
 def _semantic_text(value: str) -> str:
     value = value.lower().replace("ё", "е").replace("’", "'")
     value = re.sub(r"[^a-zа-я0-9'+]+", " ", value)
@@ -251,21 +285,76 @@ def semantic_concept_coverage(
 ) -> dict[str, Any]:
     groups = [tuple(str(term) for term in group) for group in expected_concepts if group]
     if not groups:
-        return {"coverage": None, "covered": [], "missing": []}
+        return {"coverage": None, "covered": [], "missing": [], "conflicts": []}
     covered = [
         group[0]
         for group in groups
         if any(_semantic_term_matches(answer, term) for term in group)
     ]
     missing = [group[0] for group in groups if group[0] not in covered]
+    normalized_answer = _semantic_text(answer)
+    normalized_terms = " ".join(
+        _semantic_text(term) for group in groups for term in group
+    )
+    expects_non_defining = (
+        "non defining" in normalized_terms
+        or "дополнительн" in normalized_terms
+        or "необязательн" in normalized_terms
+    )
+    expects_defining = (
+        not expects_non_defining
+        and (
+            " defining " in f" {normalized_terms} "
+            or "уточняет" in normalized_terms
+            or "определяет" in normalized_terms
+        )
+    )
+    answer_says_non_defining = (
+        "non defining" in normalized_answer
+        or "дополнительн" in normalized_answer
+        or "необязательн" in normalized_answer
+    )
+    answer_says_defining = (
+        " defining " in f" {normalized_answer} "
+        and "non defining" not in normalized_answer
+    )
+    expects_no_commas = "без запят" in normalized_terms or "no commas" in normalized_terms
+    expects_commas = (
+        not expects_no_commas
+        and ("запят" in normalized_terms or "commas" in normalized_terms)
+    )
+    answer_says_with_commas = (
+        ("с запят" in normalized_answer or "with commas" in normalized_answer)
+        and "без запят" not in normalized_answer
+        and "without commas" not in normalized_answer
+    )
+    answer_says_no_commas = (
+        "без запят" in normalized_answer
+        or "no commas" in normalized_answer
+        or "without commas" in normalized_answer
+    )
+    conflicts = []
+    if expects_defining and answer_says_non_defining:
+        conflicts.append("вместо defining clause описана non-defining clause")
+    if expects_non_defining and answer_says_defining:
+        conflicts.append("вместо non-defining clause описана defining clause")
+    if expects_no_commas and answer_says_with_commas:
+        conflicts.append("указаны запятые, хотя проверяется конструкция без запятых")
+    if expects_commas and answer_says_no_commas:
+        conflicts.append("убраны запятые, хотя проверяется дополнительная информация")
     return {
         "coverage": len(covered) / len(groups),
         "covered": covered,
         "missing": missing,
+        "conflicts": conflicts,
     }
 
 
-def calibrated_viva_score(raw_score: float, concept_coverage: float | None) -> float:
+def calibrated_viva_score(
+    raw_score: float,
+    concept_coverage: float | None,
+    conflicts: list[str] | tuple[str, ...] | None = None,
+) -> float:
     score = min(max(raw_score, 0.0), 1.0)
     if concept_coverage is None:
         return score
@@ -281,7 +370,10 @@ def calibrated_viva_score(raw_score: float, concept_coverage: float | None) -> f
     floors = ((0.99, 0.85), (0.66, 0.65), (0.49, 0.45), (0.30, 0.35))
     for threshold, floor in floors:
         if concept_coverage >= threshold:
-            return max(score, floor)
+            score = max(score, floor)
+            break
+    if conflicts:
+        score = min(score, 0.50)
     return score
 
 
@@ -612,7 +704,7 @@ class LocalLLM:
                         "score": float(slot.get("score", int(slot["correct"]))),
                         "student_evidence": slot["student_evidence"],
                         "issue": slot["issue"],
-                        "correction": slot["expected_phrase"],
+                        "correction": slot.get("correction") or slot["expected_phrase"],
                     }
                     for slot in objective_check["slots"]
                 ],
@@ -693,7 +785,9 @@ class LocalLLM:
         ]
         all_slots = (objective_check or {}).get("slots", [])
         focused_slot = wrong_slots[0] if wrong_slots else (all_slots[0] if all_slots else {})
-        required_form = str(focused_slot.get("expected_phrase") or "")
+        required_form = str(
+            focused_slot.get("correction") or focused_slot.get("expected_phrase") or ""
+        )
         source_prompt = str(focused_slot.get("prompt") or assignment["instructions"])
         grounded_focus = required_form
         rule = self.rulebook.get(assignment["skill_ids"][0], {})
@@ -761,12 +855,20 @@ class LocalLLM:
                     verified_focus.get("expected_answer") or f"{grounded_focus}: {principle}"
                 ),
             }
-        if not generated_question_is_valid(
+        second_item_is_valid = generated_question_is_valid(
             second_item,
             "",
             transfer=True,
             source_prompt=principle,
-        ):
+        ) and transfer_example_matches_focus(
+            str(second_item.get("expected_answer") or ""), principle
+        )
+        if verified_focus:
+            # The model may choose a fresh context, but the verified component owns the
+            # subrule. This prevents a defining-clause gap from silently turning into
+            # a non-defining example (and vice versa).
+            second_item["rule_focus"] = principle
+        if not second_item_is_valid:
             second_item = {
                 "skill_id": assignment["skill_ids"][0],
                 "rule_focus": principle,
@@ -999,7 +1101,7 @@ class LocalLLM:
                 result[key] = sanitize_mixed_modal_negation(value)
         coverage = semantic_concept_coverage(question.expected_concepts, answer)
         result["score"] = calibrated_viva_score(
-            float(result["score"]), coverage["coverage"]
+            float(result["score"]), coverage["coverage"], coverage["conflicts"]
         )
         if coverage["covered"] and str(result["verdict"]) != "correct":
             result["what_was_correct"] = (
@@ -1008,6 +1110,10 @@ class LocalLLM:
         if coverage["missing"]:
             result["what_needs_improvement"] = (
                 "Нужно явно раскрыть: " + ", ".join(coverage["missing"]) + "."
+            )
+        if coverage["conflicts"]:
+            result["what_needs_improvement"] = " ".join(
+                conflict.capitalize() + "." for conflict in coverage["conflicts"]
             )
         score = float(result["score"])
         verdict = "correct" if score >= 0.75 else "partial" if score >= 0.3 else "incorrect"
@@ -1157,17 +1263,27 @@ class LocalLLM:
                     for slot in (assessment.get("objective_check") or {}).get("slots", [])
                     if not slot.get("correct")
                 ]
+                verified_principles = [
+                    str((slot.get("diagnostic") or {}).get("rule_focus") or "").strip()
+                    for slot in wrong_slots
+                    if (slot.get("diagnostic") or {}).get("rule_focus")
+                ]
                 focus_text = " ".join(
-                    str(slot.get("expected_phrase") or "") for slot in wrong_slots
+                    str(slot.get("correction") or slot.get("expected_phrase") or "")
+                    for slot in wrong_slots
                 ) or weakest.correct_answer
-                principle = select_relevant_principle(rule, focus_text)
+                principle = (
+                    verified_principles[0]
+                    if verified_principles
+                    else select_relevant_principle(rule, focus_text)
+                )
                 example_text = " · ".join(examples[:2])
                 if wrong_slots:
                     why = " ".join(
                         (
                             f'Пункт {slot.get("position")}: '
                             f'«{slot.get("student_evidence") or "ответ отсутствует"}» '
-                            f'→ «{slot.get("expected_phrase")}».'
+                            f'→ «{slot.get("correction") or slot.get("expected_phrase")}».'
                         )
                         for slot in wrong_slots[:2]
                     )
@@ -1200,6 +1316,9 @@ class LocalLLM:
             "Ты методист преподавателя. По фактическим данным cohort_results и current_evidence предложи "
             "один конкретный фокус следующего занятия и короткий план из трёх действий. Пиши по-русски. "
             "Используй только rule_id, score и objective_errors: свободные диагнозы не передаются намеренно. "
+            "В objective_errors поля error_component и rule_focus авторитетно показывают корень ошибки. "
+            "Строй весь план именно по ним: если проблема в типе clause, связи с antecedent или структуре, "
+            "не подменяй её общим повторением who/which/where. "
             "Не пиши, что одна и та же форма должна быть заменена сама на себя. lesson_plan обязан содержать "
             "ровно три законченных действия с метками 1), 2), 3) и закончиться точкой. Не придумывай студентов, "
             "ответы или проценты. Не давай общих советов без связи с evidence. Верни JSON."
@@ -1208,7 +1327,10 @@ class LocalLLM:
             {
                 "position": slot.get("position"),
                 "student_form": slot.get("student_evidence"),
-                "expected_form": slot.get("expected_phrase"),
+                "expected_form": slot.get("correction") or slot.get("expected_phrase"),
+                "error_code": (slot.get("diagnostic") or {}).get("code"),
+                "error_component": (slot.get("diagnostic") or {}).get("label"),
+                "rule_focus": (slot.get("diagnostic") or {}).get("rule_focus"),
             }
             for slot in (assessment.get("objective_check") or {}).get("slots", [])
             if not slot.get("correct")

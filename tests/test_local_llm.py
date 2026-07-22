@@ -460,6 +460,86 @@ def test_semantic_concepts_give_partial_credit_for_partial_understanding():
     assert calibrated_viva_score(0.95, 2 / 3) == 0.70
 
 
+def test_semantic_concepts_detect_opposite_relative_clause_rule():
+    concepts = (
+        ("уточняет", "определяет", "defining"),
+        ("без запятых", "no commas"),
+        ("who",),
+    )
+
+    coverage = semantic_concept_coverage(
+        concepts,
+        "I met John, who is a player: who — для человека, с запятыми, потому что "
+        "это дополнительная информация.",
+    )
+
+    assert coverage["coverage"] == pytest.approx(1 / 3)
+    assert coverage["conflicts"]
+    assert calibrated_viva_score(
+        0.9, coverage["coverage"], coverage["conflicts"]
+    ) == 0.5
+
+
+def test_verified_defining_gap_overrides_hallucinated_transfer_example(monkeypatch):
+    assignments = json.loads(
+        (Path(__file__).parents[1] / "data" / "english_b2_assignments.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assignment = next(
+        item
+        for item in assignments
+        if item["topic_key"] == "eng_relative_clauses" and item["variant"] == 2
+    )
+    llm = LocalLLM()
+    trace = LLMTrace(
+        trace_id="relative-safe-transfer",
+        backend="llama.cpp",
+        model="Qwen2.5-3B-Instruct-Q4_K_M",
+        model_sha256="abc123",
+        stage="формирование двух вопросов",
+        duration_ms=10,
+        created_at="2026-01-01T00:00:00+00:00",
+    )
+    monkeypatch.setattr(
+        llm,
+        "_call_json",
+        lambda *args, **kwargs: (
+            {
+                "first_question": {
+                    "skill_id": "eng_relative_clauses",
+                    "text": "Почему здесь используется relative clause?",
+                    "expected_answer": "Потому что это relative clause.",
+                },
+                "transfer_question": {
+                    "skill_id": "eng_relative_clauses",
+                    "rule_focus": (
+                        "Defining relative clause уточняет, о каком человеке идёт речь"
+                    ),
+                    "expected_answer": (
+                        "I studied in Kyoto, where I attracted many visitors. "
+                        "Это defining relative clause."
+                    ),
+                },
+            },
+            trace,
+        ),
+    )
+
+    result, _ = llm.assess_submission(
+        assignment,
+        "1) I spoke to a designer, who created the logo\n"
+        "2) Kyoto, where I studied, attracts many visitors\n"
+        "3) Our guide, whose name was Omar, was excellent",
+        {"eng_relative_clauses": "Определительные придаточные"},
+    )
+
+    transfer = result["questions"][1]
+    assert "без запятых" in transfer.text
+    assert "student who" in transfer.expected_answer.lower()
+    assert "where I attracted" not in transfer.expected_answer
+
+
 def test_reported_request_transfer_example_stays_on_the_verified_subrule():
     example = grounded_transfer_example(
         "'Please send me the file,' Ada said to Ben",

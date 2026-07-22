@@ -437,11 +437,12 @@ def grade_relative_clause_slot(prompt: str, actual: str, expected: str) -> dict[
     actual_marker, actual_antecedent = _relative_marker_and_antecedent(actual)
     expected_marker_core = expected_marker.split()[-1]
     actual_marker_core = actual_marker.split()[-1] if actual_marker else ""
+    non_defining_marker = r",\s*(?:who|whom|whose|which|where)\b"
     expected_non_defining = bool(
-        re.search(r",\s*(?:who|whom|whose|which)\b", expected, re.IGNORECASE)
+        re.search(non_defining_marker, expected, re.IGNORECASE)
     )
     actual_non_defining = bool(
-        re.search(r",\s*(?:who|whom|whose|which)\b", actual, re.IGNORECASE)
+        re.search(non_defining_marker, actual, re.IGNORECASE)
     )
 
     expected_content = _content_lemmas(expected)
@@ -561,7 +562,10 @@ def grade_relative_clause_slot(prompt: str, actual: str, expected: str) -> dict[
         ]
     else:
         clause_type_score = 1.0 if not actual_non_defining else 0.6
-        clause_rule = "Defining relative clause уточняет, о каком человеке, предмете или месте идёт речь"
+        clause_rule = (
+            "Defining relative clause уточняет, о каком человеке, предмете или месте "
+            "идёт речь, и пишется без запятых"
+        )
         clause_concepts = [
             ["уточняет", "определяет", "defining"],
             ["без запятых", "no commas"],
@@ -603,6 +607,21 @@ def grade_relative_clause_slot(prompt: str, actual: str, expected: str) -> dict[
         key=lambda item: float(item["weight"]) * (1 - float(item["score"])),
         default=None,
     )
+    minimal_correction = expected
+    if (
+        primary_error
+        and primary_error.get("code") == "clause_type"
+        and not expected_non_defining
+        and actual_non_defining
+    ):
+        # When the only verified problem is defining/non-defining punctuation,
+        # keep the student's vocabulary and information order. Replacing a/an
+        # or reordering the whole sentence would falsely suggest extra errors.
+        minimal_correction = re.sub(r"\s*,\s*", " ", actual).strip()
+        primary_error = dict(primary_error)
+        primary_error["expected_answer"] = (
+            clause_rule + f" Исправьте только структуру: {minimal_correction}."
+        )
     probe = clause_component if expected_non_defining else marker_component
     accepted = all(
         (
@@ -619,6 +638,7 @@ def grade_relative_clause_slot(prompt: str, actual: str, expected: str) -> dict[
         "primary_error": primary_error,
         "probe": probe,
         "accepted": accepted,
+        "minimal_correction": minimal_correction,
     }
 
 
@@ -690,6 +710,10 @@ def grade_numbered_answer(assignment: dict[str, Any], answer: str) -> dict[str, 
                 "accepted_equivalent": accepted_equivalent and not exact_match,
                 "student_evidence": actual or "Ответ отсутствует",
                 "expected_phrase": " / ".join(variants[:3]),
+                "correction": str(
+                    (component_result or {}).get("minimal_correction")
+                    or " / ".join(variants[:3])
+                ),
                 "issue": issue,
             }
         )
