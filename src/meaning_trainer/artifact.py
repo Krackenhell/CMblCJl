@@ -9,7 +9,7 @@ def inspect_ml_artifact(text: str) -> list[ArtifactFinding]:
     """Find teachable signals in a small ML assignment.
 
     This is deliberately an evidence extractor, not an automatic accusation or
-    final grader. Findings become hypotheses that the viva agent must verify.
+    final grader. Findings become hypotheses that the knowledge_check agent must verify.
     """
 
     normalized = " ".join(text.lower().split())

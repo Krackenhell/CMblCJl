@@ -22,7 +22,7 @@ WHISPER_CLI = PROJECT_ROOT / "tools" / "whisper" / "Release" / "whisper-cli.exe"
 WHISPER_MODEL = PROJECT_ROOT / "models" / "ggml-base.en.bin"
 VAD_MODEL = PROJECT_ROOT / "models" / "ggml-silero-v6.2.0.bin"
 VOICE_MANIFEST = PROJECT_ROOT / "models" / "voice-model-manifest.json"
-VOICE_PORT = int(os.getenv("VIVATRACE_VOICE_PORT", "8765"))
+VOICE_PORT = int(os.getenv("MEANING_VOICE_PORT", "8765"))
 
 
 _VOICE_META_PATTERNS = (
@@ -100,7 +100,7 @@ def ensure_voice_server(port: int = VOICE_PORT) -> dict[str, Any]:
         [
             sys.executable,
             "-m",
-            "vivatrace.voice_server",
+            "meaning_trainer.voice_server",
             "--port",
             str(port),
         ],
@@ -193,7 +193,7 @@ def voice_component_html(config: dict[str, Any]) -> str:
 *{box-sizing:border-box}body{margin:0;font-family:'Segoe UI Variable','Segoe UI',Arial,sans-serif;color:#10251e;background:transparent}
 .shell{height:720px;border:1px solid #dce7e0;border-radius:25px;background:#fff;overflow:hidden;box-shadow:0 16px 42px rgba(5,61,49,.09)}
 .top{height:92px;padding:18px 22px;background:radial-gradient(circle at 80% 20%,rgba(96,189,245,.32),transparent 11rem),linear-gradient(120deg,#fafff2,#eefaff);display:flex;justify-content:space-between;gap:18px;align-items:center;border-bottom:1px solid #dfe9e2}
-.top-main{display:flex;gap:13px;align-items:center}.viva-mark{width:50px;height:50px;border-radius:18px;display:grid;place-items:center;background:linear-gradient(145deg,#075844,#0b7b5c);color:#baff22;font-size:21px;font-weight:950;box-shadow:0 9px 22px rgba(5,88,68,.2)}
+.top-main{display:flex;gap:13px;align-items:center}.brand-mark{width:50px;height:50px;border-radius:18px;display:grid;place-items:center;background:linear-gradient(145deg,#075844,#0b7b5c);color:#baff22;font-size:21px;font-weight:950;box-shadow:0 9px 22px rgba(5,88,68,.2)}
 .top h2{font-size:20px;margin:0 0 4px;letter-spacing:-.02em}.top p{font-size:12px;margin:0;color:#5f7169}.local{font-size:10px;font-weight:850;color:#075844;text-align:right;padding:8px 11px;border:1px solid #cde4d9;border-radius:12px;background:rgba(255,255,255,.72);letter-spacing:.04em}
 .workspace{display:grid;grid-template-columns:minmax(0,1fr) 285px;height:628px}.dialogue{display:flex;min-width:0;flex-direction:column;background:#fbfdfb}.analysis{padding:19px 17px;border-left:1px solid #e1e9e4;background:linear-gradient(180deg,#fff,#f7fbf8)}
 .status{display:flex;align-items:center;gap:9px;padding:11px 18px;border-bottom:1px solid #edf1ee;font-size:12px;background:#fff}.dot{width:9px;height:9px;border-radius:50%;background:#aeb8b2}.dot.live{background:#38c881;box-shadow:0 0 0 5px rgba(56,200,129,.12)}
@@ -206,7 +206,7 @@ def voice_component_html(config: dict[str, Any]) -> str:
 </head>
 <body>
 <div class="shell">
-  <div class="top"><div class="top-main"><div class="viva-mark">С</div><div><h2>Голосовой диалог · __TOPIC__</h2><p>Спокойный разговор по вашей теме с обратной связью после каждой мысли</p></div></div><div class="local">ЛОКАЛЬНЫЙ РЕЖИМ<br>Whisper · Qwen</div></div>
+  <div class="top"><div class="top-main"><div class="brand-mark">С</div><div><h2>Голосовой диалог · __TOPIC__</h2><p>Спокойный разговор по вашей теме с обратной связью после каждой мысли</p></div></div><div class="local">ЛОКАЛЬНЫЙ РЕЖИМ<br>Whisper · Qwen</div></div>
   <div class="workspace">
     <section class="dialogue">
       <div class="status"><span id="dot" class="dot"></span><span id="status">Готова слушать вас</span><div class="meter"><i id="level"></i></div></div>
@@ -259,7 +259,7 @@ def realtime_voice_component_html(config: dict[str, Any]) -> str:
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:'Segoe UI Variable','Segoe UI',Arial,sans-serif;color:#10251e;background:transparent}
 .shell{height:720px;border:1px solid #dce7e0;border-radius:25px;background:#fff;overflow:hidden;box-shadow:0 16px 42px rgba(5,61,49,.09)}
-.top{height:92px;padding:18px 22px;background:radial-gradient(circle at 80% 20%,rgba(96,189,245,.35),transparent 11rem),linear-gradient(120deg,#fafff2,#eefaff);display:flex;justify-content:space-between;gap:18px;align-items:center;border-bottom:1px solid #dfe9e2}.top-main{display:flex;gap:13px;align-items:center}.viva-mark{width:50px;height:50px;border-radius:18px;display:grid;place-items:center;background:linear-gradient(145deg,#075844,#0b7b5c);color:#baff22;font-size:21px;font-weight:950;box-shadow:0 9px 22px rgba(5,88,68,.2)}
+.top{height:92px;padding:18px 22px;background:radial-gradient(circle at 80% 20%,rgba(96,189,245,.35),transparent 11rem),linear-gradient(120deg,#fafff2,#eefaff);display:flex;justify-content:space-between;gap:18px;align-items:center;border-bottom:1px solid #dfe9e2}.top-main{display:flex;gap:13px;align-items:center}.brand-mark{width:50px;height:50px;border-radius:18px;display:grid;place-items:center;background:linear-gradient(145deg,#075844,#0b7b5c);color:#baff22;font-size:21px;font-weight:950;box-shadow:0 9px 22px rgba(5,88,68,.2)}
 .top h2{font-size:20px;margin:0 0 4px;letter-spacing:-.02em}.top p{font-size:12px;margin:0;color:#5f7169}.cloud{font-size:10px;font-weight:850;color:#075844;text-align:right;padding:8px 11px;border:1px solid #cde4d9;border-radius:12px;background:rgba(255,255,255,.72);letter-spacing:.04em;white-space:nowrap}
 .workspace{display:grid;grid-template-columns:minmax(0,1fr) 285px;height:628px}.dialogue{display:flex;min-width:0;flex-direction:column;background:#fbfdfb}.analysis{padding:19px 17px;border-left:1px solid #e1e9e4;background:linear-gradient(180deg,#fff,#f7fbf8)}
 .status{display:flex;align-items:center;gap:9px;padding:11px 18px;border-bottom:1px solid #edf1ee;font-size:12px;background:#fff}.dot{width:9px;height:9px;border-radius:50%;background:#aeb8b2}.dot.live{background:#38c881;box-shadow:0 0 0 5px rgba(56,200,129,.12)}.meter{height:7px;flex:1;background:#e7ede9;border-radius:10px;overflow:hidden}.meter i{display:block;height:100%;width:0;background:linear-gradient(90deg,#087256,#baff22,#60bdf5);transition:width .06s}
@@ -271,7 +271,7 @@ def realtime_voice_component_html(config: dict[str, Any]) -> str:
 </head>
 <body>
 <div class="shell">
-  <div class="top"><div class="top-main"><div class="viva-mark">С</div><div><h2>Голосовой диалог · __TOPIC__</h2><p>Естественный разговор с субтитрами и обратной связью после каждой мысли</p></div></div><div class="cloud">ЖИВОЙ РЕЖИМ<br>WebRTC · одновременная речь</div></div>
+  <div class="top"><div class="top-main"><div class="brand-mark">С</div><div><h2>Голосовой диалог · __TOPIC__</h2><p>Естественный разговор с субтитрами и обратной связью после каждой мысли</p></div></div><div class="cloud">ЖИВОЙ РЕЖИМ<br>WebRTC · одновременная речь</div></div>
   <div class="workspace"><section class="dialogue"><div class="status"><span id="dot" class="dot"></span><span id="status">Готова к разговору</span><div class="meter"><i id="level"></i></div></div><div id="chat" class="chat"><div class="msg system">После подключения собеседник сам начнёт разговор по выбранной теме.</div></div><div class="voice-pad"><div class="listen"><b>Живой разговор</b><span>пауза до 5 секунд остаётся внутри мысли</span></div><div class="controls"><button id="start" class="primary">● Начать разговор</button><button id="stop" class="danger" disabled>Завершить</button></div><div class="hint">Говорите естественно: собеседника можно перебить, а служебные фразы не влияют на оценку.</div></div></section><aside class="analysis"><div class="aside-kicker">ОБРАТНАЯ СВЯЗЬ</div><h3>Разговорный прогресс</h3><div id="scores" class="scores"><div class="score"><b>—</b><span>Грамматика</span></div><div class="score"><b>—</b><span>Словарь</span></div><div class="score"><b>—</b><span>По теме</span></div><div class="score"><b>—</b><span>Беглость</span></div></div><div class="insight-card"><b>Последний сигнал</b><p id="insight">После первой содержательной реплики здесь появится точечная обратная связь.</p></div><div class="goal-card"><b>Цель сессии</b><p>Дать собственный пример и развить его в коротком диалоге.</p><div class="goal-line"><i id="goalProgress"></i></div><p id="goalCopy">0 из 2 шагов подтверждено</p></div><div class="privacy">В браузер не передаётся постоянный API-ключ</div></aside></div>
 </div>
 <script>

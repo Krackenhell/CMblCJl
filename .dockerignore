@@ -4,4 +4,13 @@ __pycache__
 .pytest_cache
 .env
 *.db
-
+*.gguf
+*.bin
+*.exe
+*.dll
+*.zip
+logs
+output
+tmp
+.local-llm-download
+.local-voice-download

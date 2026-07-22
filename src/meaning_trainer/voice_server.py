@@ -73,7 +73,7 @@ def _write_pcm_wav(path: Path, pcm16: bytes) -> None:
 
 
 def transcribe_pcm(pcm16: bytes) -> str:
-    with tempfile.TemporaryDirectory(prefix="vivatrace-asr-") as temp_dir:
+    with tempfile.TemporaryDirectory(prefix="meaning_trainer-asr-") as temp_dir:
         temp = Path(temp_dir)
         wave_path = temp / "speech.wav"
         output_base = temp / "transcript"
@@ -128,7 +128,7 @@ def transcribe_pcm(pcm16: bytes) -> str:
 
 
 def synthesize_sapi(text: str) -> bytes:
-    with tempfile.TemporaryDirectory(prefix="vivatrace-tts-") as temp_dir:
+    with tempfile.TemporaryDirectory(prefix="meaning_trainer-tts-") as temp_dir:
         temp = Path(temp_dir)
         text_path = temp / "speech.txt"
         wave_path = temp / "speech.wav"
@@ -270,7 +270,7 @@ async def _process_utterance(
             "overall_score": overall,
             "evaluator": "local_qwen",
             "pronunciation_scored": False,
-            "grammar_checker": "LanguageTool + VivaTrace rules",
+            "grammar_checker": "LanguageTool + Meaning rules",
             "grammar_findings": grammar_findings,
             "structural_evidence": structural_evidence,
             "scoring_available": assessable,

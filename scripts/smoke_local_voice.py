@@ -9,7 +9,7 @@ import wave
 import numpy as np
 from websockets.sync.client import connect
 
-from vivatrace.voice_server import synthesize_sapi
+from meaning_trainer.voice_server import synthesize_sapi
 
 
 def sapi_wave_to_pcm16(wave_bytes: bytes, target_rate: int = 16_000) -> bytes:
@@ -86,7 +86,7 @@ def run_smoke(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Сквозной smoke-тест локальной голосовой Viva")
+    parser = argparse.ArgumentParser(description="Сквозная проверка локального голосового диалога")
     parser.add_argument("sentence")
     parser.add_argument("--student", default="s01")
     parser.add_argument("--assignment", type=int, default=92)

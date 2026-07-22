@@ -10,7 +10,7 @@ from pathlib import Path
 import numpy as np
 from sklearn.isotonic import IsotonicRegression
 
-from vivatrace.bkt import BKTModel, BKTParameters
+from meaning_trainer.bkt import BKTModel, BKTParameters
 
 
 ROOT = Path(__file__).resolve().parents[1]

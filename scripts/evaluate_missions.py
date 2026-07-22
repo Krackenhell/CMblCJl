@@ -4,8 +4,8 @@ import argparse
 import json
 from pathlib import Path
 
-from vivatrace.local_llm import LocalLLM
-from vivatrace.missions import detect_mission_features, load_missions, missions_by_topic
+from meaning_trainer.local_llm import LocalLLM
+from meaning_trainer.missions import detect_mission_features, load_missions, missions_by_topic
 
 
 ROOT = Path(__file__).resolve().parents[1]

@@ -5,20 +5,20 @@ from pathlib import Path
 
 import pytest
 
-from vivatrace.local_llm import (
+from meaning_trainer.local_llm import (
     LLMTrace,
     LocalLLM,
     LocalLLMError,
     check_article_cloze,
     generated_question_is_valid,
     grounded_transfer_example,
-    calibrated_viva_score,
+    calibrated_knowledge_check_score,
     semantic_concept_coverage,
     sanitize_mixed_modal_negation,
 )
-from vivatrace.missions import detect_mission_features, load_missions
-from vivatrace.models import ProbeQuestion
-from vivatrace.models import Evidence
+from meaning_trainer.missions import detect_mission_features, load_missions
+from meaning_trainer.models import ProbeQuestion
+from meaning_trainer.models import Evidence
 
 
 ARTICLE_ASSIGNMENT = {
@@ -97,7 +97,7 @@ def test_objective_article_check_overrides_false_positive_from_llm(monkeypatch):
                     "submission_score": 0.85,
                     "is_correct": True,
                     "feedback": "Ошибок нет.",
-                    "mode": "viva",
+                    "mode": "knowledge_check",
                     "skill_results": [
                         {"skill_id": "eng_articles", "score": 0.85, "diagnosis": "Верно."}
                     ],
@@ -191,7 +191,7 @@ def test_invalid_json_is_retried_once(monkeypatch):
     monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
 
     result, _ = llm._call_json(
-        "оценка ответа viva",
+        "оценка ответа knowledge_check",
         "Верни JSON.",
         {"answer": "test"},
         {"type": "object"},
@@ -440,7 +440,7 @@ def test_semantic_concepts_credit_valid_paraphrase_instead_of_exact_wording():
     )
 
     assert coverage["coverage"] == 1
-    assert calibrated_viva_score(0.1, coverage["coverage"]) == 0.85
+    assert calibrated_knowledge_check_score(0.1, coverage["coverage"]) == 0.85
 
     inflected = semantic_concept_coverage(
         (("must have",), ("третья форма", "V3")),
@@ -456,8 +456,8 @@ def test_semantic_concepts_give_partial_credit_for_partial_understanding():
     )
 
     assert coverage["coverage"] == pytest.approx(1 / 3)
-    assert calibrated_viva_score(0.1, coverage["coverage"]) == 0.35
-    assert calibrated_viva_score(0.95, 2 / 3) == 0.70
+    assert calibrated_knowledge_check_score(0.1, coverage["coverage"]) == 0.35
+    assert calibrated_knowledge_check_score(0.95, 2 / 3) == 0.70
 
 
 def test_semantic_concepts_detect_opposite_relative_clause_rule():
@@ -475,7 +475,7 @@ def test_semantic_concepts_detect_opposite_relative_clause_rule():
 
     assert coverage["coverage"] == pytest.approx(1 / 3)
     assert coverage["conflicts"]
-    assert calibrated_viva_score(
+    assert calibrated_knowledge_check_score(
         0.9, coverage["coverage"], coverage["conflicts"]
     ) == 0.5
 
@@ -569,7 +569,7 @@ def test_answer_evidence_is_explicitly_traced_to_local_llm(monkeypatch):
         backend="llama.cpp",
         model="Qwen2.5-7B-Instruct-Q4_K_M",
         model_sha256="abc123",
-        stage="оценка ответа viva",
+        stage="оценка ответа knowledge_check",
         duration_ms=120,
         created_at="2026-01-01T00:00:00+00:00",
     )

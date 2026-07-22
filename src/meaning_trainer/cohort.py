@@ -72,5 +72,5 @@ def intervention_for_gap(gap_share: float, skill_name: str) -> dict[str, str]:
     return {
         "level": "Индивидуально",
         "decision": f"Сохранить общий темп и выдать персональное задание по «{skill_name}».",
-        "format": "Микрообъяснение → повторный viva-вопрос.",
+        "format": "Микрообъяснение → повторный вопрос на понимание.",
     }

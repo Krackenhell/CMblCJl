@@ -4,12 +4,12 @@ import argparse
 import json
 from pathlib import Path
 
-from vivatrace.local_llm import LocalLLM
-from vivatrace.models import ProbeQuestion
+from meaning_trainer.local_llm import LocalLLM
+from meaning_trainer.models import ProbeQuestion
 
 
 ROOT = Path(__file__).resolve().parents[1]
-BENCHMARK = ROOT / "data" / "viva_semantic_benchmark.json"
+BENCHMARK = ROOT / "data" / "knowledge_check_semantic_benchmark.json"
 
 
 def distance_to_band(score: float, minimum: float, maximum: float) -> float:
@@ -41,7 +41,7 @@ def evaluate(limit: int | None = None, case_id: str | None = None) -> dict:
             id=case["id"],
             skill_id=case["rule_id"],
             text=case["question"],
-            purpose="Семантический benchmark Viva.",
+            purpose="Смысловая проверка ответов на понимание.",
             expected_concepts=tuple(tuple(group) for group in case["expected_concepts"]),
             rule_id=case["rule_id"],
             expected_answer=case["expected_answer"],

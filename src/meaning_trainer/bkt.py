@@ -8,8 +8,8 @@ class BKTParameters:
     """Parameters of an interpretable Bayesian Knowledge Tracing model.
 
     The four-parameter structure follows standard BKT and the design used by
-    OATutor. VivaTrace adds fractional evidence so a rubric score can represent
-    partial understanding instead of collapsing every viva answer to correct/
+    OATutor. Meaning adds fractional evidence so a rubric score can represent
+    partial understanding instead of collapsing every knowledge-check answer to correct/
     incorrect.
     """
 
@@ -55,20 +55,20 @@ class BKTModel:
 def combine_mastery_evidence(
     previous_mastery: float,
     submission_score: float,
-    viva_scores: list[float],
+    knowledge_check_scores: list[float],
     *,
     history_weight: float = 0.20,
 ) -> float:
-    """Fuse historical, task and Viva evidence without letting one probe erase the task.
+    """Fuse historical, task and knowledge-check evidence without letting one probe erase the task.
 
     The current cycle gives equal weight to the submitted work and the mean of
-    all Viva answers. Historical mastery smooths the result across attempts.
+    all knowledge-check answers. Historical mastery smooths the result across attempts.
     """
     previous = min(max(previous_mastery, 0.0), 1.0)
     submission = min(max(submission_score, 0.0), 1.0)
-    if viva_scores:
-        viva = sum(min(max(score, 0.0), 1.0) for score in viva_scores) / len(viva_scores)
-        cycle = 0.5 * submission + 0.5 * viva
+    if knowledge_check_scores:
+        knowledge_check = sum(min(max(score, 0.0), 1.0) for score in knowledge_check_scores) / len(knowledge_check_scores)
+        cycle = 0.5 * submission + 0.5 * knowledge_check
     else:
         cycle = submission
     combined = history_weight * previous + (1 - history_weight) * cycle

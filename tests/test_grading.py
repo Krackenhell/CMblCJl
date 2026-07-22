@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from vivatrace.database import get_assignment, init_database, list_assignments
-from vivatrace.grading import (
+from meaning_trainer.database import get_assignment, init_database, list_assignments
+from meaning_trainer.grading import (
     accepted_variants,
     grade_numbered_answer,
     grade_structured_answer,
@@ -17,7 +17,7 @@ from vivatrace.grading import (
 
 @pytest.fixture(autouse=True)
 def isolated_database(tmp_path, monkeypatch):
-    monkeypatch.setenv("VIVATRACE_DB_PATH", str(tmp_path / "grading.db"))
+    monkeypatch.setenv("MEANING_DB_PATH", str(tmp_path / "grading.db"))
     init_database()
 
 

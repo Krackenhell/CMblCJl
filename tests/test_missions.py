@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from vivatrace.missions import (
+from meaning_trainer.missions import (
     detect_mission_features,
     grounded_error_items,
     load_missions,

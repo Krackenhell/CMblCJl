@@ -56,7 +56,7 @@ class Evidence:
     quote: str
     rationale: str
     misconception: str | None = None
-    source: str = "viva"
+    source: str = "knowledge_check"
     evaluator_model: str | None = None
     trace_id: str | None = None
     question_text: str = ""

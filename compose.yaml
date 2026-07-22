@@ -29,7 +29,7 @@ services:
       - --no-webui
     volumes:
       - ./models:/models:ro
-  vivatrace:
+  meaning_trainer:
     build: .
     ports:
       - "8501:8501"
@@ -38,12 +38,12 @@ services:
       LOCAL_LLM_FAST_URL: http://local-llm-fast:8081
       LOCAL_LLM_MODEL: Qwen2.5-7B-Instruct-Q4_K_M
       LOCAL_LLM_FAST_MODEL: Qwen2.5-3B-Instruct-Q4_K_M
-      VIVATRACE_DB_PATH: /data/vivatrace.db
+      MEANING_DB_PATH: /data/meaning_trainer.db
     volumes:
-      - vivatrace_data:/data
+      - meaning_trainer_data:/data
     depends_on:
       - local-llm
       - local-llm-fast
 
 volumes:
-  vivatrace_data:
+  meaning_trainer_data:

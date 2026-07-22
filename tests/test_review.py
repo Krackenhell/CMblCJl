@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from vivatrace.review import build_review_plan, review_interval_days
+from meaning_trainer.review import build_review_plan, review_interval_days
 
 
 def test_review_intervals_are_shorter_for_weaker_evidence():

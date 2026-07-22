@@ -1,4 +1,4 @@
-from vivatrace.bkt import BKTModel, BKTParameters, combine_mastery_evidence
+from meaning_trainer.bkt import BKTModel, BKTParameters, combine_mastery_evidence
 
 
 def test_strong_evidence_increases_mastery() -> None:
@@ -16,7 +16,7 @@ def test_fractional_update_stays_bounded() -> None:
     assert 0 <= model.update(0.4, 0.5) <= 1
 
 
-def test_combined_mastery_uses_task_and_all_viva_answers() -> None:
+def test_combined_mastery_uses_task_and_all_knowledge_check_answers() -> None:
     result = combine_mastery_evidence(0.35, 0.75, [0.10, 0.10])
 
     assert result == 0.41

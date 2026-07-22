@@ -203,7 +203,7 @@ def normalize_voice_dialogue_result(
         finding_code = str(primary.get("code") or "")
         if finding_code.startswith("RELATIVE_"):
             normalized["grammar_score"] = 0.55
-        elif primary.get("source") == "VivaTrace usage rule":
+        elif primary.get("source") == "Meaning usage rule":
             normalized["grammar_score"] = 0.72
         else:
             normalized["grammar_score"] = min(max(grammar_score, 0.45), 0.65)
@@ -603,7 +603,7 @@ def semantic_concept_coverage(
     }
 
 
-def calibrated_viva_score(
+def calibrated_knowledge_check_score(
     raw_score: float,
     concept_coverage: float | None,
     conflicts: list[str] | tuple[str, ...] | None = None,
@@ -846,7 +846,7 @@ class LocalLLM:
                 "submission_score": {"type": "number", "minimum": 0, "maximum": 1},
                 "is_correct": {"type": "boolean"},
                 "feedback": {"type": "string", "maxLength": 220},
-                "mode": {"type": "string", "enum": ["viva", "diagnostic"]},
+                "mode": {"type": "string", "enum": ["knowledge_check", "diagnostic"]},
                 "skill_results": {
                     "type": "array",
                     "items": {
@@ -909,7 +909,7 @@ class LocalLLM:
             "одинаковую общую формулировку для разных ответов. Незначительная опечатка вне проверяемого "
             "правила не является грамматической ошибкой и не должна заметно снижать балл. Каждое поле "
             "criterion_results — не длиннее одного короткого предложения. "
-            "Если решение правильное, mode=viva. Если решение неправильное, mode=diagnostic. "
+            "Если решение правильное, mode=knowledge_check. Если решение неправильное, mode=diagnostic. "
             "Пиши объяснения по-русски, а примеры "
             "английского оставляй на английском. Верни только JSON по заданной схеме."
         )
@@ -935,7 +935,7 @@ class LocalLLM:
                 "submission_score": submission_score,
                 "is_correct": is_correct,
                 "feedback": feedback,
-                "mode": "viva" if is_correct else "diagnostic",
+                "mode": "knowledge_check" if is_correct else "diagnostic",
                 "skill_results": [
                     {
                         "skill_id": skill_id,
@@ -986,7 +986,7 @@ class LocalLLM:
             submission_score = float(result["submission_score"])
             is_correct = bool(result["is_correct"]) and submission_score >= 0.75
             result["is_correct"] = is_correct
-            result["mode"] = "viva" if is_correct else "diagnostic"
+            result["mode"] = "knowledge_check" if is_correct else "diagnostic"
             result["objective_check"] = None
             if is_correct:
                 result["submission_score"] = max(submission_score, 0.85)
@@ -1022,7 +1022,7 @@ class LocalLLM:
             },
         }
         common_question_system = (
-            "Создай сразу ДВА коротких самодостаточных Viva-вопроса по одному указанному правилу. "
+            "Создай сразу ДВА коротких самодостаточных вопроса на понимание одного указанного правила. "
             "Первый вопрос проверяет понимание конкретного source_prompt, второй — перенос того же правила "
             "в новый контекст. Не смешивай слова или ситуации из разных пунктов задания. Не утверждай, что "
             "to-infinitive ставится после смыслового глагола из скобок: управляющая конструкция дана в "
@@ -1061,7 +1061,7 @@ class LocalLLM:
             "verified_diagnostic": verified_focus,
             "instructions": (
                 "Если mode=diagnostic, первый вопрос просит объяснить исправление именно source_prompt. "
-                "Если mode=viva, он просит объяснить уже правильную форму. Второй вопрос просит придумать "
+                "Если mode=knowledge_check, он просит объяснить уже правильную форму. Второй вопрос просит придумать "
                 "новое полное английское предложение и объяснить смысл формы."
             ),
         }
@@ -1147,7 +1147,7 @@ class LocalLLM:
                 text=item["text"],
                 purpose=(
                     "Подтвердить самостоятельное понимание и перенос правила."
-                    if result["mode"] == "viva"
+                    if result["mode"] == "knowledge_check"
                     else "Точно определить пробел и помочь восстановить правило."
                 ),
                 expected_concepts=tuple(
@@ -1482,13 +1482,13 @@ class LocalLLM:
             "surface_facts": extract_surface_facts(answer),
         }
         result, trace = self._call_json(
-            "оценка ответа viva", system, payload, schema, 230, fast=True
+            "оценка ответа knowledge_check", system, payload, schema, 230, fast=True
         )
         for key, value in result.items():
             if isinstance(value, str):
                 result[key] = sanitize_mixed_modal_negation(value)
         coverage = semantic_concept_coverage(question.expected_concepts, answer)
-        result["score"] = calibrated_viva_score(
+        result["score"] = calibrated_knowledge_check_score(
             float(result["score"]), coverage["coverage"], coverage["conflicts"]
         )
         if coverage["covered"] and str(result["verdict"]) != "correct":
@@ -1601,10 +1601,10 @@ class LocalLLM:
         student_system = (
             "Ты методист и создаёшь персональный следующий шаг только по evidence и grounded_rules. "
             "Пиши по-русски, английским оставляй только учебные примеры. Если исходное решение неверно "
-            "или хотя бы один viva score ниже 0.75, выбери remediation; иначе transfer. Для remediation "
+            "или хотя бы один knowledge_check score ниже 0.75, выбери remediation; иначе transfer. Для remediation "
             "назови точный пробел, объясни конкретное правило, дай ОДИН новый правильный разобранный пример "
             "и ОДНО новое короткое задание без готового ответа. Для transfer дай новое более сложное задание "
-            "на то же правило. Не копируй исходное упражнение или вопрос viva. Нулевой артикль означает "
+            "на то же правило. Не копируй исходное упражнение или вопрос knowledge_check. Нулевой артикль означает "
             "отсутствие a/an/the: не ставь символ тире перед словом в обычном английском предложении. "
             "worked_example обязан быть грамматически верным, practice_task — однозначным. Каждый блок — "
             "не более двух коротких предложений. Верни JSON."
@@ -1779,7 +1779,7 @@ class LocalLLM:
             "max_tokens": max_tokens,
             "response_format": {
                 "type": "json_schema",
-                "json_schema": {"name": "vivatrace_result", "strict": True, "schema": schema},
+                "json_schema": {"name": "meaning_trainer_result", "strict": True, "schema": schema},
             },
         }
         try:

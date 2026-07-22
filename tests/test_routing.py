@@ -1,5 +1,5 @@
-from vivatrace.models import Evidence, Route, Skill
-from vivatrace.routing import choose_route
+from meaning_trainer.models import Evidence, Route, Skill
+from meaning_trainer.routing import choose_route
 
 
 SKILL = Skill(id="x", name="Навык", description="", target_mastery=0.8)

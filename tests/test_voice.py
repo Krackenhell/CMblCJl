@@ -3,9 +3,9 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from vivatrace.grammar import offline_grammar_findings, relative_clause_evidence
-from vivatrace.local_llm import normalize_voice_dialogue_result
-from vivatrace.voice import (
+from meaning_trainer.grammar import offline_grammar_findings, relative_clause_evidence
+from meaning_trainer.local_llm import normalize_voice_dialogue_result
+from meaning_trainer.voice import (
     acoustic_fluency_metrics,
     is_assessable_spoken_turn,
     overall_speaking_score,

@@ -1,4 +1,4 @@
-from vivatrace.artifact import inspect_ml_artifact
+from meaning_trainer.artifact import inspect_ml_artifact
 
 
 def test_detects_scaler_leakage_and_missing_seed() -> None:

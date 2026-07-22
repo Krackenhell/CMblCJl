@@ -12,7 +12,7 @@ from .models import ArtifactFinding, Evidence
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_DB_PATH = PROJECT_ROOT / "vivatrace.db"
+DEFAULT_DB_PATH = PROJECT_ROOT / "meaning_trainer.db"
 ENGLISH_ASSIGNMENTS_PATH = PROJECT_ROOT / "data" / "english_b2_assignments.json"
 STUDENT_SEED = (
     ("s01", "Анна Морозова"),
@@ -71,7 +71,7 @@ print("accuracy:", accuracy_score(y_test, pred))
 
 
 def database_path() -> Path:
-    configured = os.getenv("VIVATRACE_DB_PATH")
+    configured = os.getenv("MEANING_DB_PATH")
     return Path(configured) if configured else DEFAULT_DB_PATH
 
 

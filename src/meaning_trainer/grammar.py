@@ -13,7 +13,7 @@ from typing import Any
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-GRAMMAR_PORT = int(os.getenv("VIVATRACE_GRAMMAR_PORT", "8082"))
+GRAMMAR_PORT = int(os.getenv("MEANING_GRAMMAR_PORT", "8082"))
 
 
 def _first_path(pattern: str) -> Path | None:
@@ -210,7 +210,7 @@ def _relative_clause_findings(text: str, rule_id: str) -> list[dict[str, Any]]:
         replacement = re.sub(r"\bwhere\b", "which", text, count=1, flags=re.IGNORECASE)
         findings.append(
             {
-                "source": "VivaTrace structural rule",
+                "source": "Meaning structural rule",
                 "code": "RELATIVE_WHERE_MISSING_SUBJECT",
                 "message": (
                     "После relative adverb 'where' требуется отдельное подлежащее; "
@@ -236,7 +236,7 @@ def _relative_clause_findings(text: str, rule_id: str) -> list[dict[str, Any]]:
         replacement = text[:marker_start] + "which" + text[marker_end:]
         findings.append(
             {
-                "source": "VivaTrace structural rule",
+                "source": "Meaning structural rule",
                 "code": "RELATIVE_WHO_NON_HUMAN",
                 "message": (
                     "Who/whom относится к людям. Если предмет или место само выполняет "
@@ -257,7 +257,7 @@ def _relative_clause_findings(text: str, rule_id: str) -> list[dict[str, Any]]:
         replacement = text[:marker_start] + "who" + text[marker_end:]
         findings.append(
             {
-                "source": "VivaTrace structural rule",
+                "source": "Meaning structural rule",
                 "code": "RELATIVE_WHICH_PERSON",
                 "message": "Для человека нужен who/whom, а не which.",
                 "fragment": person_which.group(0),
@@ -271,7 +271,7 @@ def _relative_clause_findings(text: str, rule_id: str) -> list[dict[str, Any]]:
         replacement = text[:marker_start] + "which" + text[marker_start + 4 :]
         findings.append(
             {
-                "source": "VivaTrace structural rule",
+                "source": "Meaning structural rule",
                 "code": "RELATIVE_THAT_NON_DEFINING",
                 "message": "That не используется в non-defining clause после запятой.",
                 "fragment": comma_that.group(0).strip(),
@@ -291,7 +291,7 @@ def _spoken_usage_findings(text: str) -> list[dict[str, Any]]:
         ) + text[works_good.end() :]
         findings.append(
             {
-                "source": "VivaTrace usage rule",
+                "source": "Meaning usage rule",
                 "code": "ADVERB_WORKS_WELL",
                 "message": "После works для описания способа действия нужно наречие well.",
                 "fragment": works_good.group(0),
@@ -308,7 +308,7 @@ def _spoken_usage_findings(text: str) -> list[dict[str, Any]]:
         replacement = re.sub(r"\brepresent\b", "present", text, count=1, flags=re.IGNORECASE)
         findings.append(
             {
-                "source": "VivaTrace usage rule",
+                "source": "Meaning usage rule",
                 "code": "PRESENT_PROJECT_TO_UNIVERSITY",
                 "message": (
                     "Для демонстрации проекта университету обычно используется present, "

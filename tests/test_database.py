@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from vivatrace.database import (
+from meaning_trainer.database import (
     finish_voice_session,
     get_mastery,
     init_database,
@@ -22,12 +22,12 @@ from vivatrace.database import (
     student_history,
     update_mastery,
 )
-from vivatrace.missions import load_missions
-from vivatrace.models import ArtifactFinding, Evidence
+from meaning_trainer.missions import load_missions
+from meaning_trainer.models import ArtifactFinding, Evidence
 
 
 def test_database_starts_with_three_students_and_no_attempts(tmp_path, monkeypatch):
-    monkeypatch.setenv("VIVATRACE_DB_PATH", str(tmp_path / "test.db"))
+    monkeypatch.setenv("MEANING_DB_PATH", str(tmp_path / "test.db"))
 
     init_database()
 
@@ -43,7 +43,7 @@ def test_database_starts_with_three_students_and_no_attempts(tmp_path, monkeypat
 
 
 def test_attempt_updates_mastery_and_teacher_gets_latest_per_student(tmp_path, monkeypatch):
-    monkeypatch.setenv("VIVATRACE_DB_PATH", str(tmp_path / "test.db"))
+    monkeypatch.setenv("MEANING_DB_PATH", str(tmp_path / "test.db"))
     init_database()
     assignment = list_assignments()[0]
     finding = ArtifactFinding(
@@ -89,7 +89,7 @@ def test_attempt_updates_mastery_and_teacher_gets_latest_per_student(tmp_path, m
 
 
 def test_mission_attempt_is_isolated_persistent_and_resettable(tmp_path, monkeypatch):
-    monkeypatch.setenv("VIVATRACE_DB_PATH", str(tmp_path / "test.db"))
+    monkeypatch.setenv("MEANING_DB_PATH", str(tmp_path / "test.db"))
     init_database()
     mission = load_missions()[0]
 
@@ -119,7 +119,7 @@ def test_mission_attempt_is_isolated_persistent_and_resettable(tmp_path, monkeyp
 
 
 def test_voice_session_persists_turns_and_group_metrics(tmp_path, monkeypatch):
-    monkeypatch.setenv("VIVATRACE_DB_PATH", str(tmp_path / "test.db"))
+    monkeypatch.setenv("MEANING_DB_PATH", str(tmp_path / "test.db"))
     init_database()
     assignment = next(
         item for item in list_assignments() if item["subject"].startswith("Английский")

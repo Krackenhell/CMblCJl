@@ -15,10 +15,10 @@ import plotly.express as px
 import streamlit as st
 import streamlit.components.v1 as components
 
-from vivatrace.bkt import combine_mastery_evidence
-from vivatrace.cohort import mastery_frame
-from vivatrace.curriculum import load_curriculum
-from vivatrace.database import (
+from meaning_trainer.bkt import combine_mastery_evidence
+from meaning_trainer.cohort import mastery_frame
+from meaning_trainer.curriculum import load_curriculum
+from meaning_trainer.database import (
     create_assignment,
     get_mastery,
     init_database,
@@ -39,15 +39,15 @@ from vivatrace.database import (
     update_assignment,
     update_mastery,
 )
-from vivatrace.demo import DATA_DIR
-from vivatrace.grading import grade_structured_answer, parse_numbered_items
-from vivatrace.local_llm import LLMTrace, LocalLLM, LocalLLMError
-from vivatrace.missions import detect_mission_features, load_missions, missions_by_topic
-from vivatrace.models import ArtifactFinding, Curriculum, Evidence, StudentState
-from vivatrace.rulebook import load_rulebook
-from vivatrace.review import build_review_plan
-from vivatrace.realtime import ensure_realtime_server
-from vivatrace.voice import (
+from meaning_trainer.demo import DATA_DIR
+from meaning_trainer.grading import grade_structured_answer, parse_numbered_items
+from meaning_trainer.local_llm import LLMTrace, LocalLLM, LocalLLMError
+from meaning_trainer.missions import detect_mission_features, load_missions, missions_by_topic
+from meaning_trainer.models import ArtifactFinding, Curriculum, Evidence, StudentState
+from meaning_trainer.rulebook import load_rulebook
+from meaning_trainer.review import build_review_plan
+from meaning_trainer.realtime import ensure_realtime_server
+from meaning_trainer.voice import (
     ensure_voice_server,
     realtime_voice_component_html,
     voice_component_html,
@@ -233,7 +233,7 @@ def student_game_state(student_id: str, total_assignments: int = 0) -> dict:
     """Derive lightweight game progress from persisted learning evidence only."""
     history = student_history(student_id)
     latest_assignment_ids = {int(item["assignment_id"]) for item in history}
-    valid_viva = sum(
+    valid_knowledge_check = sum(
         1
         for item in history
         if item.get("evidence") and not bool(item.get("regraded_legacy"))
@@ -250,7 +250,7 @@ def student_game_state(student_id: str, total_assignments: int = 0) -> dict:
     ]
     xp = (
         len(latest_assignment_ids) * 120
-        + valid_viva * 70
+        + valid_knowledge_check * 70
         + len(completed_missions) * 240
         + len(voice_sessions) * 90
     )
@@ -286,7 +286,7 @@ def student_game_state(student_id: str, total_assignments: int = 0) -> dict:
         "streak": streak,
         "completed": len(latest_assignment_ids),
         "total": total_assignments,
-        "valid_viva": valid_viva,
+        "valid_knowledge_check": valid_knowledge_check,
         "missions": len(completed_missions),
         "voice_sessions": len(voice_sessions),
     }
@@ -381,7 +381,7 @@ def regrade_relative_clause_attempt(attempt: dict, assignment: dict) -> dict:
                 if check["correct"]
                 else f'Нужно уточнить пункты: {", ".join(wrong_positions)}.'
             ),
-            "mode": "viva" if check["correct"] else "diagnostic",
+            "mode": "knowledge_check" if check["correct"] else "diagnostic",
             "objective_check": check,
             "criterion_results": criterion_results_from_check(check),
         }
@@ -414,7 +414,7 @@ def regrade_legacy_attempt(attempt: dict, assignment: dict) -> dict:
     )
     result["submission_score"] = float(check["score"])
     result["submission_correct"] = bool(check["correct"])
-    result["assessment_mode"] = "viva" if check["correct"] else "diagnostic"
+    result["assessment_mode"] = "knowledge_check" if check["correct"] else "diagnostic"
     result["assessment"] = {
         "grader_version": 4,
         "submission_score": float(check["score"]),
@@ -446,7 +446,7 @@ def upgrade_mastery_model(attempt: dict, assignment: dict) -> dict:
     previous_mastery = attempt.get("mastery") or {}
     combined = {}
     for skill_id in assignment["skill_ids"]:
-        viva_scores = [
+        knowledge_check_scores = [
             float(item.get("score", 0))
             for item in result.get("evidence") or []
             if item.get("skill_id") == skill_id
@@ -454,7 +454,7 @@ def upgrade_mastery_model(attempt: dict, assignment: dict) -> dict:
         combined[skill_id] = combine_mastery_evidence(
             0.35,
             skill_scores.get(skill_id, submission_score),
-            viva_scores,
+            knowledge_check_scores,
         )
     result["mastery"] = {**previous_mastery, **combined}
     assessment["mastery_model_version"] = 2
@@ -663,7 +663,7 @@ def verified_error_facts(assessment: dict, evidence_items: list) -> list[dict]:
         )
         facts.append(
             {
-                "source": "viva_score",
+                "source": "knowledge_check_score",
                 "rule_id": rule_id,
                 "score": score,
             }
@@ -677,7 +677,7 @@ def cohort_context_for_llm(assignment: dict, current_student: dict, flow: dict) 
             "student_id": row["student_id"],
             "assignment_title": row.get("assignment_title"),
             "submission_score": row.get("submission_score"),
-            "viva_score": row["overall_score"],
+            "knowledge_check_score": row["overall_score"],
             "errors": verified_error_facts(row.get("assessment") or {}, row["evidence"]),
         }
         for row in latest_topic_attempts(assignment_topic_key(assignment))
@@ -688,7 +688,7 @@ def cohort_context_for_llm(assignment: dict, current_student: dict, flow: dict) 
             "student_id": current_student["id"],
             "assignment_title": assignment["title"],
             "submission_score": flow["assessment"]["submission_score"],
-            "viva_score": sum(item.score for item in flow["evidence"]) / max(len(flow["evidence"]), 1),
+            "knowledge_check_score": sum(item.score for item in flow["evidence"]) / max(len(flow["evidence"]), 1),
             "errors": verified_error_facts(flow["assessment"], flow["evidence"]),
         }
     )
@@ -795,7 +795,7 @@ def render_student_dashboard(student: dict, assignments: list[dict]) -> None:
         if completed_count
         else 0
     )
-    valid_viva_count = sum(not item.get("regraded_legacy") for item in history)
+    valid_knowledge_check_count = sum(not item.get("regraded_legacy") for item in history)
     mission_rows = mission_history(student_id=student["id"])
     completed_missions = {
         item["mission_id"]: item for item in mission_rows if item["status"] == "completed"
@@ -834,7 +834,7 @@ def render_student_dashboard(student: dict, assignments: list[dict]) -> None:
         f'<div class="quick-stats"><div class="quick-stat accent"><strong>{game["streak"]} дн.</strong>'
         f'<span>учебная серия</span></div><div class="quick-stat"><strong>{completed_count}</strong>'
         f'<span>заданий завершено</span></div><div class="quick-stat"><strong>{mean_submission:.0%}</strong>'
-        f'<span>средний результат</span></div><div class="quick-stat"><strong>{valid_viva_count}</strong>'
+        f'<span>средний результат</span></div><div class="quick-stat"><strong>{valid_knowledge_check_count}</strong>'
         f'<span>проверок понимания</span></div><div class="quick-stat"><strong>{len(completed_missions)}</strong>'
         f'<span>миссий пройдено</span></div><div class="quick-stat"><strong>{game["voice_sessions"]}</strong>'
         f'<span>голосовых сессий</span></div></div></div>',
@@ -1475,7 +1475,7 @@ def render_student(student: dict) -> None:
                                 ),
                                 float(assessment["submission_score"]),
                             )
-                            skill_viva_scores = [
+                            skill_knowledge_check_scores = [
                                 item.score
                                 for item in [*flow["evidence"], evidence]
                                 if item.skill_id == question.skill_id
@@ -1483,7 +1483,7 @@ def render_student(student: dict) -> None:
                             flow["mastery"][question.skill_id] = combine_mastery_evidence(
                                 flow.get("mastery_before", {}).get(question.skill_id, 0.35),
                                 skill_submission,
-                                skill_viva_scores,
+                                skill_knowledge_check_scores,
                             )
                             flow["evidence"].append(evidence)
                             flow["traces"].append(asdict(trace))
@@ -1504,7 +1504,7 @@ def render_student(student: dict) -> None:
         )
     else:
         st.success("Результат сохранён и уже доступен преподавателю.")
-    viva_average = (
+    knowledge_check_average = (
         sum(item.score for item in flow["evidence"]) / len(flow["evidence"])
         if flow["evidence"]
         else None
@@ -1513,7 +1513,7 @@ def render_student(student: dict) -> None:
     with result_columns[0]:
         st.metric("Исходное задание", f'{assessment["submission_score"]:.0%}')
     with result_columns[1]:
-        st.metric("Проверка понимания", f"{viva_average:.0%}" if viva_average is not None else "—")
+        st.metric("Проверка понимания", f"{knowledge_check_average:.0%}" if knowledge_check_average is not None else "—")
     with result_columns[2]:
         combined_mastery = sum(flow["mastery"].values()) / max(len(flow["mastery"]), 1)
         st.metric("Освоение после всего цикла", f"{combined_mastery:.0%}")
@@ -1638,7 +1638,7 @@ def grounded_group_gaps(attempts: list[dict]) -> dict[str, dict]:
                     "expected_forms": [],
                     "focus_counts": Counter(),
                     "component_counts": Counter(),
-                    "viva_failures": 0,
+                    "knowledge_check_failures": 0,
                     "rule": RULEBOOK.get(objective_rule_id, {}),
                 },
             )
@@ -1664,7 +1664,7 @@ def grounded_group_gaps(attempts: list[dict]) -> dict[str, dict]:
             rule_id = str(entry.get("rule_id") or entry.get("skill_id") or "")
             if not rule_id:
                 continue
-            gap_key = attempt_objective_gaps.get(rule_id, f"{rule_id}:viva")
+            gap_key = attempt_objective_gaps.get(rule_id, f"{rule_id}:knowledge_check")
             gap = gaps.setdefault(
                 gap_key,
                 {
@@ -1673,12 +1673,12 @@ def grounded_group_gaps(attempts: list[dict]) -> dict[str, dict]:
                     "expected_forms": [],
                     "focus_counts": Counter(),
                     "component_counts": Counter(),
-                    "viva_failures": 0,
+                    "knowledge_check_failures": 0,
                     "rule": RULEBOOK.get(rule_id, {}),
                 },
             )
             gap["students"].add(attempt["student_name"])
-            gap["viva_failures"] += 1
+            gap["knowledge_check_failures"] += 1
     return gaps
 
 
@@ -1733,7 +1733,7 @@ def grounded_teacher_summary(attempts: list[dict]) -> dict[str, str] | None:
         key=lambda item: (
             len(item[1]["students"]),
             bool(item[1]["observations"]),
-            item[1]["viva_failures"],
+            item[1]["knowledge_check_failures"],
         ),
     )
     rule = gap["rule"]
@@ -1752,7 +1752,7 @@ def grounded_teacher_summary(attempts: list[dict]) -> dict[str, str] | None:
         reason = f"{student_count} {student_word}: проверяемые ошибки — {facts}."
     else:
         reason = (
-            f'У {student_count} {student_genitive} — ответов проверки понимания ниже 75%: {gap["viva_failures"]}. '
+            f'У {student_count} {student_genitive} — ответов проверки понимания ниже 75%: {gap["knowledge_check_failures"]}. '
             f'Навык: «{title}».'
         )
     newest = max(attempts, key=lambda item: item["completed_at"])
@@ -2139,11 +2139,11 @@ def render_teacher() -> None:
     frame = mastery_frame(cohort, states)
     skill_ids = [skill.id for skill in cohort.skills]
     mean_submission = sum((item.get("submission_score") or 0) for item in attempts) / len(attempts)
-    valid_viva_attempts = [item for item in attempts if not item.get("regraded_legacy")]
-    mean_viva = (
-        sum(item["overall_score"] for item in valid_viva_attempts)
-        / len(valid_viva_attempts)
-        if valid_viva_attempts
+    valid_knowledge_check_attempts = [item for item in attempts if not item.get("regraded_legacy")]
+    mean_knowledge_check = (
+        sum(item["overall_score"] for item in valid_knowledge_check_attempts)
+        / len(valid_knowledge_check_attempts)
+        if valid_knowledge_check_attempts
         else None
     )
     needs_help = sum(
@@ -2161,8 +2161,8 @@ def render_teacher() -> None:
     with columns[2]:
         metric_card(
             "Понимание",
-            f"{mean_viva:.0%}" if mean_viva is not None else "—",
-            "среднее понимание" if mean_viva is not None else "нужна новая проверка",
+            f"{mean_knowledge_check:.0%}" if mean_knowledge_check is not None else "—",
+            "среднее понимание" if mean_knowledge_check is not None else "нужна новая проверка",
         )
     with columns[3]:
         metric_card("Нужна помощь", str(needs_help), "ошибка в задании или проверке понимания")
@@ -2221,9 +2221,9 @@ def render_teacher() -> None:
                 title = rule.get("title", "Проверяемый навык")
                 students_text = ", ".join(sorted(gap["students"]))
                 observations = " · ".join(gap["observations"][:3])
-                if gap["viva_failures"]:
-                    viva_fact = f'ответов проверки понимания ниже 75%: {gap["viva_failures"]}'
-                    observations = f"{observations} · {viva_fact}" if observations else viva_fact
+                if gap["knowledge_check_failures"]:
+                    knowledge_check_fact = f'ответов проверки понимания ниже 75%: {gap["knowledge_check_failures"]}'
+                    observations = f"{observations} · {knowledge_check_fact}" if observations else knowledge_check_fact
                 corrections = grounded_gap_focus(gap)
                 st.markdown(
                     f'<div class="gap-card"><span class="count">{len(gap["students"])} чел.</span>'

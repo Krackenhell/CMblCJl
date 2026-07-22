@@ -1,4 +1,4 @@
-"""VivaTrace adaptive assessment core."""
+"""Meaning adaptive assessment core."""
 
 from .bkt import BKTModel, BKTParameters
 from .models import Curriculum, Skill

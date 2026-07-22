@@ -13,7 +13,7 @@
       "f1": 0.7047,
       "roc_auc": 0.8536
     },
-    "assignment_plus_viva": {
+    "assignment_plus_knowledge_check": {
       "balanced_accuracy": 0.906,
       "f1": 0.8912,
       "roc_auc": 0.9638

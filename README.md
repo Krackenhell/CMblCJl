@@ -1,4 +1,4 @@
-# Смысл
+# Meaning («Смысл»)
 
 **Адаптивный учебный тренажёр, который проверяет не только ответ студента, но и понимание, а затем помогает преподавателю увидеть общие пробелы группы.**
 
@@ -13,7 +13,7 @@
 
 Обычный тест показывает выбранный или введённый ответ, но не всегда показывает, понимает ли студент правило. Преподаватель обычно замечает общий пробел только после контрольной работы.
 
-«Смысл» замыкает учебный цикл:
+Meaning («Смысл») замыкает учебный цикл:
 
 ```text
 Задание по теме занятия
@@ -101,8 +101,11 @@ powershell -ExecutionPolicy Bypass -File scripts\setup_local_llm.ps1
 
 ```powershell
 $env:LOCAL_LLM_MODEL_PATH="models/my-model.gguf"
+$env:LOCAL_LLM_FAST_MODEL_PATH="models/my-model.gguf"
 $env:LOCAL_LLM_MODEL="my-local-model"
+$env:LOCAL_LLM_FAST_MODEL="my-local-model"
 $env:LOCAL_LLM_URL="http://127.0.0.1:8080"
+$env:LOCAL_LLM_FAST_URL="http://127.0.0.1:8080"
 
 .venv\Scripts\streamlit.exe run app.py
 ```
@@ -111,9 +114,13 @@ $env:LOCAL_LLM_URL="http://127.0.0.1:8080"
 
 ```powershell
 $env:LOCAL_LLM_URL="http://127.0.0.1:1234"
-$env:LOCAL_LLM_MODEL="local-model"
+$env:LOCAL_LLM_FAST_URL="http://127.0.0.1:1234"
+$env:LOCAL_LLM_MODEL="имя-модели-в-сервере"
+$env:LOCAL_LLM_FAST_MODEL="имя-модели-в-сервере"
 .venv\Scripts\streamlit.exe run app.py
 ```
+
+Обе переменные адреса указывают на один сервер, если используется одна модель. Сервер должен поддерживать OpenAI-совместимый путь `/v1/chat/completions` и структурированный JSON-ответ.
 
 ## Голосовой режим
 
@@ -134,6 +141,8 @@ powershell -ExecutionPolicy Bypass -File scripts\setup_local_llm.ps1
 docker compose up --build
 ```
 
+После запуска интерфейс доступен по адресу <http://localhost:8501>. Веса моделей не хранятся в Git из-за ограничения размера; установочный скрипт скачивает закреплённые версии и проверяет SHA-256.
+
 ## Как устроена система
 
 ```text
@@ -152,14 +161,9 @@ docker compose up --build
 SQLite: результаты, журнал вызовов и версия модели
 ```
 
-Внутренние имена некоторых модулей и таблиц содержат прежний технический идентификатор `viva`. Он сохранён только для совместимости существующей базы данных и не используется в интерфейсе продукта.
-
 Подробности:
 
 - [архитектура](docs/ARCHITECTURE.md);
-- [эксперименты и метрики](docs/ML_EXPERIMENTS.md);
-- [сценарий демонстрации](docs/PITCH.md);
-- [исследование и план развития](docs/RESEARCH_AND_ROADMAP.md);
 - [использованные идеи и лицензии](docs/REUSE_AND_ATTRIBUTION.md).
 
 ## Проверка проекта
@@ -167,7 +171,7 @@ SQLite: результаты, журнал вызовов и версия мод
 ```powershell
 .venv\Scripts\python.exe -m pytest -q
 .venv\Scripts\python.exe scripts\evaluate_grader.py
-.venv\Scripts\python.exe scripts\evaluate_viva_semantics.py
+.venv\Scripts\python.exe scripts\evaluate_knowledge_check_semantics.py
 .venv\Scripts\python.exe scripts\evaluate_knowledge_tracing.py
 .venv\Scripts\python.exe scripts\evaluate_missions.py --live-all
 ```

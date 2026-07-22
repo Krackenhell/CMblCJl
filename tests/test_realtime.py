@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from vivatrace.realtime import (
+from meaning_trainer.realtime import (
     ASSESSMENT_MODEL,
     REALTIME_MODEL,
     TRANSCRIPTION_MODEL,
@@ -15,7 +15,7 @@ from vivatrace.realtime import (
     assess_realtime_turn,
     build_realtime_session_config,
 )
-from vivatrace.voice import realtime_voice_component_html
+from meaning_trainer.voice import realtime_voice_component_html
 
 
 @pytest.fixture
@@ -48,7 +48,7 @@ def test_realtime_session_is_grounded_and_full_duplex(relative_assignment: dict)
     }
     assert "Defining clause" in session["instructions"]
     assert "Never give generic praise" in session["instructions"]
-    assert session["tracing"]["workflow_name"] == "VivaTrace Realtime speaking"
+    assert session["tracing"]["workflow_name"] == "Meaning Realtime speaking"
 
 
 def test_realtime_component_uses_webrtc_without_exposing_api_key() -> None:
@@ -94,13 +94,13 @@ def test_bridge_token_is_stable_across_gateway_restart() -> None:
 
 def test_multipart_contains_sdp_and_session(relative_assignment: dict) -> None:
     session = build_realtime_session_config(relative_assignment)
-    body, boundary = _multipart_session_body("v=0\r\ns=vivatrace", session)
+    body, boundary = _multipart_session_body("v=0\r\ns=meaning_trainer", session)
     decoded = body.decode("utf-8")
 
     assert f"--{boundary}" in decoded
     assert 'name="sdp"' in decoded
     assert "Content-Type: application/sdp" in decoded
-    assert "v=0\r\ns=vivatrace" in decoded
+    assert "v=0\r\ns=meaning_trainer" in decoded
     assert 'name="session"' in decoded
     assert f'"model": "{REALTIME_MODEL}"' in decoded
 
@@ -139,7 +139,7 @@ def test_assessment_uses_structured_outputs(monkeypatch, relative_assignment: di
             ],
         }, {}
 
-    monkeypatch.setattr("vivatrace.realtime._request_json", fake_request)
+    monkeypatch.setattr("meaning_trainer.realtime._request_json", fake_request)
     assessment, trace = assess_realtime_turn(
         api_key="sk-test-not-real",
         assignment=relative_assignment,

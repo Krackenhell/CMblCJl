@@ -19,7 +19,7 @@ def make_dataset(n: int = 800, seed: int = 42) -> tuple[np.ndarray, np.ndarray, 
     """Simulate a bounded failure mode: polished work without mastery.
 
     This synthetic experiment tests whether the pipeline can exploit an
-    additional viva signal. It is not presented as evidence of real-world
+    additional knowledge_check signal. It is not presented as evidence of real-world
     educational impact.
     """
 
@@ -31,12 +31,12 @@ def make_dataset(n: int = 800, seed: int = 42) -> tuple[np.ndarray, np.ndarray, 
     assignment_noise = rng.normal(0, 0.16, size=n)
     assignment_score = np.clip(latent_mastery + 0.42 * assistance + assignment_noise, 0, 1)
 
-    viva_noise = rng.normal(0, 0.11, size=n)
-    viva_score = np.clip(latent_mastery + viva_noise - 0.03 * assistance, 0, 1)
+    knowledge_check_noise = rng.normal(0, 0.11, size=n)
+    knowledge_check_score = np.clip(latent_mastery + knowledge_check_noise - 0.03 * assistance, 0, 1)
     artifact_flags = np.clip(1.1 - latent_mastery + rng.normal(0, 0.18, size=n), 0, 1)
 
     assignment_only = assignment_score.reshape(-1, 1)
-    hybrid = np.column_stack([assignment_score, viva_score, artifact_flags])
+    hybrid = np.column_stack([assignment_score, knowledge_check_score, artifact_flags])
     return assignment_only, hybrid, true_mastery
 
 
@@ -71,7 +71,7 @@ def main() -> None:
         },
         "models": {
             "assignment_only": evaluate(assignment_only, target),
-            "assignment_plus_viva": evaluate(hybrid, target),
+            "assignment_plus_knowledge_check": evaluate(hybrid, target),
         },
     }
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)

@@ -26,8 +26,8 @@ def test_knowledge_tracing_experiment_has_baselines_and_calibration_metrics():
         assert all(0 <= value <= 1 for value in result.values())
 
 
-def test_semantic_viva_benchmark_has_pass_partial_and_fail_cases():
-    path = Path(__file__).parents[1] / "data" / "viva_semantic_benchmark.json"
+def test_semantic_knowledge_check_benchmark_has_pass_partial_and_fail_cases():
+    path = Path(__file__).parents[1] / "data" / "knowledge_check_semantic_benchmark.json"
     cases = json.loads(path.read_text(encoding="utf-8"))
 
     assert len(cases) >= 10

@@ -28,7 +28,7 @@ _SERVER_THREAD: threading.Thread | None = None
 
 def _bridge_token_for_key(api_key: str) -> str:
     """Build a stable, non-reversible token for the local browser bridge."""
-    return hashlib.sha256(f"vivatrace-realtime-bridge-v1:{api_key}".encode()).hexdigest()
+    return hashlib.sha256(f"meaning_trainer-realtime-bridge-v1:{api_key}".encode()).hexdigest()
 
 
 def _clamp(value: Any, default: float = 0.0) -> float:
@@ -120,7 +120,7 @@ def build_realtime_session_config(assignment: dict[str, Any]) -> dict[str, Any]:
     principles = " | ".join(str(item) for item in rule.get("principles", [])[:4])
     examples = " | ".join(str(item) for item in rule.get("examples", [])[:3])
     instructions = f"""
-You are VivaTrace, a warm but rigorous B2 English speaking tutor.
+You are Meaning, a warm but rigorous B2 English speaking tutor.
 
 LESSON TOPIC: {assignment.get('topic') or 'English B2'}
 TASK CONTEXT: {assignment.get('instructions') or assignment.get('title') or ''}
@@ -181,7 +181,7 @@ Run a natural speech-to-speech conversation in English.
             "output": {"voice": "marin", "speed": 1.0},
         },
         "tracing": {
-            "workflow_name": "VivaTrace Realtime speaking",
+            "workflow_name": "Meaning Realtime speaking",
             "group_id": str(assignment.get("topic_key") or "english-b2"),
             "metadata": {"assignment_id": str(assignment.get("id") or "")},
         },
@@ -189,7 +189,7 @@ Run a natural speech-to-speech conversation in English.
 
 
 def _multipart_session_body(sdp: str, session: dict[str, Any]) -> tuple[bytes, str]:
-    boundary = f"vivatrace-{secrets.token_hex(16)}"
+    boundary = f"meaning_trainer-{secrets.token_hex(16)}"
     parts = [
         (
             "sdp",
@@ -221,7 +221,7 @@ def create_realtime_call(
     sdp: str,
 ) -> tuple[str, str]:
     body, boundary = _multipart_session_body(sdp, build_realtime_session_config(assignment))
-    safety_id = hashlib.sha256(f"vivatrace:{student_id}".encode()).hexdigest()
+    safety_id = hashlib.sha256(f"meaning_trainer:{student_id}".encode()).hexdigest()
     request = urllib.request.Request(
         f"{OPENAI_API_ROOT}/realtime/calls",
         data=body,
@@ -592,7 +592,7 @@ def ensure_realtime_server(api_key: str, port: int = REALTIME_PORT) -> dict[str,
             }
         _SERVER_THREAD = threading.Thread(
             target=_SERVER.serve_forever,
-            name="vivatrace-openai-realtime",
+            name="meaning_trainer-openai-realtime",
             daemon=True,
         )
         _SERVER_THREAD.start()

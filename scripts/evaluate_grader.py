@@ -3,8 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from vivatrace.database import get_assignment, init_database
-from vivatrace.grading import grade_structured_answer
+from meaning_trainer.database import get_assignment, init_database
+from meaning_trainer.grading import grade_structured_answer
 
 
 ROOT = Path(__file__).resolve().parents[1]
