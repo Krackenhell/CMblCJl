@@ -71,7 +71,7 @@ COLORS = {
 }
 
 st.set_page_config(
-    page_title="VivaTrace",
+    page_title="Смысл",
     page_icon="◉",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -295,7 +295,7 @@ def student_game_state(student_id: str, total_assignments: int = 0) -> dict:
 def render_learning_route(stage: int, completed: int, total: int, mastery: float) -> None:
     steps = [
         (1, "Решить", "Предметная проверка"),
-        (2, "Подтвердить", "Viva понимания"),
+        (2, "Подтвердить", "Проверка понимания"),
         (3, "Применить", "Новый контекст"),
     ]
     route = []
@@ -476,7 +476,7 @@ def render_criterion_results(assessment: dict) -> None:
         if assessment.get("objective_check"):
             st.caption(
                 "Баллы определены предметным grader по атомарным компонентам правила. Локальная LLM "
-                "не меняет этот результат: она получает только проверенные пробелы и использует их для Viva."
+                "не меняет этот результат: она получает только проверенные пробелы и использует их для проверки понимания."
             )
         for item in items:
             status = item["status"]
@@ -531,8 +531,8 @@ def render_sidebar() -> tuple[str, dict | None]:
     students = list_students()
     with st.sidebar:
         st.markdown(
-            '<div class="brand-line"><span class="brand-mark">V</span>'
-            '<span class="brand">VivaTrace</span></div>',
+            '<div class="brand-line"><span class="brand-mark">С</span>'
+            '<span class="brand">Смысл</span></div>',
             unsafe_allow_html=True,
         )
         st.markdown(
@@ -887,7 +887,7 @@ def render_student_dashboard(student: dict, assignments: list[dict]) -> None:
                         "Задание": item.get("assignment_title", "—"),
                         "Тема": item.get("topic", "—"),
                         "Задание, %": round(float(item.get("submission_score") or 0) * 100),
-                        "Viva": (
+                        "Понимание": (
                             "пересдать"
                             if item.get("regraded_legacy")
                             else f'{round(float(item.get("overall_score") or 0) * 100)}%'
@@ -1142,7 +1142,7 @@ def render_voice_mode(student: dict, assignments: list[dict]) -> None:
     )
     use_realtime = engine.startswith("OpenAI")
     hero(
-        "Голосовая Viva",
+        "Голосовой диалог",
         (
             "Живой разговор по изученной теме: субтитры, мягкие исправления и прогресс цели в одной сессии."
             if use_realtime
@@ -1275,20 +1275,20 @@ def render_student(student: dict) -> None:
     st.markdown('<div class="mode-kicker">Выберите формат занятия</div>', unsafe_allow_html=True)
     mode = st.radio(
         "Формат занятия",
-        ["Тренажер", "Практическая миссия", "Голосовая Viva"],
+        ["Тренажер", "Практическая миссия", "Голосовой диалог"],
         horizontal=True,
         key=f'learning-mode-{student["id"]}',
         format_func={
             "Тренажер": "▦  Тренажёр",
             "Практическая миссия": "◆  Практическая миссия",
-            "Голосовая Viva": "●  Голосовая Viva",
+            "Голосовой диалог": "●  Голосовой диалог",
         }.get,
         label_visibility="collapsed",
     )
     if mode == "Практическая миссия":
         render_mission_mode(student, assignments)
         return
-    if mode == "Голосовая Viva":
+    if mode == "Голосовой диалог":
         render_voice_mode(student, assignments)
         return
     progress = student_progress(student["id"])
@@ -1410,7 +1410,7 @@ def render_student(student: dict) -> None:
                 f'<p class="muted">{escape(assignment["instructions"])}</p>'
                 '<hr style="border:0;border-top:1px solid #e3ebe6;margin:15px 0">'
                 '<b style="font-size:.8rem">Маршрут после проверки</b>'
-                '<p class="muted">Сначала короткая Viva, затем задание на перенос знания в новый контекст.</p>'
+                '<p class="muted">Сначала короткая проверка понимания, затем задание на перенос знания в новый контекст.</p>'
                 '<div class="reward-chip" style="display:inline-block">Награда: 120 XP</div></div>',
                 unsafe_allow_html=True,
             )
@@ -1500,7 +1500,7 @@ def render_student(student: dict) -> None:
     if flow.get("regraded_legacy"):
         st.warning(
             "Задание пересчитано новым предметным ключом. Старая проверка понимания скрыта как "
-            "недостоверная — перезапустите задание, чтобы пройти новую Viva."
+            "недостоверная — перезапустите задание, чтобы пройти новую проверку понимания."
         )
     else:
         st.success("Результат сохранён и уже доступен преподавателю.")
@@ -1517,7 +1517,7 @@ def render_student(student: dict) -> None:
     with result_columns[2]:
         combined_mastery = sum(flow["mastery"].values()) / max(len(flow["mastery"]), 1)
         st.metric("Освоение после всего цикла", f"{combined_mastery:.0%}")
-    st.caption("Освоение пересчитывается последовательно: прошлые попытки → исходное задание → оба ответа Viva.")
+    st.caption("Освоение пересчитывается последовательно: прошлые попытки → исходное задание → оба ответа проверки понимания.")
     render_criterion_results(assessment)
     for evidence in flow["evidence"]:
         skill = CURRICULUM.skill_by_id[evidence.skill_id]
@@ -1752,7 +1752,7 @@ def grounded_teacher_summary(attempts: list[dict]) -> dict[str, str] | None:
         reason = f"{student_count} {student_word}: проверяемые ошибки — {facts}."
     else:
         reason = (
-            f'У {student_count} {student_genitive} — ответов Viva ниже 75%: {gap["viva_failures"]}. '
+            f'У {student_count} {student_genitive} — ответов проверки понимания ниже 75%: {gap["viva_failures"]}. '
             f'Навык: «{title}».'
         )
     newest = max(attempts, key=lambda item: item["completed_at"])
@@ -2014,7 +2014,7 @@ def render_teacher_missions(topic_key: str) -> None:
 
 def render_teacher_voice_sessions(topic_key: str) -> None:
     rows = latest_voice_topic_sessions(topic_key)
-    with st.expander("Голосовая Viva группы", expanded=False):
+    with st.expander("Голосовые диалоги группы", expanded=False):
         if not rows:
             st.caption(
                 "После первой голосовой сессии здесь появятся транскрипты и проверяемые speaking-метрики."
@@ -2160,12 +2160,12 @@ def render_teacher() -> None:
         metric_card("Задание", f"{mean_submission:.0%}", "средняя предметная оценка")
     with columns[2]:
         metric_card(
-            "Viva",
+            "Понимание",
             f"{mean_viva:.0%}" if mean_viva is not None else "—",
             "среднее понимание" if mean_viva is not None else "нужна новая проверка",
         )
     with columns[3]:
-        metric_card("Нужна помощь", str(needs_help), "ошибка в задании или viva")
+        metric_card("Нужна помощь", str(needs_help), "ошибка в задании или проверке понимания")
 
     left, right = st.columns([1.45, 1], gap="large")
     with left:
@@ -2222,7 +2222,7 @@ def render_teacher() -> None:
                 students_text = ", ".join(sorted(gap["students"]))
                 observations = " · ".join(gap["observations"][:3])
                 if gap["viva_failures"]:
-                    viva_fact = f'ответов Viva ниже 75%: {gap["viva_failures"]}'
+                    viva_fact = f'ответов проверки понимания ниже 75%: {gap["viva_failures"]}'
                     observations = f"{observations} · {viva_fact}" if observations else viva_fact
                 corrections = grounded_gap_focus(gap)
                 st.markdown(
@@ -2239,7 +2239,7 @@ def render_teacher() -> None:
                 "Студент": item["student_name"],
                 "Вариант": item.get("assignment_title", "—"),
                 "Задание": round((item.get("submission_score") or 0) * 100),
-                "Viva": (
+                "Понимание": (
                     "нужна повторная проверка"
                     if item.get("regraded_legacy")
                     else f'{round(item["overall_score"] * 100)}%'
@@ -2266,7 +2266,7 @@ def render_teacher() -> None:
         st.code(detail["artifact"], language="text")
         if detail.get("regraded_legacy"):
             st.warning(
-                "Оценка задания пересчитана новым предметным ключом. Старая Viva скрыта как "
+                "Оценка задания пересчитана новым предметным ключом. Старая проверка понимания скрыта как "
                 "недостоверная; студенту нужно пройти проверку понимания заново."
             )
         for entry in detail["evidence"]:

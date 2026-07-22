@@ -206,7 +206,7 @@ def voice_component_html(config: dict[str, Any]) -> str:
 </head>
 <body>
 <div class="shell">
-  <div class="top"><div class="top-main"><div class="viva-mark">V</div><div><h2>Голосовая Viva · __TOPIC__</h2><p>Спокойный разговор по вашей теме с обратной связью после каждой мысли</p></div></div><div class="local">ЛОКАЛЬНЫЙ РЕЖИМ<br>Whisper · Qwen</div></div>
+  <div class="top"><div class="top-main"><div class="viva-mark">С</div><div><h2>Голосовой диалог · __TOPIC__</h2><p>Спокойный разговор по вашей теме с обратной связью после каждой мысли</p></div></div><div class="local">ЛОКАЛЬНЫЙ РЕЖИМ<br>Whisper · Qwen</div></div>
   <div class="workspace">
     <section class="dialogue">
       <div class="status"><span id="dot" class="dot"></span><span id="status">Готова слушать вас</span><div class="meter"><i id="level"></i></div></div>
@@ -271,7 +271,7 @@ def realtime_voice_component_html(config: dict[str, Any]) -> str:
 </head>
 <body>
 <div class="shell">
-  <div class="top"><div class="top-main"><div class="viva-mark">V</div><div><h2>Голосовая Viva · __TOPIC__</h2><p>Естественный разговор с субтитрами и обратной связью после каждой мысли</p></div></div><div class="cloud">ЖИВОЙ РЕЖИМ<br>WebRTC · speech-to-speech</div></div>
+  <div class="top"><div class="top-main"><div class="viva-mark">С</div><div><h2>Голосовой диалог · __TOPIC__</h2><p>Естественный разговор с субтитрами и обратной связью после каждой мысли</p></div></div><div class="cloud">ЖИВОЙ РЕЖИМ<br>WebRTC · одновременная речь</div></div>
   <div class="workspace"><section class="dialogue"><div class="status"><span id="dot" class="dot"></span><span id="status">Готова к разговору</span><div class="meter"><i id="level"></i></div></div><div id="chat" class="chat"><div class="msg system">После подключения собеседник сам начнёт разговор по выбранной теме.</div></div><div class="voice-pad"><div class="listen"><b>Живой разговор</b><span>пауза до 5 секунд остаётся внутри мысли</span></div><div class="controls"><button id="start" class="primary">● Начать разговор</button><button id="stop" class="danger" disabled>Завершить</button></div><div class="hint">Говорите естественно: собеседника можно перебить, а служебные фразы не влияют на оценку.</div></div></section><aside class="analysis"><div class="aside-kicker">ОБРАТНАЯ СВЯЗЬ</div><h3>Разговорный прогресс</h3><div id="scores" class="scores"><div class="score"><b>—</b><span>Грамматика</span></div><div class="score"><b>—</b><span>Словарь</span></div><div class="score"><b>—</b><span>По теме</span></div><div class="score"><b>—</b><span>Беглость</span></div></div><div class="insight-card"><b>Последний сигнал</b><p id="insight">После первой содержательной реплики здесь появится точечная обратная связь.</p></div><div class="goal-card"><b>Цель сессии</b><p>Дать собственный пример и развить его в коротком диалоге.</p><div class="goal-line"><i id="goalProgress"></i></div><p id="goalCopy">0 из 2 шагов подтверждено</p></div><div class="privacy">В браузер не передаётся постоянный API-ключ</div></aside></div>
 </div>
 <script>
