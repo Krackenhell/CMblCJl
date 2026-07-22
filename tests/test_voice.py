@@ -153,3 +153,11 @@ def test_voice_component_escapes_dynamic_content_and_contains_barge_in() -> None
     assert "new WebSocket(CONFIG.websocket_url)" in rendered
     assert '"websocket_url": "ws://127.0.0.1:8765"' in rendered
     assert "window.location.hostname" not in rendered
+    assert 'id="manual"' in rendered
+    assert "Начать реплику вручную" in rendered
+    assert "manualBtn.onclick=()=>speech?endSpeech('manual'):beginSpeech()" in rendered
+    assert "noiseFloor*2.4" in rendered
+    assert "MAX_UTTERANCE_MS=15000" in rendered
+    assert "awaitingResponse=true" in rendered
+    assert "if(awaitingResponse)return" in rendered
+    assert "manualBtn.textContent='Реплика отправлена'" in rendered
